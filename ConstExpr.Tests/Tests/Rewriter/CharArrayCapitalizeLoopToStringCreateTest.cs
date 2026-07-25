@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -32,7 +35,29 @@ public class CharArrayCapitalizeLoopToStringCreateTest : BaseTest<Func<string, s
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(input =>
+		{
+			var result = input.ToCharArray();
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+			var capitalizeNext = true;
+
+			for (var i = 0; i < result.Length; i++)
+			{
+				var c = Unsafe.Add(ref resultRef, i);
+
+				if (Char.IsWhiteSpace(c))
+				{
+					capitalizeNext = true;
+				}
+				else if (capitalizeNext)
+				{
+					Unsafe.Add(ref resultRef, i) = Char.ToUpper(c);
+					capitalizeNext = false;
+				}
+			}
+
+			return new string(result);
+		}),
 		Create(_ => "Hello World", [ "hello world" ]),
 		Create(_ => "", [ System.String.Empty ]),
 		Create(_ => "Already Capitalized", [ "Already Capitalized" ])

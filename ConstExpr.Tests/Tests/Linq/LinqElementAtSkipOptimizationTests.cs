@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -8,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   we already have direct indexing. Direct ElementAt(0) without Skip DOES become First().
 /// </summary>
 [InheritsTests]
-public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -35,7 +36,12 @@ public class LinqElementAtSkipOptimizationTests() : BaseTest<Func<int[], int>>(F
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x[1] * 2 + x[3] * 2 + x[2] + x[0]),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (Unsafe.Add(ref xRef, 1) << 1) + (Unsafe.Add(ref xRef, 3) << 1) + Unsafe.Add(ref xRef, 2) + xRef;
+		}),
 		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
 		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),

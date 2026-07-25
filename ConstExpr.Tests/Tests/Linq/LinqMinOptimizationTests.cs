@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Min() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqMinOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -30,7 +28,11 @@ public class LinqMinOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return TensorPrimitives.Min(x) * 4 + Int32.Min(Min_lB3pdg(x), TensorPrimitives.Min(x));"),
+		Create("""
+			var minVal = TensorPrimitives.Min(x);
+
+			return (minVal << 2) + Int32.Min(Min_lB3pdg(x), minVal);
+			"""),
 		Create(_ => 5, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 25, [ new[] { 5 } ])
 	];

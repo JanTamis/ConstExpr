@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>System.Math.MaxMagnitude(double, double) — re-targets to double.MaxMagnitude; idempotency; constant folding.</summary>
 [InheritsTests]
-public class MathMaxMagnitudeTest() : BaseTest<Func<double, double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathMaxMagnitudeTest : BaseTest<Func<double, double, double>>
 {
 	public override string TestMethod => GetString((a, b) => System.Math.MaxMagnitude(a, b));
 

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ToLowerCaseTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ToLowerCaseTest : BaseTest<Func<string, string>>
 {
 	public override string TestMethod => GetString(s => s.ToLower());
 

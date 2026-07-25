@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and Aggregate patterns are optimized to Sum when appropriate
 /// </summary>
 [InheritsTests]
-public class LinqAggregateOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

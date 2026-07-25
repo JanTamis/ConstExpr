@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for LongCount() optimization - verify that unnecessary operations before LongCount() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLongCountOptimizationTests() : BaseTest<Func<int[], long>>(FastMathFlags.AssociativeMath)
+public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
 {
 	public override string TestMethod => GetString(x =>
 	{

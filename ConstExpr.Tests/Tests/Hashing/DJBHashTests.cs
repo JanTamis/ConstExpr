@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
+public class DJBHashTests : BaseTest<Func<string, uint>>
 {
 	public override string TestMethod => GetString(str =>
 	{
@@ -12,7 +13,7 @@ public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash = (hash << 5) + hash + (byte)str[(int)i];
+			hash = (hash << 5) + hash + (byte) str[(int) i];
 		}
 
 		return hash;
@@ -22,12 +23,11 @@ public class DJBHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 	[
 		Create(str =>
 		{
+			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
 			var hash = 5381U;
 
 			for (var i = 0U; i < str.Length; i++)
-			{
-				hash = hash * 33U + (byte)str[(int)i];
-			}
+				hash = (hash << 5) + hash + (byte) Unsafe.Add(ref strRef, (int) i);
 
 			return hash;
 		})

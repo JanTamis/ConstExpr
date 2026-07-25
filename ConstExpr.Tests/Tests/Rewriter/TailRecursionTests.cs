@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -10,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   chance to run, so only Unknown-argument cases exercise the rewriter.
 /// </summary>
 [InheritsTests]
-public class TailRecursionTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.TailRecursionElimination)
+public class TailRecursionTests : BaseTest<Func<int, int, int>>
 {
 	/// <summary>
 	///   Tail-recursive countdown accumulator.

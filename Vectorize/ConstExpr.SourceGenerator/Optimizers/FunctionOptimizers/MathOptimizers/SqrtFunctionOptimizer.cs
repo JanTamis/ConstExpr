@@ -51,13 +51,13 @@ public class SqrtFunctionOptimizer() : BaseMathFunctionOptimizer("Sqrt", n => n 
 		// Algebraic identity: sqrt(e²) = |e| for any pure expression e.
 		// Saves the entire SQRTSS/fsqrt on x86; on ARM64 the JIT folds this anyway,
 		// but the rewrite improves source clarity and enables further optimisations.
-		if (arg is BinaryExpressionSyntax { RawKind: (int)SyntaxKind.MultiplyExpression } mul
+		if (arg is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } mul
 		    && SyntaxNodeComparer.Get().Equals(mul.Left, mul.Right)
 		    && IsPure(mul.Left))
 		{
-			var mathType = ParseTypeName(paramType.Name);
-			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("Abs")))
+			var invocation = new AbsFunctionOptimizer().GenerateCustomImplementation(context, paramType);
+
+			result = InvocationExpression(ParseExpression(invocation))
 				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(mul.Left))));
 			return true;
 		}

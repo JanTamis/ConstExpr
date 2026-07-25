@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for DefaultIfEmpty() optimization on List
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
+public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

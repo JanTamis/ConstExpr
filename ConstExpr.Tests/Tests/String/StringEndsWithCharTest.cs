@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringEndsWithCharTest() : BaseTest<Func<string, char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringEndsWithCharTest : BaseTest<Func<string, char, bool>>
 {
 	public override string TestMethod => GetString((s, c) => s.EndsWith(c));
 

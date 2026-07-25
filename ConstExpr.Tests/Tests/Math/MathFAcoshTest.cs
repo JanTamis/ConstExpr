@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Acosh(float) -> FastAcosh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAcoshTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFAcoshTest : BaseTest<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Acosh(x));
 

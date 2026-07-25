@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Contains() optimization on List - verify that Contains is optimized for List type
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
+public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,7 +34,11 @@ public class LinqContainsOptimizationListTests() : BaseTest<Func<List<int>, int>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Contains__KFndQ(CollectionsMarshal.AsSpan(x)) ? 6 : 0) + (Contains_H_mKqw(CollectionsMarshal.AsSpan(x)) ? 1 : 0);", Unknown),
+		Create("""
+			var asSpanVal = CollectionsMarshal.AsSpan(x);
+
+			return (Contains__KFndQ(asSpanVal) ? 6 : 0) + (Contains_H_mKqw(asSpanVal) ? 1 : 0);
+			""", Unknown),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ]),
 		Create(_ => 0, [ new List<int> { 1, 2, 4, 5, 6 } ]) // No 3, all tests fail

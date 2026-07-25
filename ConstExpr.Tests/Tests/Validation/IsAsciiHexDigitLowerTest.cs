@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Validation;
 ///   is collapsed into <c>Char.IsAsciiHexDigitLower(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiHexDigitLowerTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsAsciiHexDigitLowerTest : BaseTest<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'f');

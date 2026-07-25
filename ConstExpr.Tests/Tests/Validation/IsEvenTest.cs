@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsEvenTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsEvenTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

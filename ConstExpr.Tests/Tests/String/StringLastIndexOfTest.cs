@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringLastIndexOfTest() : BaseTest<Func<string, string, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringLastIndexOfTest : BaseTest<Func<string, string, int>>
 {
 	public override string TestMethod => GetString((s, sub) => s.LastIndexOf(sub));
 

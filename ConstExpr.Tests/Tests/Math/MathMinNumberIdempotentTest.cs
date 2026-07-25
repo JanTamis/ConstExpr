@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MinNumber(a, a) — idempotency optimization: returns a.</summary>
 [InheritsTests]
-public class MathMinNumberIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathMinNumberIdempotentTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(a => Double.MinNumber(a, a));
 

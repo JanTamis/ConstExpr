@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class RemoveWhitespaceTest : BaseTest<Func<string, string>>
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -30,12 +31,13 @@ public class RemoveWhitespaceTest() : BaseTest<Func<string, string>>(FastMathFla
 				return input;
 
 			var result = new char[input.Length];
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
 			var index = 0;
 
 			foreach (var c in input)
 			{
 				if (!Char.IsWhiteSpace(c))
-					result[index++] = c;
+					Unsafe.Add(ref resultRef, index++) = c;
 			}
 
 			return new string(result, 0, index);

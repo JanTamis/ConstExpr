@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.MaxMagnitude(float, float) — re-targets to float.MaxMagnitude.</summary>
 [InheritsTests]
-public class MathFMaxMagnitudeTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFMaxMagnitudeTest : BaseTest<Func<float, float, float>>
 {
 	public override string TestMethod => GetString((a, b) => MathF.MaxMagnitude(a, b));
 

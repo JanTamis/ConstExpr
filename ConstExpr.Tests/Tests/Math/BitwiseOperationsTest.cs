@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class BitwiseOperationsTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class BitwiseOperationsTest : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((a, b) => a & b | a ^ b);
 

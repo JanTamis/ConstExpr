@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Arithmetic;
 
 // Guards the generalized MergeRedundantInitializers: a dead constant init (`double x = 0`) folds into a
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Arithmetic;
 // preserves the incoming declaration verbatim, so the double-carrying literals (2D/4D) survive and the
 // result stays real division.
 [InheritsTests]
-public class DeadInitializerMergeTest() : BaseTest<Func<int, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class DeadInitializerMergeTest : BaseTest<Func<int, double>>
 {
 	public override string TestMethod => GetString(a =>
 	{

@@ -64,7 +64,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				end++;
 			}
 
-			return text.Substring(0, end).ToLowerInvariant();
+			return end == 0 ? String.Empty : Char.ToLowerInvariant(text[0]) + text.Substring(1, end - 1);
 		}
 
 		while (_usedNames.Contains(name))

@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Max() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqMaxOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -30,7 +28,7 @@ public class LinqMaxOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return TensorPrimitives.Max(x) * 4 + Max_JcFfKg(x);"),
+		Create("return (TensorPrimitives.Max(x) << 2) + Max_JcFfKg(x);"),
 		Create(_ => 18, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 30, [ new[] { 5 } ])
 	];

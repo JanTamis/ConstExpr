@@ -25,7 +25,12 @@ public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? x[0] : 42) + (x.Length > 0 ? x[0] : 99) + First_mA5pFw(x) + (x.Length > 0 ? x[0] : 10);"),
+		Create("""
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+			var val = x.Length > 0;
+
+			return (val ? xRef : 42) + (val ? xRef : 99) + First_mA5pFw(x) + (val ? xRef : 10);
+			"""),
 		Create(_ => 4, [ new[] { 1 } ]), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
 		Create(_ => 228, [ System.Array.Empty<int>() ]) // Empty: returns default values 42+99+77+20 = 238
 	];

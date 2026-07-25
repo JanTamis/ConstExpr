@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class CharCountTest() : BaseTest<Func<string?, char, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CharCountTest : BaseTest<Func<string?, char, int>>
 {
 	public override string TestMethod => GetString((text, target) =>
 	{

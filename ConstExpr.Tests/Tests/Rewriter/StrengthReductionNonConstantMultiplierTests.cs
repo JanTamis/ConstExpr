@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   literal, so no accumulator step can be computed. The pass must leave the loop unchanged.
 /// </summary>
 [InheritsTests]
-public class StrengthReductionNonConstantMultiplierTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.InductionVariableStrengthReduction)
+public class StrengthReductionNonConstantMultiplierTests : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((n, m) =>
 	{

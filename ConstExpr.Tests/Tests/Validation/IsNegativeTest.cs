@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsNegativeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsNegativeTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n => n < 0);
 

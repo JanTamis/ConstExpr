@@ -11,7 +11,7 @@ public class ComparisonInversionFloatStrictTest : BaseTest<Func<float, float, (b
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((a, b) => (a != b, !(a < b))),
+		Create((a, b) => (a != b, a >= b)),
 		Create((_, _) => (false, true), [ 1f, 1f ]),
 		Create((_, _) => (true, false), [ 1f, 2f ]),
 		Create((_, _) => (true, true), [ Single.NaN, 1f ])

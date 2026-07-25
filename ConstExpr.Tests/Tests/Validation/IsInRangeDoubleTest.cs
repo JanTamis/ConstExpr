@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsInRangeDoubleTest() : BaseTest<Func<double, double, double, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsInRangeDoubleTest : BaseTest<Func<double, double, double, bool>>
 {
 	public override string TestMethod => GetString((value, min, max) => value >= min && value <= max);
 

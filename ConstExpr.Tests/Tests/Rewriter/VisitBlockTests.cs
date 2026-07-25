@@ -26,7 +26,7 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 	[
 		Create((x, y) =>
 		{
-			var result = x + 10 + (y << 1);
+			var result = (y << 1) + x + 10;
 			result += x - 5;
 
 			return result;

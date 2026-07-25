@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringLengthTest() : BaseTest<Func<string?, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringLengthTest : BaseTest<Func<string?, int>>
 {
 	public override string TestMethod => GetString(s =>
 	{

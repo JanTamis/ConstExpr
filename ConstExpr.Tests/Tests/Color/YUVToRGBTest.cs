@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class YUVToRGBTest() : BaseTest<Func<double, double, double, (byte, byte, byte)>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class YUVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, byte)>>
 {
 	public override string TestMethod => GetString((y, u, v) =>
 	{

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayProductTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ArrayProductTest : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(arr =>
 	{

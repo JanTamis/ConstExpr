@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Exp(double) → FastExp(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathExpTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathExpTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Exp(x));
 

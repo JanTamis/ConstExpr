@@ -1,9 +1,7 @@
-﻿using ConstExpr.Core.Enumerators;
-
-namespace ConstExpr.Tests.Arithmetic;
+﻿namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AverageTest() : BaseTest<Func<int[], double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class AverageTest : BaseTest<Func<int[], double>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{

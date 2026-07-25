@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.BitOperations;
 
 [InheritsTests]
-public class BitOperationsRotateLeftUintTest() : BaseTest<Func<uint, int, uint>>(FastMathFlags.All)
+public class BitOperationsRotateLeftUintTest : BaseTest<Func<uint, int, uint>>
 {
 	public override string TestMethod => GetString((value, offset) => System.Numerics.BitOperations.RotateLeft(value, offset));
 
@@ -17,7 +15,7 @@ public class BitOperationsRotateLeftUintTest() : BaseTest<Func<uint, int, uint>>
 }
 
 [InheritsTests]
-public class BitOperationsRotateRightUintTest() : BaseTest<Func<uint, int, uint>>(FastMathFlags.All)
+public class BitOperationsRotateRightUintTest : BaseTest<Func<uint, int, uint>>
 {
 	public override string TestMethod => GetString((value, offset) => System.Numerics.BitOperations.RotateRight(value, offset));
 

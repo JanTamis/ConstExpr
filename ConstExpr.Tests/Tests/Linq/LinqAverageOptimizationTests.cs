@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Average() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAverageOptimizationTests() : BaseTest<Func<int[], double>>(FastMathFlags.AssociativeMath)
+public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 {
 	public override string TestMethod => GetString(x =>
 	{

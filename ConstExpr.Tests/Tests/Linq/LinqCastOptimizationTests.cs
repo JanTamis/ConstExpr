@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Cast() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqCastOptimizationTests() : BaseTest<Func<List<object>, int>>(FastMathFlags.AssociativeMath)
+public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

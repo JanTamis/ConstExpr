@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Sin(double) → FastSin(x) in FastMath mode (polynomial approximation).</summary>
 [InheritsTests]
-public class MathSinTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathSinTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Sin(x));
 

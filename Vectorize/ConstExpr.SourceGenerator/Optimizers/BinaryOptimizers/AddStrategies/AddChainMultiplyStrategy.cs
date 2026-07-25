@@ -78,24 +78,27 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 				{
 					if (whenTrueIsLiteral)
 					{
-						var whenTrue = (LiteralExpressionSyntax)conditionalExpression.WhenTrue;
+						var whenTrue = (LiteralExpressionSyntax) conditionalExpression.WhenTrue;
 						result = result.WithWhenTrue(CreateLiteral(whenTrue.Token.Value.Multiply(count.ToSpecialType(context.Type.SpecialType))));
 					}
 					else
 					{
-						// WhenFalse is literal; multiply the non-literal WhenTrue explicitly.
-						result = result.WithWhenTrue(MultiplyExpression(WrapForMultiply(conditionalExpression.WhenTrue), countLiteral));
+						// WhenFalse is literal; multiply the non-literal WhenTrue explicitly. Annotated
+						// for the same reason as the main term below: this node is invisible to the
+						// semantic model, so a later re-visit needs the annotation to resolve its type.
+						result = result.WithWhenTrue(MultiplyExpression(WrapForMultiply(conditionalExpression.WhenTrue), countLiteral).WithTypeSymbolAnnotation(context.Type, context.SymbolStore)!);
 					}
 
 					if (whenFalseIsLiteral)
 					{
-						var whenFalse = (LiteralExpressionSyntax)conditionalExpression.WhenFalse;
+						var whenFalse = (LiteralExpressionSyntax) conditionalExpression.WhenFalse;
 						result = result.WithWhenFalse(CreateLiteral(whenFalse.Token.Value.Multiply(count.ToSpecialType(context.Type.SpecialType))));
 					}
 					else
 					{
-						// WhenTrue is literal; multiply the non-literal WhenFalse explicitly.
-						result = result.WithWhenFalse(MultiplyExpression(WrapForMultiply(conditionalExpression.WhenFalse), countLiteral));
+						// WhenTrue is literal; multiply the non-literal WhenFalse explicitly. Annotated
+						// for the same reason as above.
+						result = result.WithWhenFalse(MultiplyExpression(WrapForMultiply(conditionalExpression.WhenFalse), countLiteral).WithTypeSymbolAnnotation(context.Type, context.SymbolStore)!);
 					}
 
 					terms.Add(WrapForMultiply(result));
@@ -103,8 +106,12 @@ public class AddChainMultiplyStrategy : NumericBinaryStrategy
 				}
 			}
 
+			// Annotated with its type so a later re-visit of this freshly-synthesized node (which the
+			// semantic model cannot bind, since it never existed in the compiled tree) can still resolve
+			// its type via SymbolAnnotation and let further type-gated strategies (e.g. x * 2 => x << 1)
+			// fire on it.
 			terms.Add(MultiplyExpression(WrapForMultiply(expr),
-				CreateLiteral(count.ToSpecialType(context.Type.SpecialType))));
+				CreateLiteral(count.ToSpecialType(context.Type.SpecialType))).WithTypeSymbolAnnotation(context.Type, context.SymbolStore)!);
 		}
 
 		// Append remaining non-duplicated operands.

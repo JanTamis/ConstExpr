@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CountDigitsTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CountDigitsTest : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{

@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
 ///   Test with small set (powers of 2)
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskSmallTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PatternBitmaskSmallTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

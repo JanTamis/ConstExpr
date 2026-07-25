@@ -57,11 +57,6 @@ public static class OptimizationPipeline
 			body = Prune(LoopFusionRewriter.Apply(body));
 		}
 
-		if (attribute.Optimizations.HasFlag(OptimizationFlags.IndexFromEndConversion))
-		{
-			body = Prune(IndexFromEndRewriter.Apply(body));
-		}
-
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
 		{
 			body = Prune(StrengthReductionRewriter.Apply(body));

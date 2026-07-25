@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FibonacciTest() : BaseTest<Func<int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class FibonacciTest : BaseTest<Func<int, long>>
 {
 	public override string TestMethod => GetString(n =>
 	{

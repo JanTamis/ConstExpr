@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -9,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   list is only indexed and read — see the negative test below for what invalidates that.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationListTests() : BaseTest<Func<List<int>, int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationListTests : BaseTest<Func<List<int>, int, int>>
 {
 	public override string TestMethod => GetString((values, i) =>
 	{
@@ -24,9 +23,9 @@ public class BoundsCheckEliminationListTests() : BaseTest<Func<List<int>, int, i
 		{
 			ref var valuesRef = ref MemoryMarshal.GetReference(CollectionsMarshal.AsSpan(values));
 
-			Unsafe.Add(ref valuesRef, (nuint) i) = i;
+			Unsafe.Add(ref valuesRef, i) = i;
 
-			return Unsafe.Add(ref valuesRef, (nuint) i) + valuesRef + values.Count;
+			return Unsafe.Add(ref valuesRef, i) + valuesRef + values.Count;
 		}, [ Unknown, Unknown ])
 	];
 }

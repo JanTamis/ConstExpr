@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathAtan2Test() : BaseTest<Func<double, double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathAtan2Test : BaseTest<Func<double, double, double>>
 {
 	public override string TestMethod => GetString((y, x) => System.Math.Atan2(y, x));
 

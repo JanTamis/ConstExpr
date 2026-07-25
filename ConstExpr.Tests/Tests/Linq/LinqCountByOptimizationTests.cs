@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Enumerable.Empty&lt;T&gt;() is short-circuited, and that literal Where predicates are folded.
 /// </summary>
 [InheritsTests]
-public class LinqCountByOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqCountByOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

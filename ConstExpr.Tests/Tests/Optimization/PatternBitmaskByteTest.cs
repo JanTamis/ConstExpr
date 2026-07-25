@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
 ///   Test with byte values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskByteTest() : BaseTest<Func<byte, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PatternBitmaskByteTest : BaseTest<Func<byte, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

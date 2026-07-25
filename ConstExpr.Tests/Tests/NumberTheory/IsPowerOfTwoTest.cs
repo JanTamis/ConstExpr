@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPowerOfTwoTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsPowerOfTwoTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

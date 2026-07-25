@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pass can hand to <c>Unsafe.Add</c>. It must be left untouched.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationIndexFromEndTests() : BaseTest<Func<int[], int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationIndexFromEndTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(numbers => numbers[^1]);
 

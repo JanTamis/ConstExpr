@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Sin(float) → FastSin(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFSinTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFSinTest : BaseTest<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Sin(x));
 

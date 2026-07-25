@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Validation;
 ///   is collapsed into <c>Char.IsAsciiLetter(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiLetterTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsAsciiLetterTest : BaseTest<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c =>
 		c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');

@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>Round of a Floor is a no-op.</summary>
 [InheritsTests]
-public class MathRoundOfFloorTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathRoundOfFloorTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Round(System.Math.Floor(x)));
 

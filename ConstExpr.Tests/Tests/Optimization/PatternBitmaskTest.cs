@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   into efficient bitmask checks.
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PatternBitmaskTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

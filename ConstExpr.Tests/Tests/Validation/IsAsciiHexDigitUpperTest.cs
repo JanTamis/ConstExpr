@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Validation;
 ///   is collapsed into <c>Char.IsAsciiHexDigitUpper(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiHexDigitUpperTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsAsciiHexDigitUpperTest : BaseTest<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'A' && c <= 'F');

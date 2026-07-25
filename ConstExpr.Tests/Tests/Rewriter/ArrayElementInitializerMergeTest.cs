@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -22,15 +25,32 @@ public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
 		Create((numbers, positions) =>
-		[
-			numbers[positions % 6],
-			numbers[(positions + 1) % 6],
-			numbers[(positions + 2) % 6],
-			numbers[(positions + 3) % 6],
-			numbers[(positions + 4) % 6],
-			numbers[(positions + 5) % 6]
-		], [ new[] { 1, 2, 3, 4, 5, 6 }, Unknown ])
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+			var result = new int[numbers.Length];
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
+			for (var i = 0; i < result.Length; i++)
+			{
+				Unsafe.Add(ref resultRef, i) = Unsafe.Add(ref numbersRef, (positions + i) % 6);
+			}
+
+			return result;
+		}),
+		Create((numbers, positions) =>
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+
+			return
+			[
+				Unsafe.Add(ref numbersRef, positions % 6),
+				Unsafe.Add(ref numbersRef, (positions + 1) % 6),
+				Unsafe.Add(ref numbersRef, (positions + 2) % 6),
+				Unsafe.Add(ref numbersRef, (positions + 3) % 6),
+				Unsafe.Add(ref numbersRef, (positions + 4) % 6),
+				Unsafe.Add(ref numbersRef, (positions + 5) % 6)
+			];
+		}, [ new[] { 1, 2, 3, 4, 5, 6 }, Unknown ])
 	];
 }

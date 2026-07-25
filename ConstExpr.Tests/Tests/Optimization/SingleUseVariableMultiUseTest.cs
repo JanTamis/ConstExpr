@@ -18,7 +18,7 @@ public class SingleUseVariableMultiUseTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(), // temp used twice → body unchanged
+		Create(n => n + 1 << 1),
 		Create(_ => 12, [ 5 ]) // (5+1)+(5+1) = 12 → constant-folded
 	];
 }

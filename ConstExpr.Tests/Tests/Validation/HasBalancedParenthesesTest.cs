@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace ConstExpr.Tests.Validation;
 ///   known-argument fold must produce false, not true.
 /// </summary>
 [InheritsTests]
-public class HasBalancedParenthesesTest() : BaseTest<Func<string?, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class HasBalancedParenthesesTest : BaseTest<Func<string?, bool>>
 {
 	public override string TestMethod => GetString(input =>
 	{

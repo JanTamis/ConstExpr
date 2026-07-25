@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class NthTriangularNumberTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class NthTriangularNumberTest : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n => n * (n + 1) / 2);
 

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -23,7 +26,20 @@ public class CharArrayLoopWhileNotRewrittenTest : BaseTest<Func<string, string>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(input =>
+		{
+			var result = input.ToCharArray();
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+			var i = 0;
+
+			while (i < result.Length)
+			{
+				Unsafe.Add(ref resultRef, i) = Char.ToUpper(Unsafe.Add(ref resultRef, i));
+				i++;
+			}
+
+			return new string(result);
+		}),
 		Create(_ => "HELLO", [ "hello" ])
 	];
 }

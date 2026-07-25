@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringToCharArrayTest() : BaseTest<Func<string, char[]>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringToCharArrayTest : BaseTest<Func<string, char[]>>
 {
 	public override string TestMethod => GetString(s => s.ToCharArray());
 

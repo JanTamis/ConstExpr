@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumOfFirstNTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class SumOfFirstNTest : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n => n * (n + 1) / 2);
 

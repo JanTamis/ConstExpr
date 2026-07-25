@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class CharToUpperNotEqualsOptimizerTest() : BaseTest<Func<char, char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CharToUpperNotEqualsOptimizerTest : BaseTest<Func<char, char, bool>>
 {
 	public override string TestMethod => GetString((left, right) =>
 	{

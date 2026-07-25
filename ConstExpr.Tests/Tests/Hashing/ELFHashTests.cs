@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class ELFHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
+public class ELFHashTests : BaseTest<Func<string, uint>>
 {
 	public override string TestMethod => GetString(str =>
 	{
@@ -13,7 +14,7 @@ public class ELFHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash = (hash << 4) + (byte)str[(int)i];
+			hash = (hash << 4) + (byte) str[(int) i];
 
 			if ((x = hash & 0xF0000000) != 0)
 			{
@@ -30,12 +31,13 @@ public class ELFHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 	[
 		Create(str =>
 		{
+			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
 			var hash = 0U;
 			var x = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 16U + (byte)str[(int)i];
+				hash = (hash << 4) + (byte) Unsafe.Add(ref strRef, (int) i);
 
 				if ((x = hash & 4026531840U) != 0U)
 					hash ^= x >> 24;

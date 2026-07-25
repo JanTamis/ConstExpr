@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -9,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   exist to rewrite.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationReadOnlySpanTests() : BaseTest<Func<ReadOnlySpan<int>, int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationReadOnlySpanTests : BaseTest<Func<ReadOnlySpan<int>, int, int>>
 {
 	public override string TestMethod => GetString((data, i) => data[i] + data[0]);
 
@@ -19,7 +18,7 @@ public class BoundsCheckEliminationReadOnlySpanTests() : BaseTest<Func<ReadOnlyS
 		{
 			ref var dataRef = ref MemoryMarshal.GetReference(data);
 
-			return Unsafe.Add(ref dataRef, (nuint) i) + dataRef;
+			return Unsafe.Add(ref dataRef, i) + dataRef;
 		}, [ Unknown, Unknown ])
 	];
 }

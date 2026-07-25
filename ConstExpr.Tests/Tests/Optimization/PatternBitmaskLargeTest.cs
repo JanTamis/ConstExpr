@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
 ///   Test with larger set of values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskLargeTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PatternBitmaskLargeTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

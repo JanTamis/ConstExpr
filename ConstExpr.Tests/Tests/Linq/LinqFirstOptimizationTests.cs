@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for First() optimization - verify that unnecessary operations before First() are removed
 /// </summary>
 [InheritsTests]
-public class LinqFirstOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -50,7 +48,11 @@ public class LinqFirstOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return x[0] * 4 + First_zVpC_g(x) * 2 + First_x5lKxQ(x) + First_O1a9Fw(x) + First_NyySEw(x) + First_BgmaKg(x) + x[^1] + TensorPrimitives.Min(x) + TensorPrimitives.Max(x);"),
+		Create("""
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (xRef << 2) + (First_zVpC_g(x) << 1) + First_x5lKxQ(x) + First_O1a9Fw(x) + First_NyySEw(x) + First_BgmaKg(x) + Unsafe.Add(ref xRef, x.Length - 1) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x);
+			"""),
 		Create(_ => 28, [ new[] { 1, 2, 3, 4, 5 } ])
 	];
 }

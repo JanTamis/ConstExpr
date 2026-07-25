@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ScaleBTest() : BaseTest<Func<double, int, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ScaleBTest : BaseTest<Func<double, int, double>>
 {
 	public override string TestMethod => GetString((x, n) => System.Math.ScaleB(x, n));
 

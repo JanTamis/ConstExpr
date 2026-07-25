@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and that Contains is optimized for specific collection types
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

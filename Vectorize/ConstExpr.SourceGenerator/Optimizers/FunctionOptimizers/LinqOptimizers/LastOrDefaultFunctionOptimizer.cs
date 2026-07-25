@@ -89,7 +89,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType.GetDefaultValue()
@@ -184,7 +184,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			}
 			else
 			{
-				// For arrays, use conditional: arr.Length > 0 ? arr[^1] : default
+				// For arrays, use conditional: arr.Length > 0 ? arr[arr.Length - 1] : default
 				result = CreateDefaultIfEmptyConditional(context, source, "Length", context.Method.ReturnType.GetDefaultValue());
 			}
 
@@ -199,7 +199,7 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 			}
 			else
 			{
-				// For List<T>, use conditional: list.Count > 0 ? list[^1] : default
+				// For List<T>, use conditional: list.Count > 0 ? list[list.Count - 1] : default
 				result = CreateDefaultIfEmptyConditional(context, source, "Count", context.Method.ReturnType.GetDefaultValue());
 			}
 
@@ -224,8 +224,8 @@ public class LastOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof
 		return ConditionalExpression(
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
-				CreateLiteral(0), intType), CreateElementAccess(collection, PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, CreateLiteral(1))),
+				CreateLiteral(0), intType), CreateElementAccess(collection,
+				BinaryExpression(SyntaxKind.SubtractExpression, CreateMemberAccess(collection, propertyName), CreateLiteral(1))),
 			defaultItem);
 	}
 }

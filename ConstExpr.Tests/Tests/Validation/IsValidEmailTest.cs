@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class IsValidEmailTest : BaseTest<Func<string, bool>>
 {
 	public override string TestMethod => GetString(email =>
 	{
@@ -39,6 +40,8 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 	[
 		Create(email =>
 		{
+			ref var emailRef = ref MemoryMarshal.GetReference(email.AsSpan());
+
 			if (System.String.IsNullOrEmpty(email) || email.Length < 5)
 				return false;
 
@@ -49,7 +52,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 
 			for (var i = 0; i < email.Length; i++)
 			{
-				switch (email[i])
+				switch (Unsafe.Add(ref emailRef, i))
 				{
 					case '@':
 					{
@@ -58,6 +61,7 @@ public class IsValidEmailTest() : BaseTest<Func<string, bool>>(FastMathFlags.All
 
 						break;
 					}
+
 					case '.':
 					{
 						dotCount++;

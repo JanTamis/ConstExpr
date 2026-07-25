@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -6,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for ElementAtOrDefault() optimization on List
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -30,7 +31,12 @@ public class LinqElementAtOrDefaultOptimizationListTests() : BaseTest<Func<List<
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (x.Count > 0 ? x[0] * 2 : 0) + (x.Count > 1 ? x[1] * 2 : 0) + (x.Count > 10 ? x[10] : 0)),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetReference(CollectionsMarshal.AsSpan(x));
+
+			return (x.Count > 0 ? xRef << 1 : 0) + (x.Count > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (x.Count > 10 ? Unsafe.Add(ref xRef, 10) : 0);
+		}),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 + 0 = 6
 		Create(_ => 0, [ new List<int>() ]) // All return 0 (default)
 	];

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -25,7 +28,19 @@ public class CharArrayLoopNonIdentifierSourceNotRewrittenTest : BaseTest<Func<st
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(input =>
+		{
+			var result = input.ToUpperInvariant().ToCharArray();
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
+			for (var i = 0; i < result.Length; i++)
+			{
+				if (Char.IsWhiteSpace(Unsafe.Add(ref resultRef, i)))
+					Unsafe.Add(ref resultRef, i) = '_';
+			}
+
+			return new string(result);
+		}),
 		Create(_ => "HELLO_WORLD", [ "hello world" ])
 	];
 }

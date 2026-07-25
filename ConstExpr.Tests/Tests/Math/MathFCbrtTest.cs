@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Cbrt(float) → FastCbrt(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFCbrtTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFCbrtTest : BaseTest<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Cbrt(x));
 

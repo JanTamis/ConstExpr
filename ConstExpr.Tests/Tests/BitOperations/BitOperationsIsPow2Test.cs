@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.BitOperations;
 
 [InheritsTests]
-public class BitOperationsIsPow2UintTest() : BaseTest<Func<uint, bool>>(FastMathFlags.All)
+public class BitOperationsIsPow2UintTest : BaseTest<Func<uint, bool>>
 {
 	public override string TestMethod => GetString(x => System.Numerics.BitOperations.IsPow2(x));
 
@@ -19,7 +17,7 @@ public class BitOperationsIsPow2UintTest() : BaseTest<Func<uint, bool>>(FastMath
 }
 
 [InheritsTests]
-public class BitOperationsIsPow2IntTest() : BaseTest<Func<int, bool>>(FastMathFlags.All)
+public class BitOperationsIsPow2IntTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => System.Numerics.BitOperations.IsPow2(x));
 

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class SignTest() : BaseTest<Func<int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class SignTest : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{

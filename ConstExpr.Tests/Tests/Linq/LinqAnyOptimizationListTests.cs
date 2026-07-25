@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
 /// </summary>
 [InheritsTests]
-public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(FastMathFlags.AssociativeMath)
+public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +31,11 @@ public class LinqAnyOptimizationListTests() : BaseTest<Func<List<int>, int>>(Fas
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Count > 0 ? 3 : 0) + (Any_ds6Fog(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Any_soBp0A(CollectionsMarshal.AsSpan(x)) ? 1 : 0) + (Contains_rph_Xw(CollectionsMarshal.AsSpan(x)) ? 1 : 0);", Unknown),
+		Create("""
+			var asSpanVal = CollectionsMarshal.AsSpan(x);
+
+			return (x.Count > 0 ? 3 : 0) + (Any_ds6Fog(asSpanVal) ? 1 : 0) + (Any_soBp0A(asSpanVal) ? 1 : 0) + (Contains_rph_Xw(asSpanVal) ? 1 : 0);
+			""", Unknown),
 		Create(_ => 5, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ])
 	];

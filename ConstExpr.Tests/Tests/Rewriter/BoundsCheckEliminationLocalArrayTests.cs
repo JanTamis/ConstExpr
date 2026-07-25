@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -10,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   not bind tighter than the arithmetic.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationLocalArrayTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationLocalArrayTests : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -25,12 +24,13 @@ public class BoundsCheckEliminationLocalArrayTests() : BaseTest<Func<int, int>>(
 	[
 		Create(n =>
 		{
-			var buf = new int[4];
-			ref var bufRef = ref MemoryMarshal.GetArrayDataReference(buf);
+			Span<int> buf = stackalloc int[4];
+			ref var bufRef = ref MemoryMarshal.GetReference(buf);
+			var mod = n % 4;
 
-			Unsafe.Add(ref bufRef, (nuint) (n % 4)) = n;
+			Unsafe.Add(ref bufRef, mod) = n;
 
-			return Unsafe.Add(ref bufRef, (nuint) (n % 4)) + bufRef;
+			return Unsafe.Add(ref bufRef, mod) + bufRef;
 		}, [ Unknown ]),
 
 		Create(_ => 3, [ 3 ])

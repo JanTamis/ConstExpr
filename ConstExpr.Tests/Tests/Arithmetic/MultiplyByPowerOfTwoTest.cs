@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class MultiplyByPowerOfTwoTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MultiplyByPowerOfTwoTest : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((n, power) => n << power);
 

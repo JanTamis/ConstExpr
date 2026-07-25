@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for FirstOrDefault() optimization - verify that unnecessary operations before FirstOrDefault() are removed
 /// </summary>
 [InheritsTests]
-public class LinqFirstOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -50,7 +48,12 @@ public class LinqFirstOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Array.Find(x, v => v > 0) * 2 + (x.Length > 0 ? x[0] * 5 : 0) + Array.Find(x, v => v > 3) + Array.Find(x, v => v > 2) + Array.Find(x, v => v < 5) + Array.Find(x, v => v == 3) + TensorPrimitives.Min(x) + (x.Length > 0 ? x[^1] : 0);"),
+		Create("""
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+			var val = x.Length > 0;
+
+			return (Array.Find(x, v => v > 0) << 1) + (val ? xRef * 5 : 0) + Array.Find(x, v => v > 3) + Array.Find(x, v => v > 2) + Array.Find(x, v => v < 5) + Array.Find(x, v => v == 3) + TensorPrimitives.Min(x) + (val ? Unsafe.Add(ref xRef, x.Length - 1) : 0);
+			"""),
 		Create(_ => 24, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];

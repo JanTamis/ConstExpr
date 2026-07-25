@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace ConstExpr.Tests.Validation;
 ///   as the parenthesized versions, so all patterns should still be recognized.
 /// </summary>
 [InheritsTests]
-public class AsciiCharRangeNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class AsciiCharRangeNoBracketsTest : BaseTest<Func<char, bool>>
 {
 	// No parentheses — &&-precedence groups identically to the parenthesized form.
 	// ReSharper disable ArrangeRedundantParentheses

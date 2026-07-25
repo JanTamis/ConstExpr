@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Validation;
 ///   when one branch stays as an explicit inequality.
 /// </summary>
 [InheritsTests]
-public class NotEqualsCharSetTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class NotEqualsCharSetTest : BaseTest<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c => c != '-' && c != ' ' && c != '+');
 

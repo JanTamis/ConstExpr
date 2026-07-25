@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>double.MaxMagnitudeNumber(a, a) — idempotency optimization: returns a.</summary>
 [InheritsTests]
-public class MathMaxMagnitudeNumberIdempotentTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathMaxMagnitudeNumberIdempotentTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(a => Double.MaxMagnitudeNumber(a, a));
 

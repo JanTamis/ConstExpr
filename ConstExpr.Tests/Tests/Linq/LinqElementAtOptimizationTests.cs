@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -8,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Note: ElementAt(0) is optimized to First() which is more idiomatic
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -38,7 +39,12 @@ public class LinqElementAtOptimizationTests() : BaseTest<Func<int[], int>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x[0] * 2 + x[1] * 2 + x[2] * 2 + x[3]),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (xRef << 1) + (Unsafe.Add(ref xRef, 1) << 1) + (Unsafe.Add(ref xRef, 2) << 1) + Unsafe.Add(ref xRef, 3);
+		}),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 4 = 16
 		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ])
 	];

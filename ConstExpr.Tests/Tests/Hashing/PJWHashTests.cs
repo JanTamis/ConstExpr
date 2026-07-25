@@ -1,27 +1,28 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class PJWHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
+public class PJWHashTests : BaseTest<Func<string, uint>>
 {
 	public override string TestMethod => GetString(str =>
 	{
 		const uint BitsInUnsignedInt = sizeof(uint) * 8;
 		const uint ThreeQuarters = BitsInUnsignedInt * 3 / 4;
 		const uint OneEighth = BitsInUnsignedInt / 8;
-		const uint HighBits = 0xFFFFFFFF << (int)(BitsInUnsignedInt - OneEighth);
+		const uint HighBits = 0xFFFFFFFF << (int) (BitsInUnsignedInt - OneEighth);
 		uint hash = 0;
 		uint test = 0;
 		uint i = 0;
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash = (hash << (int)OneEighth) + (byte)str[(int)i];
+			hash = (hash << (int) OneEighth) + (byte) str[(int) i];
 
 			if ((test = hash & HighBits) != 0)
 			{
-				hash = (hash ^ test >> (int)ThreeQuarters) & ~HighBits;
+				hash = (hash ^ test >> (int) ThreeQuarters) & ~HighBits;
 			}
 		}
 
@@ -32,12 +33,13 @@ public class PJWHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 	[
 		Create(str =>
 		{
+			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
 			var hash = 0U;
 			var test = 0U;
 
 			for (var i = 0U; i < str.Length; i++)
 			{
-				hash = hash * 16U + (byte)str[(int)i];
+				hash = (hash << 4) + (byte) Unsafe.Add(ref strRef, (int) i);
 
 				if ((test = hash & 4026531840U) != 0U)
 					hash = (hash ^ test >> 24) & 268435455U;

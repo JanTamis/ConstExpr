@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ConcatenateTest() : BaseTest<Func<string, string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ConcatenateTest : BaseTest<Func<string, string, string>>
 {
 	public override string TestMethod => GetString((a, b) => a + b);
 

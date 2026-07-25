@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PercentageTest() : BaseTest<Func<double, double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PercentageTest : BaseTest<Func<double, double, double>>
 {
 	public override string TestMethod => GetString((value, percentage) => value * percentage / 100);
 

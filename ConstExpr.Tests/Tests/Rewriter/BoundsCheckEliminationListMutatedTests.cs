@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pointing at the old one. Anything outside the read-only allowlist must block the rewrite.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationListMutatedTests() : BaseTest<Func<List<int>, int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationListMutatedTests : BaseTest<Func<List<int>, int, int>>
 {
 	public override string TestMethod => GetString((values, i) =>
 	{

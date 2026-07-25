@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>float.MaxNumber(a, b) — optimizer re-targets to float.MaxNumber.</summary>
 [InheritsTests]
-public class FloatMaxNumberTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class FloatMaxNumberTest : BaseTest<Func<float, float, float>>
 {
 	public override string TestMethod => GetString((a, b) => Single.MaxNumber(a, b));
 

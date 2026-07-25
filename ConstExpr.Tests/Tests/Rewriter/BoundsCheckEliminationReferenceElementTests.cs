@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -10,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   — no compile error, just a type hole — so it is pinned here.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationReferenceElementTests() : BaseTest<Func<string[], int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationReferenceElementTests : BaseTest<Func<string[], int>>
 {
 	public override string TestMethod => GetString(words =>
 	{
@@ -27,7 +26,7 @@ public class BoundsCheckEliminationReferenceElementTests() : BaseTest<Func<strin
 
 			words[0] = "x";
 
-			return Unsafe.Add(ref wordsRef, (nuint) 1).Length;
+			return Unsafe.Add(ref wordsRef, 1).Length;
 		}, [ Unknown ])
 	];
 }

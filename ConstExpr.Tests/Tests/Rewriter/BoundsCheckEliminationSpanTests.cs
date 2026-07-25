@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using ConstExpr.Core.Enumerators;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -10,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   so writes are rewritten for any element type.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationSpanTests() : BaseTest<Func<Span<int>, int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationSpanTests : BaseTest<Func<Span<int>, int, int>>
 {
 	public override string TestMethod => GetString((buf, i) =>
 	{
@@ -25,9 +24,9 @@ public class BoundsCheckEliminationSpanTests() : BaseTest<Func<Span<int>, int, i
 		{
 			ref var bufRef = ref MemoryMarshal.GetReference(buf);
 
-			Unsafe.Add(ref bufRef, (nuint) i) = i;
+			Unsafe.Add(ref bufRef, i) = i;
 
-			return Unsafe.Add(ref bufRef, (nuint) i) + bufRef;
+			return Unsafe.Add(ref bufRef, i) + bufRef;
 		}, [ Unknown, Unknown ])
 	];
 }

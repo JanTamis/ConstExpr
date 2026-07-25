@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Numerics.Tensors;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -11,7 +12,7 @@ namespace ConstExpr.Tests.Linq;
 ///   - OrderByDescending(k).Reverse() => OrderBy(k)
 /// </summary>
 [InheritsTests]
-public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -35,7 +36,12 @@ public class LinqReverseOptimizationTests() : BaseTest<Func<int[], int>>(FastMat
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return TensorPrimitives.Max(x) * 2 + TensorPrimitives.Min(x) * 2 + x[0];"),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (TensorPrimitives.Max(x) << 1) + (TensorPrimitives.Min(x) << 1) + xRef;
+		}),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 25, [ new[] { 5 } ])
 	];

@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ReverseStringTest : BaseTest<Func<string, string>>
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -29,13 +30,13 @@ public class ReverseStringTest() : BaseTest<Func<string, string>>(FastMathFlags.
 		Create(s =>
 		{
 			var chars = s.ToCharArray();
+			ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 			var left = 0;
 			var right = chars.Length - 1;
 
 			while (left < right)
 			{
-				(chars[left], chars[right]) = (chars[right], chars[left]);
-
+				(Unsafe.Add(ref charsRef, left), Unsafe.Add(ref charsRef, right)) = (Unsafe.Add(ref charsRef, right), Unsafe.Add(ref charsRef, left));
 				left++;
 				right--;
 			}

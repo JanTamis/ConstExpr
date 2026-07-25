@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pass must leave the loop unchanged.
 /// </summary>
 [InheritsTests]
-public class StrengthReductionMutatedIvTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.InductionVariableStrengthReduction)
+public class StrengthReductionMutatedIvTests : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{

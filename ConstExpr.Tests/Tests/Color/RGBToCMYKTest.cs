@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class RGBToCMYKTest() : BaseTest<Func<byte, byte, byte, (double, double, double, double)>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class RGBToCMYKTest : BaseTest<Func<byte, byte, byte, (double, double, double, double)>>
 {
 	public override string TestMethod => GetString((r, g, b) =>
 	{

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathRadiansToDegreesTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathRadiansToDegreesTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => Double.RadiansToDegrees(x));
 

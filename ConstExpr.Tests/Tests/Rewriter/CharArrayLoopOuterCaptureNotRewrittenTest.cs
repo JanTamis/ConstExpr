@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -25,7 +28,19 @@ public class CharArrayLoopOuterCaptureNotRewrittenTest : BaseTest<Func<string, c
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create((input, replacement) =>
+		{
+			var result = input.ToCharArray();
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
+			for (var i = 0; i < result.Length; i++)
+			{
+				if (Char.IsWhiteSpace(Unsafe.Add(ref resultRef, i)))
+					Unsafe.Add(ref resultRef, i) = replacement;
+			}
+
+			return new string(result);
+		}),
 		Create((_, _) => "hello_world", [ "hello world", '_' ])
 	];
 }

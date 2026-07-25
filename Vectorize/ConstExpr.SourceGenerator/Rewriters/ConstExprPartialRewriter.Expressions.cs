@@ -221,7 +221,15 @@ public partial class ConstExprPartialRewriter
 		{
 			var expressions = GetBinaryExpressions(node).ToList();
 
-			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, operation?.Type, nodeLeftExpr, operation?.LeftOperand.Type, nodeRightExpr, operation?.RightOperand.Type, node.Parent, out var optimizedNode))
+			// operation is null for a freshly-synthesized node (e.g. one an earlier strategy just built
+			// via SyntaxFactory) that the semantic model never bound, since it was never part of the
+			// compiled tree. Fall back to SymbolAnnotation-aware type lookup so type-gated strategies
+			// still get to run on such nodes instead of silently being skipped for "unknown type".
+			var nodeType = operation?.Type ?? (semanticModel.TryGetTypeSymbol(node, symbolStore, out var fallbackNodeType) ? fallbackNodeType : null);
+			var leftType = operation?.LeftOperand.Type ?? (semanticModel.TryGetTypeSymbol(nodeLeftExpr, symbolStore, out var fallbackLeftType) ? fallbackLeftType : null);
+			var rightType = operation?.RightOperand.Type ?? (semanticModel.TryGetTypeSymbol(nodeRightExpr, symbolStore, out var fallbackRightType) ? fallbackRightType : null);
+
+			if (TryOptimizeNode(node.OperatorToken.Kind().ToBinaryOperatorKind(), expressions, nodeType, nodeLeftExpr, leftType, nodeRightExpr, rightType, node.Parent, out var optimizedNode))
 			{
 				if (optimizedNode is IsPatternExpressionSyntax pattern)
 				{
@@ -281,8 +289,62 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return node
-			.WithLeft(left as ExpressionSyntax ?? node.Left)
-			.WithRight(right as ExpressionSyntax ?? node.Right);
+			.WithLeft(PreserveOperandPrecedence(left as ExpressionSyntax ?? node.Left, node, false))
+			.WithRight(PreserveOperandPrecedence(right as ExpressionSyntax ?? node.Right, node, true));
+	}
+
+	/// <summary>
+	///   Parenthesizes <paramref name="operand" /> if substituting it as an operand of
+	///   <paramref name="parent" /> (which keeps its own operator) would otherwise change how the result
+	///   parses — e.g. a visited/optimized operand that turned into a lower-precedence expression (a
+	///   multiply folded into a shift substituted under an addition: <c>a &lt;&lt; 1 + b</c> silently
+	///   means <c>a &lt;&lt; (1 + b)</c>, not <c>(a &lt;&lt; 1) + b</c>). All operators reached here are
+	///   left-associative, so the left operand only needs protecting when strictly lower precedence than
+	///   <paramref name="parent" />; the right operand also needs it at equal precedence, since
+	///   <c>a - (b - c)</c> is not <c>a - b - c</c>.
+	/// </summary>
+	private static ExpressionSyntax PreserveOperandPrecedence(ExpressionSyntax operand, BinaryExpressionSyntax parent, bool isRightOperand)
+	{
+		if (operand is ParenthesizedExpressionSyntax)
+		{
+			return operand;
+		}
+
+		var operandPrecedence = operand.GetOperatorPrecedence();
+		var parentPrecedence = parent.GetOperatorPrecedence();
+
+		if (operandPrecedence == OperatorPrecedence.None || parentPrecedence == OperatorPrecedence.None)
+		{
+			return operand;
+		}
+
+		if (operandPrecedence < parentPrecedence)
+		{
+			return ParenthesizedExpression(operand);
+		}
+
+		if (isRightOperand && operandPrecedence == parentPrecedence && !IsSameAssociativeLogicalChain(operand, parent))
+		{
+			return ParenthesizedExpression(operand);
+		}
+
+		return operand;
+	}
+
+	/// <summary>
+	///   Whether dropping parens around a same-precedence <paramref name="operand" /> on the right of
+	///   <paramref name="parent" /> is safe because both are the same boolean logical operator
+	///   (<c>&amp;&amp;</c>/<c>||</c>). Re-associating a chain of the same logical operator never changes
+	///   its result or short-circuit order, so <c>a || (b || c)</c> and <c>a || b || c</c> are the same
+	///   program. Arithmetic/bitwise operators are deliberately excluded: with a synthetic operand the
+	///   semantic model can't report its type here, so there is no way to rule out the overflow/rounding
+	///   concerns that make reassociating those unsafe in general.
+	/// </summary>
+	private static bool IsSameAssociativeLogicalChain(ExpressionSyntax operand, BinaryExpressionSyntax parent)
+	{
+		return parent.Kind() is SyntaxKind.LogicalOrExpression or SyntaxKind.LogicalAndExpression
+		       && operand is BinaryExpressionSyntax operandBinary
+		       && operandBinary.Kind() == parent.Kind();
 	}
 
 	/// <summary>

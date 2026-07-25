@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -7,7 +8,7 @@ namespace ConstExpr.Tests.Linq;
 ///   When Skip results in ElementAtOrDefault(0), it should further optimize to FirstOrDefault()
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -37,7 +38,12 @@ public class LinqElementAtOrDefaultSkipOptimizationTests() : BaseTest<Func<int[]
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 3 ? x[3] * 2 : 0) + (x.Length > 2 ? x[2] : 0) + (x.Length > 11 ? x[11] : 0) + (x.Length > 0 ? x[0] : 0)),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (x.Length > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (x.Length > 3 ? Unsafe.Add(ref xRef, 3) << 1 : 0) + (x.Length > 2 ? Unsafe.Add(ref xRef, 2) : 0) + (x.Length > 11 ? Unsafe.Add(ref xRef, 11) : 0) + (x.Length > 0 ? xRef : 0);
+		}),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
 		Create(_ => 0, [ System.Array.Empty<int>() ]) // All return 0 (default)
 	];

@@ -10,7 +10,12 @@ public class ModuloGranlundMontgomeryUnsignedTest() : BaseTest<Func<uint, uint>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x - ((uint)(x * 613566757UL >> 32) + (x - (uint)(x * 613566757UL >> 32) >> 1) >> 2) * 7U),
+		Create(x =>
+		{
+			var castVal = (uint) (x * 613566757UL >> 32);
+
+			return x - (castVal + (x - castVal >> 1) >> 2) * 7U;
+		}),
 		Create(_ => 3u, [ 10u ]),
 		Create(_ => 0u, [ 7u ]),
 		Create(_ => 0u, [ 0u ]),

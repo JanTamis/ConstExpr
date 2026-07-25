@@ -17,8 +17,18 @@ public class LinqContainsLiteralCollectionTests : BaseTest<Func<int[], int, bool
 	[
 		// The is-pattern x is 1 or 2 or 3 gets further optimized by the is-pattern optimizer
 		// to a range check since 1, 2, 3 are consecutive integers: (uint)(x - 1) <= 2U
-		Create("return (uint)(x - 1) <= 2U;", new[] { 1, 2, 3 }, Unknown),
-		Create("return (uint)(x - 1) <= 7U && (0x91u >> x - 1 & 1) != 0;", new[] { 1, 5, 8 }, Unknown),
-		Create("return (uint)(x - 1) <= 4U && (0x15u >> x - 1 & 1) != 0;", new[] { 1, 3, 5 }, Unknown)
+		Create((_, x) => (uint) (x - 1) <= 2U, [ new[] { 1, 2, 3 }, Unknown ]),
+		Create((_, x) =>
+		{
+			var diff = x - 1;
+
+			return (uint) diff <= 7U && (0x91u >> diff & 1) != 0;
+		}, [ new[] { 1, 5, 8 }, Unknown ]),
+		Create((_, x) =>
+		{
+			var diff = x - 1;
+
+			return (uint) diff <= 4U && (0x15u >> diff & 1) != 0;
+		}, [ new[] { 1, 3, 5 }, Unknown ])
 	];
 }

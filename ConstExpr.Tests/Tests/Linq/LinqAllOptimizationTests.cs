@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and Where predicates are combined with All predicates
 /// </summary>
 [InheritsTests]
-public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -60,7 +58,12 @@ public class LinqAllOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFla
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (All_h_vZmg(x) ? 8 : 0) + (All_36HS_A(x) ? 3 : 0) + (All_xlqOKg(x) ? 1 : 0) + (All_tzFdVw(x) ? 1 : 0) + (All_I0veHg(x) && All_I0veHg(x) ? 1 : 0) + (All_6l0HbQ(x) ? 1 : 0);"),
+		Create("""
+			var all_36HS_AVal = All_36HS_A(x);
+			var all_I0veHgVal = All_I0veHg(x);
+
+			return (All_h_vZmg(x) ? 8 : 0) + (all_36HS_AVal ? 2 : 0) + (All_xlqOKg(x) ? 1 : 0) + (All_tzFdVw(x) ? 1 : 0) + (all_I0veHgVal && all_I0veHgVal ? 1 : 0) + (All_6l0HbQ(x) ? 1 : 0) + (all_36HS_AVal ? 1 : 0);
+			"""),
 		Create("return (All_36HS_A(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
 		Create("return (All_36HS_A(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
 		Create("return (All_36HS_A(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })

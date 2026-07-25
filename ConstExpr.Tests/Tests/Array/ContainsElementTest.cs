@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ContainsElementTest() : BaseTest<Func<int[], int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class ContainsElementTest : BaseTest<Func<int[], int, bool>>
 {
 	public override string TestMethod => GetString((arr, value) =>
 	{

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class AsciiLetterOrDigitNoBracketsTest() : BaseTest<Func<char, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class AsciiLetterOrDigitNoBracketsTest : BaseTest<Func<char, bool>>
 {
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>

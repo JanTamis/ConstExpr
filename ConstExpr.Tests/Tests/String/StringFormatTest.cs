@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 /// <summary>string.Format with a constant format string is rewritten to an interpolated string.</summary>
 [InheritsTests]
-public class StringFormatTest() : BaseTest<Func<string, string>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringFormatTest : BaseTest<Func<string, string>>
 {
 	public override string TestMethod => GetString(name => System.String.Format("Hello {0}", name));
 

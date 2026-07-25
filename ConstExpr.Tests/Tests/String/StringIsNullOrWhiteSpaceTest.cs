@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringIsNullOrWhiteSpaceTest() : BaseTest<Func<string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringIsNullOrWhiteSpaceTest : BaseTest<Func<string, bool>>
 {
 	public override string TestMethod => GetString(s => System.String.IsNullOrWhiteSpace(s));
 

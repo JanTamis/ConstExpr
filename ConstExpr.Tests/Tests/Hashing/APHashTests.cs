@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
+public class APHashTests : BaseTest<Func<string, uint>>
 {
 	public override string TestMethod => GetString(str =>
 	{
@@ -12,7 +13,7 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 
 		for (i = 0; i < str.Length; i++)
 		{
-			hash ^= (i & 1) == 0 ? hash << 7 ^ (byte)str[(int)i] * (hash >> 3) : ~((hash << 11) + ((byte)str[(int)i] ^ hash >> 5));
+			hash ^= (i & 1) == 0 ? hash << 7 ^ (byte) str[(int) i] * (hash >> 3) : ~((hash << 11) + ((byte) str[(int) i] ^ hash >> 5));
 		}
 
 		return hash;
@@ -22,12 +23,11 @@ public class APHashTests() : BaseTest<Func<string, uint>>(FastMathFlags.All)
 	[
 		Create(str =>
 		{
+			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
 			var hash = 2863311530U;
 
 			for (var i = 0U; i < str.Length; i++)
-			{
-				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte)str[(int)i] * (hash >> 3) : ~((hash << 11) + ((byte)str[(int)i] ^ hash >> 5));
-			}
+				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte) Unsafe.Add(ref strRef, (int) i) * (hash >> 3) : ~((hash << 11) + ((byte) Unsafe.Add(ref strRef, (int) i) ^ hash >> 5));
 
 			return hash;
 		})

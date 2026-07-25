@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -7,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   must be left on the heap — converting it would risk a stack overflow.
 /// </summary>
 [InheritsTests]
-public class StackAllocConversionSkipsLargeArrayTest() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.StackAllocConversion)
+public class StackAllocConversionSkipsLargeArrayTest : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -24,10 +25,12 @@ public class StackAllocConversionSkipsLargeArrayTest() : BaseTest<Func<int, int>
 		Create(n =>
 		{
 			var big = new int[512];
+			ref var bigRef = ref MemoryMarshal.GetArrayDataReference(big);
+			var mod = n % 512;
 
-			big[n % 512]++;
+			Unsafe.Add(ref bigRef, mod)++;
 
-			return big[n % 512];
+			return Unsafe.Add(ref bigRef, mod);
 		}, [ Unknown ])
 	];
 }

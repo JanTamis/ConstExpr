@@ -1,9 +1,10 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class FindMaxTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class FindMaxTest : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{
@@ -27,7 +28,23 @@ public class FindMaxTest() : BaseTest<Func<int[], int>>(FastMathFlags.All, optim
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(numbers =>
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+
+			if (numbers.Length == 0)
+				return 0;
+
+			var max = numbersRef;
+
+			for (var i = 1; i < numbers.Length; i++)
+			{
+				if (Unsafe.Add(ref numbersRef, i) > max)
+					max = Unsafe.Add(ref numbersRef, i);
+			}
+
+			return max;
+		}),
 		Create(_ => 50, [ new[] { 10, 20, 50, 30 } ]),
 		Create(_ => 100, [ new[] { 5, 15, 25, 100, 50 } ]),
 		Create(_ => -5, [ new[] { -10, -20, -5, -30 } ])

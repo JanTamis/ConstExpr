@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -56,7 +54,7 @@ namespace ConstExpr.Tests.Linq;
 ///   When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
-public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastMathFlags.AssociativeMath)
+public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((element, count) =>
 	{
@@ -104,7 +102,12 @@ public class LinqRepeatOptimizationTests() : BaseTest<Func<int, int, int>>(FastM
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((element, count) => (count > 0 ? element : throw new InvalidOperationException("Sequence contains no elements")) * 4 + count + element * count + 1 + (element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + (element > 0 ? 1 : 0)),
+		Create((element, count) =>
+		{
+			var val = count > 0;
+
+			return ((val ? element : throw new InvalidOperationException("Sequence contains no elements")) << 2) + count + element * count + (val ? 1 : 0) + (val && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0);
+		}),
 		Create((_, _) => 40, [ 3, 4 ])
 	];
 }

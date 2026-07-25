@@ -26,6 +26,19 @@ public class CopyPropagationMutatedCopyTests() : BaseTest<Func<int, int, int>>(o
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault()
+		Create((n, x) =>
+		{
+			var y = x;
+			var sum = 0;
+
+			for (var i = 0; i < n; i++)
+			{
+				sum += y;
+			}
+
+			y += 1;
+
+			return sum + y;
+		})
 	];
 }

@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FactorialTest() : BaseTest<Func<int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class FactorialTest : BaseTest<Func<int, long>>
 {
 	public override string TestMethod => GetString(n =>
 	{

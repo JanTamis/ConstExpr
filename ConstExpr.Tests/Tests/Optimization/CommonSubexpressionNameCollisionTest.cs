@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Optimization;
 // parameter (rather than a local) guarantees the name survives the pre-CSE dead-code prune. The fix
 // seeds the used-name set from existing identifiers, producing `prod2`.
 [InheritsTests]
-public class CommonSubexpressionNameCollisionTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class CommonSubexpressionNameCollisionTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((prod, y) =>
 	{

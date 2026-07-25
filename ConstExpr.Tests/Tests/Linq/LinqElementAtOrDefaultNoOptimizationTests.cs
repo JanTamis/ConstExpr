@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests that operations which affect element positions are NOT optimized for ElementAtOrDefault
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultNoOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +31,12 @@ public class LinqElementAtOrDefaultNoOptimizationTests() : BaseTest<Func<int[], 
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (x.Length > 0 ? x[0] * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (x.Length > 0 ? x[^1] : 0) + Array.Find(x, v => v > 2);"),
+		Create("""
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+			var val = x.Length > 0;
+
+			return (val ? xRef * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (val ? Unsafe.Add(ref xRef, x.Length - 1) : 0) + Array.Find(x, v => v > 2);
+			"""),
 		Create(_ => 17, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];

@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Atan(double) → FastAtan(x) in FastMath mode, with algebraic constant folding.</summary>
 [InheritsTests]
-public class MathAtanTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathAtanTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Atan(x));
 

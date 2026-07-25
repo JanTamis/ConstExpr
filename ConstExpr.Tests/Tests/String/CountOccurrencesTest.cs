@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class CountOccurrencesTest() : BaseTest<Func<int, int[], int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class CountOccurrencesTest : BaseTest<Func<int, int[], int>>
 {
 	public override string TestMethod => GetString((target, numbers) =>
 	{

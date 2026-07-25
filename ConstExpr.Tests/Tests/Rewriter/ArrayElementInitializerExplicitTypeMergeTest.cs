@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -22,10 +25,15 @@ public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[],
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((numbers, positions) =>
-		[
-			numbers[positions % 3],
-			numbers[(positions + 1) % 3],
-			numbers[(positions + 2) % 3]
-		], [ Unknown, Unknown ])
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+
+			return
+			[
+				Unsafe.Add(ref numbersRef, positions % 3),
+				Unsafe.Add(ref numbersRef, (positions + 1) % 3),
+				Unsafe.Add(ref numbersRef, (positions + 2) % 3)
+			];
+		}, [ Unknown, Unknown ])
 	];
 }

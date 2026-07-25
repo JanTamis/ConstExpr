@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathFBitIncrementTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFBitIncrementTest : BaseTest<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.BitIncrement(x));
 

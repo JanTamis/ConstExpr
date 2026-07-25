@@ -1,10 +1,8 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Log(float) → FastLog(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFLogTest() : BaseTest<Func<float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFLogTest : BaseTest<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Log(x));
 

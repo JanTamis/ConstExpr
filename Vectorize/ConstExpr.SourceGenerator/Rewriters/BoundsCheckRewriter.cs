@@ -390,14 +390,14 @@ public sealed class BoundsCheckRewriter
 			return IdentifierName(name).WithTriviaFrom(node);
 		}
 
-		var offset = CastExpression(IdentifierName("nuint"), ParenthesizeIfNeeded(index));
+		// var offset = CastExpression(IdentifierName("nuint"), ParenthesizeIfNeeded(index));
 
 		return InvocationExpression(
 				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("Unsafe"), IdentifierName("Add")))
 			.WithArgumentList(ArgumentList(SeparatedList(
 			[
 				Argument(IdentifierName(name)).WithRefKindKeyword(Token(SyntaxKind.RefKeyword)),
-				Argument(offset)
+				Argument(index)
 			])))
 			.WithTriviaFrom(node);
 	}

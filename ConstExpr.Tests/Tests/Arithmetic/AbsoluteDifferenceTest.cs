@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class AbsoluteDifferenceTest() : BaseTest<Func<int, int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class AbsoluteDifferenceTest : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{

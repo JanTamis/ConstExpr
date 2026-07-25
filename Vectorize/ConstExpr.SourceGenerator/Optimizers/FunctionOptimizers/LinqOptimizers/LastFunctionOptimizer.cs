@@ -108,8 +108,8 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 								return true;
 							}
 
-							// For arrays, we can directly index the first chunk: source[^chunkSize..]
-							var prefix = IndexFromEndExpression(chunkSize);
+							// For arrays, we can directly index the first chunk: source[(source.Length - chunkSize)..]
+							var prefix = ParenthesizedExpression(SubtractExpression(CreateMemberAccess(methodSource, "Length"), chunkSize));
 							var rangeExpression = RangeExpression(prefix, null);
 
 							result = CreateElementAccess(methodSource, rangeExpression);
@@ -125,7 +125,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				}
 				case nameof(Enumerable.DefaultIfEmpty):
 				{
-					TryGetOptimizedChainExpression(methodSource, (HashSet<string>)[ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
+					TryGetOptimizedChainExpression(methodSource, (HashSet<string>) [ nameof(Enumerable.DefaultIfEmpty) ], out methodSource);
 
 					var defaultItem = invocation.ArgumentList.Arguments.Count == 0
 						? context.Method.ReturnType is INamedTypeSymbol namedType ? namedType.GetDefaultValue() : LiteralExpression(SyntaxKind.DefaultLiteralExpression)
@@ -206,13 +206,15 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			}
 		}
 
-		// For arrays, use direct array indexing: arr[^1]
-		// For List<T>, use direct indexing: list[^1]
+		// For arrays, use direct array indexing: arr[arr.Length - 1]
+		// For List<T>, use direct indexing: list[list.Count - 1]
 		if (context.Method.Parameters.Length is 0 or 1
 		    && (IsInvokedOnArray(context, source) || IsInvokedOnList(context, source)))
 		{
-			result = CreateElementAccess(source, PrefixUnaryExpression(
-				SyntaxKind.IndexExpression, CreateLiteral(1)));
+			var propertyName = IsInvokedOnArray(context, source) ? "Length" : "Count";
+
+			result = CreateElementAccess(source,
+				BinaryExpression(SyntaxKind.SubtractExpression, CreateMemberAccess(source, propertyName), CreateLiteral(1)));
 			return true;
 		}
 
@@ -235,7 +237,8 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 			OptimizeComparison(context, SyntaxKind.GreaterThanExpression,
 				CreateMemberAccess(collection, propertyName),
 				CreateLiteral(0), intType),
-			CreateElementAccess(collection, PrefixUnaryExpression(SyntaxKind.IndexExpression, CreateLiteral(1))),
+			CreateElementAccess(collection,
+				BinaryExpression(SyntaxKind.SubtractExpression, CreateMemberAccess(collection, propertyName), CreateLiteral(1))),
 			defaultItem);
 	}
 }

@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Rewriter;
 
@@ -9,7 +10,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   (it cannot fold to a collection expression), so the sized-form conversion path is exercised.
 /// </summary>
 [InheritsTests]
-public class StackAllocConversionTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.StackAllocConversion)
+public class StackAllocConversionTests : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -28,11 +29,13 @@ public class StackAllocConversionTests() : BaseTest<Func<int, int>>(optimization
 		Create(n =>
 		{
 			Span<int> counts = stackalloc int[8];
+			ref var countsRef = ref MemoryMarshal.GetReference(counts);
+			var mod = n % 8;
 
-			counts[n % 8]++;
-			counts[(n + 1) % 8]++;
+			Unsafe.Add(ref countsRef, mod)++;
+			Unsafe.Add(ref countsRef, (n + 1) % 8)++;
 
-			return counts[n % 8] + counts[0];
+			return Unsafe.Add(ref countsRef, mod) + countsRef;
 		}, [ Unknown ]),
 
 		// Known input folds through the interpreter: counts[3]=1, counts[4]=1, counts[3]+counts[0]=1.

@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   must skip an array that is written to.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationReassignedArrayTests() : BaseTest<Func<int[], int[], int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationReassignedArrayTests : BaseTest<Func<int[], int[], int>>
 {
 	public override string TestMethod => GetString((numbers, other) =>
 	{

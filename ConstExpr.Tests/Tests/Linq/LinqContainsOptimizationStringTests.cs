@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Contains() with string values - verify optimization works with different types
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationStringTests() : BaseTest<Func<string[], int>>(FastMathFlags.AssociativeMath)
+public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -25,11 +28,12 @@ public class VisitIdentifierNameReceiverContextTests : BaseTest<Func<double[], i
 	[
 		Create(data =>
 		{
+			ref var dataRef = ref MemoryMarshal.GetArrayDataReference(data);
 			var outliers = new List<int>();
 
 			for (var i = 0; i < data.Length; i++)
 			{
-				if (data[i] > 0D)
+				if (Unsafe.Add(ref dataRef, i) > 0D)
 					outliers.Add(i);
 			}
 

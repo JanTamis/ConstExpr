@@ -11,7 +11,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   produces exactly this shape.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationStackAllocTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationStackAllocTests : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -28,10 +28,11 @@ public class BoundsCheckEliminationStackAllocTests() : BaseTest<Func<int, int>>(
 		{
 			Span<int> buf = stackalloc int[4];
 			ref var bufRef = ref MemoryMarshal.GetReference(buf);
+			var mod = n % 4;
 
-			Unsafe.Add(ref bufRef, (nuint) (n % 4)) = n;
+			Unsafe.Add(ref bufRef, mod) = n;
 
-			return Unsafe.Add(ref bufRef, (nuint) (n % 4)) + bufRef;
+			return Unsafe.Add(ref bufRef, mod) + bufRef;
 		}, [ Unknown ])
 	];
 }

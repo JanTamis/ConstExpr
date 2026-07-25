@@ -15,11 +15,12 @@ public class BitOperationsPopCountCompareTest : BaseTest<Func<uint, (bool, bool,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (
-			System.Numerics.BitOperations.IsPow2(x),
-			x == 0,
-			!System.Numerics.BitOperations.IsPow2(x),
-			x != 0)),
+		Create(x =>
+		{
+			var isPow2Val = System.Numerics.BitOperations.IsPow2(x);
+
+			return (isPow2Val, x == 0, !isPow2Val, x != 0);
+		}),
 		Create(_ => (true, false, false, true), [ 8u ]),
 		Create(_ => (false, true, true, false), [ 0u ]),
 		Create(_ => (false, false, true, true), [ 7u ])

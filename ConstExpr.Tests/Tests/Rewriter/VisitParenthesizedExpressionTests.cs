@@ -45,7 +45,12 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((x, y) => (3, 9, 5, x + y, x + y, 1, 6, x.ToString())),
+		Create((x, y) =>
+		{
+			var sum = x + y;
+
+			return (3, 9, 5, sum, sum, 1, 6, x.ToString());
+		}),
 		Create((_, _) => (3, 9, 5, 15, 15, 1, 6, "10"), [ 10, 5 ]),
 		Create((_, _) => (3, 9, 5, -5, -5, 1, 6, "-10"), [ -10, 5 ]),
 		Create((_, _) => (3, 9, 5, 0, 0, 1, 6, "0"), [ 0, 0 ]),

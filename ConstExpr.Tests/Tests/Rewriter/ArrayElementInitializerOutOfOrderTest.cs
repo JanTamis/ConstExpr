@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -21,10 +24,15 @@ public class ArrayElementInitializerOutOfOrderTest : BaseTest<Func<int[], int[]>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(numbers =>
-		[
-			numbers[0],
-			numbers[1],
-			numbers[2]
-		])
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+
+			return
+			[
+				numbersRef,
+				Unsafe.Add(ref numbersRef, 1),
+				Unsafe.Add(ref numbersRef, 2)
+			];
+		})
 	];
 }

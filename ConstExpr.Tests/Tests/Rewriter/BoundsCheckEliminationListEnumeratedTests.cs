@@ -1,5 +1,3 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   is enumerated anywhere is refused — otherwise this would stop throwing and silently mutate.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationListEnumeratedTests() : BaseTest<Func<List<int>, int>>(optimizations: OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationListEnumeratedTests : BaseTest<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(values =>
 	{

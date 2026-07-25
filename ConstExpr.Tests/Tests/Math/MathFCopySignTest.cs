@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathFCopySignTest() : BaseTest<Func<float, float, float>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathFCopySignTest : BaseTest<Func<float, float, float>>
 {
 	public override string TestMethod => GetString((x, y) => MathF.CopySign(x, y));
 

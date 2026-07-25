@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringContainsTest() : BaseTest<Func<string, string, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class StringContainsTest : BaseTest<Func<string, string, bool>>
 {
 	public override string TestMethod => GetString((s, sub) => s.Contains(sub));
 

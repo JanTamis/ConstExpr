@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
 ///   Tests for Contains() optimization with complex lambda expressions
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationComplexTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -27,7 +25,11 @@ public class LinqContainsOptimizationComplexTests() : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Contains_FVnsrQ(x) ? 2 : 0) + (Contains_FVnsrQ(x) || Contains_ehiMwg(x) ? 1 : 0) + (Contains_0o_2rA(x) ? 1 : 0);", Unknown),
+		Create("""
+			var contains_FVnsrQVal = Contains_FVnsrQ(x);
+
+			return (contains_FVnsrQVal ? 2 : 0) + (contains_FVnsrQVal || Contains_ehiMwg(x) ? 1 : 0) + (Contains_0o_2rA(x) ? 1 : 0);
+			""", Unknown),
 		Create(_ => 4, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 3, [ new[] { 5, 10, 15 } ]) // a=1 (5>0 && 5==5), b=1 (5+10==15), c=0 (no 4), d=1 (5<10 && 5==5)

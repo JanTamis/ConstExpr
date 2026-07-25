@@ -1,12 +1,10 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 /// <summary>
 ///   Test with consecutive values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskConsecutiveTest() : BaseTest<Func<int, bool>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PatternBitmaskConsecutiveTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{

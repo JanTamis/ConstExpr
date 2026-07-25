@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>
@@ -20,6 +23,16 @@ public class ArrayElementInitializerSelfReferenceTest : BaseTest<Func<int[], int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault()
+		Create(numbers =>
+		{
+			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
+			var result = new int[2];
+
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+			resultRef = numbersRef;
+			Unsafe.Add(ref resultRef, 1) = Unsafe.Add(ref numbersRef, resultRef);
+
+			return result;
+		})
 	];
 }

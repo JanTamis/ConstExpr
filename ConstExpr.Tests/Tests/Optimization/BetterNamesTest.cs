@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class BetterNamesTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class BetterNamesTest : BaseTest<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -14,12 +12,7 @@ public class BetterNamesTest() : BaseTest<Func<int, int, int>>(optimizations: Op
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((x, y) =>
-		{
-			var sum = x * x + y * y;
-
-			return sum + sum;
-		}),
+		Create((x, y) => x * x + y * y << 1),
 		Create((_, _) => 50, [ 3, 4 ])
 	];
 }

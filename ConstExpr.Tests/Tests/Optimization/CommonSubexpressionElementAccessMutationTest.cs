@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Optimization;
 
@@ -6,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 // The two reads are NOT the same value, so CSE must not merge them. A buggy pass tracks only plain
 // identifier assignments as mutations and misses the indexer write, hoisting a single `arr[k]`.
 [InheritsTests]
-public class CommonSubexpressionElementAccessMutationTest() : BaseTest<Func<int[], int, int>>(FastMathFlags.All, optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class CommonSubexpressionElementAccessMutationTest : BaseTest<Func<int[], int, int>>
 {
 	public override string TestMethod => GetString((arr, k) =>
 	{
@@ -20,10 +21,13 @@ public class CommonSubexpressionElementAccessMutationTest() : BaseTest<Func<int[
 	[
 		Create((arr, k) =>
 		{
-			var x = arr[k];
-			arr[0] = 9;
-			var y = arr[k];
-			return x * 2 + y * 2;
+			ref var arrRef = ref MemoryMarshal.GetArrayDataReference(arr);
+			var x = Unsafe.Add(ref arrRef, k);
+			arrRef = 9;
+
+			var y = Unsafe.Add(ref arrRef, k);
+
+			return (x << 1) + (y << 1);
 		})
 	];
 }

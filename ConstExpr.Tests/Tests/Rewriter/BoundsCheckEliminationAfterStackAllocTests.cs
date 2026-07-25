@@ -10,8 +10,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   that span. Pins the hand-off, which only works because the <c>Span&lt;T&gt;</c> type survives.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationAfterStackAllocTests() : BaseTest<Func<int, int>>(
-	optimizations: OptimizationFlags.StackAllocConversion | OptimizationFlags.BoundsCheckElimination)
+public class BoundsCheckEliminationAfterStackAllocTests : BaseTest<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -28,10 +27,11 @@ public class BoundsCheckEliminationAfterStackAllocTests() : BaseTest<Func<int, i
 		{
 			Span<int> counts = stackalloc int[8];
 			ref var countsRef = ref MemoryMarshal.GetReference(counts);
+			var mod = n % 8;
 
-			Unsafe.Add(ref countsRef, (nuint) (n % 8))++;
+			Unsafe.Add(ref countsRef, mod)++;
 
-			return Unsafe.Add(ref countsRef, (nuint) (n % 8)) + countsRef;
+			return Unsafe.Add(ref countsRef, mod) + countsRef;
 		}, [ Unknown ])
 	];
 }

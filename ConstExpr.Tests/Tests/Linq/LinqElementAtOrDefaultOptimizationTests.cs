@@ -1,4 +1,5 @@
-using ConstExpr.Core.Enumerators;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -8,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Note: ElementAtOrDefault cannot be optimized to direct indexing because it returns default instead of throwing
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -41,7 +42,12 @@ public class LinqElementAtOrDefaultOptimizationTests() : BaseTest<Func<int[], in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (x.Length > 0 ? x[0] * 2 : 0) + (x.Length > 1 ? x[1] * 2 : 0) + (x.Length > 2 ? x[2] * 2 : 0) + (x.Length > 10 ? x[10] : 0) + (x.Length > 3 ? x[3] : 0)),
+		Create(x =>
+		{
+			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
+
+			return (x.Length > 0 ? xRef << 1 : 0) + (x.Length > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (x.Length > 2 ? Unsafe.Add(ref xRef, 2) << 1 : 0) + (x.Length > 10 ? Unsafe.Add(ref xRef, 10) : 0) + (x.Length > 3 ? Unsafe.Add(ref xRef, 3) : 0);
+		}),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
 		Create(_ => 0, [ System.Array.Empty<int>() ]), // All return 0 (default)
 		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ])

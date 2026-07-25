@@ -19,7 +19,7 @@ using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
-public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.Strict, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.None)
+public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = FastMathFlags.All, LinqOptimizationMode linqOptimization = LinqOptimizationMode.Unroll, OptimizationFlags optimizations = OptimizationFlags.All)
 	where TDelegate : Delegate
 {
 	/// <summary>

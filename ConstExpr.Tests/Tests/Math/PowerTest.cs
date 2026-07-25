@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PowerTest() : BaseTest<Func<int, int, long>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class PowerTest : BaseTest<Func<int, int, long>>
 {
 	public override string TestMethod => GetString((baseNum, exponent) =>
 	{

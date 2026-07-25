@@ -1,4 +1,4 @@
-using ConstExpr.Core.Enumerators;
+using System.Numerics.Tensors;
 
 namespace ConstExpr.Tests.Linq;
 
@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.AssociativeMath)
+public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,9 +36,9 @@ public class LinqAppendOptimizationTests() : BaseTest<Func<int[], int>>(FastMath
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return TensorPrimitives.Sum(x) * 5 + x.Length * 2 + 159;"),
-		Create("return x.Length * 2 + TensorPrimitives.Sum(x) + 183;", new[] { 1, 2, 3 }),
-		Create("return x.Length * 2 + TensorPrimitives.Sum(x) + 159;", System.Array.Empty<int>()),
-		Create("return x.Length * 2 + TensorPrimitives.Sum(x) + 199;", new[] { 10 })
+		Create(x => TensorPrimitives.Sum(x) * 5 + (x.Length << 1) + 159),
+		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 183, [ new[] { 1, 2, 3 } ]),
+		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 159, [ System.Array.Empty<int>() ]),
+		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 199, [ new[] { 10 } ])
 	];
 }

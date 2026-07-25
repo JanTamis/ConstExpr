@@ -1,9 +1,7 @@
-using ConstExpr.Core.Enumerators;
-
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathRoundTest() : BaseTest<Func<double, double>>(FastMathFlags.All, optimizations: OptimizationFlags.All)
+public class MathRoundTest : BaseTest<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Round(x));
 
