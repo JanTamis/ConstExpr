@@ -21,9 +21,7 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 ///   declaration for a local — and every indexing of it is rewritten against that local. An index of
 ///   literal <c>0</c> becomes the <c>ref</c> local itself.
 ///   <para>
-///     This pass does <em>not</em> prove indices stay in range; that is the caller's guarantee,
-///     which is why <see cref="ConstExpr.Core.Enumerators.OptimizationFlags.BoundsCheckElimination" />
-///     is opt-in and excluded from <c>All</c>. What is checked below are the conditions under which
+///     This pass does <em>not</em> prove indices stay in range; that is the caller's guarantee. What is checked below are the conditions under which
 ///     the rewrite is well-formed at all: the access shape (1), the collection never being reassigned
 ///     out from under the hoisted reference (2), no capture into a lambda where a <c>ref</c> local
 ///     cannot go (3), array-store covariance, which a write through <c>Unsafe.Add</c> would silently
