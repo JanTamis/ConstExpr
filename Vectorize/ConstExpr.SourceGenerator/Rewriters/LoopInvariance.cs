@@ -49,6 +49,14 @@ internal static class LoopInvariance
 					            || prue.IsKind(SyntaxKind.PreDecrementExpression):
 					written.Add(preid.Identifier.Text);
 					break;
+
+				// Foo(ref x), Foo(out x)
+				case ArgumentSyntax
+				{
+					RefKindKeyword.RawKind: not 0, Expression: IdentifierNameSyntax refid
+				}:
+					written.Add(refid.Identifier.Text);
+					break;
 			}
 		}
 

@@ -257,7 +257,7 @@ public partial class ConstExprPartialRewriter
 				}
 				case true:
 				{
-					return TryUnrollForLoop(node);
+					return TryUnrollForLoop(node, names);
 				}
 			}
 		}
@@ -268,12 +268,11 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	///   Tries to unroll a for loop when the condition is always true.
 	/// </summary>
-	private SyntaxNode? TryUnrollForLoop(ForStatementSyntax node)
+	private SyntaxNode? TryUnrollForLoop(ForStatementSyntax node, ImmutableHashSet<string> names)
 	{
 		if (attribute.MaxUnrollIterations == 0)
 		{
-			InvalidateAssignedVariables(node);
-			return base.VisitForStatement(node);
+			return VisitForStatementWithoutUnroll(node, names);
 		}
 
 		var result = new List<SyntaxNode?>();
@@ -283,8 +282,15 @@ public partial class ConstExprPartialRewriter
 		{
 			if (iteratorCount++ >= attribute.MaxUnrollIterations)
 			{
-				InvalidateAssignedVariables(node);
-				return base.VisitForStatement(node);
+				// The declaration was already visited once by VisitForStatement above (and
+				// node.Statement/Incrementors were re-visited on every unrolled iteration here),
+				// registering the loop counter (and any body-locals) in `variables`. Falling back
+				// to base.VisitForStatement(node) on the original node would re-visit that same
+				// declaration while it's already tracked as "existing", turning it into a bare
+				// assignment (losing the `for` header entirely - see VisitVariableDeclarator).
+				// VisitForStatementWithoutUnroll resets that state before re-visiting, producing a
+				// real (non-unrolled) for loop instead.
+				return VisitForStatementWithoutUnroll(node, names);
 			}
 
 			var statement = Visit(node.Statement);

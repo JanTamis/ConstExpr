@@ -415,7 +415,7 @@ public partial class ConstExprPartialRewriter
 		{
 			// Keep the receiver exactly as written (e.g. `System.String` vs `String`) — only the
 			// folded arguments change.
-			return node.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(visitedArguments)));
+			return node.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(visitedArguments, originalArguments)));
 		}
 
 		return null;
@@ -622,7 +622,7 @@ public partial class ConstExprPartialRewriter
 			usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
 			return node
-				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments)))
+				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments, node.ArgumentList.Arguments)))
 				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 		}
 
@@ -651,7 +651,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			return WithInvocationTargetName(node, specialized.Identifier.Text)
-				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(specializedArguments)))
+				.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(specializedArguments, node.ArgumentList.Arguments)))
 				.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 		}
 
@@ -667,7 +667,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return node
-			.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments)))
+			.WithArgumentList(node.ArgumentList.WithArguments(ToArgumentList(arguments, node.ArgumentList.Arguments)))
 			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 	}
 
@@ -985,7 +985,7 @@ public partial class ConstExprPartialRewriter
 		return node
 			.WithExpression(expression)
 			.WithArgumentList(node.ArgumentList
-				.WithArguments(ToArgumentList(arguments)))
+				.WithArguments(ToArgumentList(arguments, node.ArgumentList.Arguments)))
 			.WithMethodSymbolAnnotation(targetMethod, symbolStore);
 	}
 
@@ -1003,13 +1003,23 @@ public partial class ConstExprPartialRewriter
 		};
 	}
 
-	private static SeparatedSyntaxList<ArgumentSyntax> ToArgumentList(IReadOnlyList<ExpressionSyntax> arguments)
+	/// <summary>
+	///   Rebuilds an argument list from rewritten expressions. When <paramref name="originalArguments" />
+	///   lines up 1:1 with <paramref name="arguments" />, each argument's <c>ref</c>/<c>out</c>/<c>in</c>
+	///   keyword and name-colon are carried across positionally — otherwise a bare <c>Argument(expr)</c>
+	///   is minted, exactly as before. Without this, a call like <c>int.TryParse(s, out value)</c> would
+	///   silently lose its <c>out</c>, changing what gets written and making the emitted call invalid C#.
+	/// </summary>
+	private static SeparatedSyntaxList<ArgumentSyntax> ToArgumentList(IReadOnlyList<ExpressionSyntax> arguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments = default)
 	{
 		var mappedArguments = new ArgumentSyntax[arguments.Count];
+		var preserveRefKind = originalArguments.Count == arguments.Count;
 
 		for (var i = 0; i < arguments.Count; i++)
 		{
-			mappedArguments[i] = Argument(arguments[i]);
+			mappedArguments[i] = preserveRefKind
+				? Argument(originalArguments[i].NameColon, originalArguments[i].RefKindKeyword, arguments[i])
+				: Argument(arguments[i]);
 		}
 
 		return SeparatedList(mappedArguments);
