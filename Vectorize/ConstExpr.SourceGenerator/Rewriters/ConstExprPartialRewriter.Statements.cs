@@ -3149,23 +3149,35 @@ public partial class ConstExprPartialRewriter
 				return base.VisitIdentifierName(node);
 			}
 
-			return NeedsParentheses(initExpr, node.Parent)
+			return NeedsParentheses(initExpr, node)
 				? ParenthesizedExpression(initExpr)
 				: initExpr;
 		}
 
 		/// <summary>
 		///   Returns true when wrapping <paramref name="expr" /> in parentheses is required
-		///   to preserve operator precedence in the given <paramref name="parent" /> context.
+		///   to preserve operator precedence in place of <paramref name="node" />.
 		/// </summary>
-		private static bool NeedsParentheses(ExpressionSyntax expr, SyntaxNode? parent)
+		private static bool NeedsParentheses(ExpressionSyntax expr, IdentifierNameSyntax node)
 		{
+			var parent = node.Parent;
+
 			// Simple expressions never need parens regardless of context.
 			if (expr is IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
 			    or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax
 			    or ObjectCreationExpressionSyntax or ParenthesizedExpressionSyntax)
 			{
 				return false;
+			}
+
+			// Substituting into a binary expression only changes parsing when it lowers the
+			// operand's effective precedence below its sibling's — reuse the same
+			// precedence-preserving check the binary-expression visitor applies when folding its
+			// own operands (e.g. `n + 1` inlined for `temp` in `temp << 1` needs no parens: `+`
+			// already binds tighter than `<<`).
+			if (parent is BinaryExpressionSyntax parentBinary)
+			{
+				return PreserveOperandPrecedence(expr, parentBinary, parentBinary.Right == node) is ParenthesizedExpressionSyntax;
 			}
 
 			// Safe statement/container contexts: the expression is already delimited.
