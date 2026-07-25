@@ -277,17 +277,17 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
 		}
 
-		var ifStatement = $"Vector.NoneWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "vector")})";
-		var scalarStatement = $"Vector.NoneWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")})";
+		var maskStatement = ReplaceIdentifier(vectorizedCode, lambda, "vector");
+		var remainderStatement = ReplaceIdentifier(vectorizedCode, lambda, "remainderVector");
 
-		if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
-		{
-			memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}All"));
-			vectorizedCode = invocation.WithExpression(memberAccess);
-
-			ifStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "vector")}";
-			scalarStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")}";
-		}
+		// if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
+		// {
+		// 	memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}All"));
+		// 	vectorizedCode = invocation.WithExpression(memberAccess);
+		//
+		// 	ifStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "vector")}";
+		// 	scalarStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")}";
+		// }
 
 		var result = $$"""
 			private static bool All(ReadOnlySpan<{{typeName}}> data)
@@ -303,23 +303,25 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					do
 					{
 						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+						var mask = {{maskStatement}};
 						
-						if ({{ifStatement}})
+						if (Vector.EqualsAny(mask, Vector<{{typeName}}>.Zero))
 							return false;
 							
 						i += count;
-					} while ((uint)i < (uint)length);
+					} while ((uint)i < (uint)(length - count));
 					
-					if (i < length)
+					if ((uint)i < (uint)length)
 					{
 						var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+						var remainderMask = {{remainderStatement}};
 					
-						if ({{scalarStatement}})
+						if (Vector.EqualsAny(remainderMask, Vector<{{typeName}}>.Zero))
 							return false;
 					}
 				}
 				
-				for (; i < length; i++)
+				for (; (uint)i < (uint)length; i++)
 				{
 					var item = data[i];
 				

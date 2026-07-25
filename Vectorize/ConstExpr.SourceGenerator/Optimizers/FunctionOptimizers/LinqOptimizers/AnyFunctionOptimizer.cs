@@ -310,9 +310,9 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 							return true;
 							
 						i += count;
-					} while ((uint)i < (uint)length);
+					} while ((uint)i < (uint)(length  - count));
 					
-					if (i < length)
+					if ((uint)i < (uint)length)
 					{
 						var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
 
@@ -320,7 +320,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 					}
 				}
 
-				for (; i < length; i++)
+				for (; (uint)i < (uint)length; i++)
 				{
 					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
 						return true;
