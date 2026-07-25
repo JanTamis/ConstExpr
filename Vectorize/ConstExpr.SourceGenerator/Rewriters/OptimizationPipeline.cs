@@ -37,6 +37,14 @@ public static class OptimizationPipeline
 			body = Prune(CopyPropagationRewriter.Apply(body));
 		}
 
+		// Before CSE: collapsing a settled branch lifts its statements into the enclosing block, which
+		// is the only scope the eliminator hoists within. After copy propagation, so a comparison on a
+		// copied local is analysed under the one canonical name.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.ValueRangePropagation))
+		{
+			body = Prune(ValueRangeRewriter.Apply(body));
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);

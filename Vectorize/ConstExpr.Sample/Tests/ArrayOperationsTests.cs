@@ -94,6 +94,13 @@ internal class ArrayOperationsTests
 		// Range - mixed
 		Console.WriteLine($"[MIXED] Range(data): {ArrayOperations.Range(data)}");
 
+		// SumLowBuckets - alleen constanten
+		Console.WriteLine($"[CONST] SumLowBuckets(3, 20, 7, 24): {ArrayOperations.SumLowBuckets(3, 20, 7, 24)}");
+
+		// SumLowBuckets - mixed; dit is het pad waar value-range propagation de twee vaststaande
+		// guards wegvouwt en de derde laat staan.
+		Console.WriteLine($"[MIXED] SumLowBuckets(data): {ArrayOperations.SumLowBuckets(data)}");
+
 		Console.WriteLine();
 	}
 }

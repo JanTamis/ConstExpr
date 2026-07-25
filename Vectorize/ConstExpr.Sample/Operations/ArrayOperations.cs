@@ -265,4 +265,27 @@ public static class ArrayOperations
 
 		return FindMax(numbers) - FindMin(numbers);
 	}
+
+	/// <summary>
+	///   Sums the elements whose low four bits fall in the lower half of a 16-bucket histogram.
+	///   Written the way a bucketing loop usually is, with both guards spelled out; value-range
+	///   propagation settles the two that cannot fail — <c>i</c> starts at zero and only rises, and
+	///   <c>bucket</c> is masked to <c>[0, 15]</c> — and leaves the one that decides anything.
+	/// </summary>
+	public static int SumLowBuckets(params int[] numbers)
+	{
+		var sum = 0;
+
+		for (var i = 0; i < numbers.Length; i++)
+		{
+			var bucket = numbers[i] & 15;
+
+			if (i >= 0 && bucket <= 15 && bucket < 8)
+			{
+				sum += bucket;
+			}
+		}
+
+		return sum;
+	}
 }

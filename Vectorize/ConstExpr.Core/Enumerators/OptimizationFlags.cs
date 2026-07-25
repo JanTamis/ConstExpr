@@ -104,10 +104,33 @@ public enum OptimizationFlags
 	BoundsCheckElimination = 1 << 8,
 
 	/// <summary>
+	///   Enable value-range propagation (VRP).
+	///   Derives the interval each integer expression is known to fall in — from literals, from a local's
+	///   initializer, from an ascending <c>for</c> header, and from a guard that dominates the use — and
+	///   folds a comparison whose outcome those intervals already settle into <c>true</c> or
+	///   <c>false</c>, dropping the branch that can no longer be taken:
+	///   <code>
+	///   for (var i = 0; i &lt; n; i++)           for (var i = 0; i &lt; n; i++)
+	///       if (i >= 0) sum += data[i];   =>       sum += data[i];
+	///   </code>
+	///   <para>
+	///     Only provably dead code is removed, so the pass cannot change what the method computes. It
+	///     does not narrow types, elide overflow checks, or affect
+	///     <see cref="BoundsCheckElimination" />, which keeps proving nothing about its indices.
+	///   </para>
+	/// </summary>
+	/// <remarks>
+	///   Skips bit 9 on purpose: that was the retired index-from-end conversion, and reusing its value
+	///   would silently turn this pass on for anyone still passing the old number.
+	/// </remarks>
+	ValueRangePropagation = 1 << 10,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
-	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" /> and <see cref="BoundsCheckElimination"/>.
+	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>
+	///   and <see cref="ValueRangePropagation" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation
 }
