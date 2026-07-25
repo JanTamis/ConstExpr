@@ -61,11 +61,11 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			var val = x.Length > 0;
-			var any_ds6FogVal = Any_ds6Fog(x);
+			var any_FNV4rgVal = Any_FNV4rg(x);
 
-			return (val ? 9 : 0) + (any_ds6FogVal || val ? 1 : 0) + (Contains_H_mKqw(x) ? 1 : 0) + (Contains_rph_Xw(x) ? 1 : 0) + (any_ds6FogVal ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);
+			return (val ? 9 : 0) + (any_FNV4rgVal || val ? 1 : 0) + (Contains_H_mKqw(x) ? 1 : 0) + (Contains_rph_Xw(x) ? 1 : 0) + (any_FNV4rgVal ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);
 			"""),
-		Create("return (Any_ds6Fog(x) ? 1 : 0) + 14 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", new[] { 1, 2, 3, 4, 5 }),
-		Create("return (Any_ds6Fog(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", System.Array.Empty<int>())
+		Create("return (Any_FNV4rg(x) ? 1 : 0) + 14 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", new[] { 1, 2, 3, 4, 5 }),
+		Create("return (Any_FNV4rg(x) ? 1 : 0) + 3 + (TensorPrimitives.IsEvenIntegerAny(x) ? 1 : 0);", System.Array.Empty<int>())
 	];
 }

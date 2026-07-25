@@ -280,6 +280,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 	{
 		var typeName = context.Method.TypeArguments[0].ToDisplayString();
 		var ifStatement = $"Vector.AnyWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "vector")})";
+		var scalarStatement = $"Vector.AnyWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")})";
 
 		if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
 		{
@@ -287,6 +288,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			vectorizedCode = invocation.WithExpression(memberAccess);
 
 			ifStatement = ReplaceIdentifier(vectorizedCode, lambda, "vector");
+			scalarStatement = ReplaceIdentifier(vectorizedCode, lambda, "remainderVector");
 		}
 
 		var result = $$"""
@@ -294,8 +296,9 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			{
 				var i = 0;
 				var length = data.Length;
+				var count = Vector<{{typeName}}>.Count;
 
-				if (Vector.IsHardwareAccelerated && length >= Vector<{{typeName}}>.Count)
+				if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
 				{
 					ref var reference = ref MemoryMarshal.GetReference(data);
 
@@ -306,8 +309,15 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 						if ({{ifStatement}})
 							return true;
 							
-						i += Vector<{{typeName}}>.Count;
-					} while (i < length);
+						i += count;
+					} while ((uint)i < (uint)length);
+					
+					if (i < length)
+					{
+						var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+
+						return {{scalarStatement}};
+					}
 				}
 
 				for (; i < length; i++)

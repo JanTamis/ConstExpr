@@ -59,13 +59,13 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var all_36HS_AVal = All_36HS_A(x);
-			var all_I0veHgVal = All_I0veHg(x);
+			var all_g1mLrAVal = All_g1mLrA(x);
+			var all_ZaEd7wVal = All_ZaEd7w(x);
 
-			return (All_h_vZmg(x) ? 8 : 0) + (all_36HS_AVal ? 2 : 0) + (All_xlqOKg(x) ? 1 : 0) + (All_tzFdVw(x) ? 1 : 0) + (all_I0veHgVal && all_I0veHgVal ? 1 : 0) + (All_6l0HbQ(x) ? 1 : 0) + (all_36HS_AVal ? 1 : 0);
+			return (All_tfoSFw(x) ? 8 : 0) + (all_g1mLrAVal ? 2 : 0) + (All_PULYAA(x) ? 1 : 0) + (All_eMhXvA(x) ? 1 : 0) + (all_ZaEd7wVal && all_ZaEd7wVal ? 1 : 0) + (All_21_2Hw(x) ? 1 : 0) + (all_g1mLrAVal ? 1 : 0);
 			"""),
-		Create("return (All_36HS_A(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return (All_36HS_A(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
-		Create("return (All_36HS_A(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })
+		Create("return (All_g1mLrA(x) ? 3 : 0) + 11;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return (All_g1mLrA(x) ? 3 : 0) + 12;", System.Array.Empty<int>()),
+		Create("return (All_g1mLrA(x) ? 3 : 0) + 9;", new[] { 1, 2, 3, 4, 5, 100 })
 	];
 }
