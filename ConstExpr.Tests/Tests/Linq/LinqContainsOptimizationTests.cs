@@ -50,7 +50,7 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Contains__KFndQ(x) ? 11 : 0) + (Contains_H_mKqw(x) ? 1 : 0);"),
+		Create("return Unsafe.BitCast<bool, byte>(Contains__KFndQ(x)) * 11 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x));"),
 		Create(_ => 11, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 0, [ new[] { 1, 2, 4, 5, 6 } ]) // No 3, all tests fail

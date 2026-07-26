@@ -223,7 +223,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
 		// Same shared pipeline the generator runs, so the harness cannot drift from it.
-		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel) as BlockSyntax ?? newBody;
+		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore) as BlockSyntax ?? newBody;
 
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);

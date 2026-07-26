@@ -34,7 +34,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 		Create("""
 			var asSpanVal = CollectionsMarshal.AsSpan(x);
 
-			return (x.Count > 0 ? 3 : 0) + (Any_zVhFgQ(asSpanVal) ? 1 : 0) + (Any_6aP3GA(asSpanVal) ? 1 : 0) + (Contains_rph_Xw(asSpanVal) ? 1 : 0);
+			return Unsafe.BitCast<bool, byte>(x.Count > 0) * 3 + Unsafe.BitCast<bool, byte>(Any_zVhFgQ(asSpanVal)) + Unsafe.BitCast<bool, byte>(Any_6aP3GA(asSpanVal)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(asSpanVal));
 			""", Unknown),
 		Create(_ => 5, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ])

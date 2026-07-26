@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>x / x DOES fold to 1 once a sibling comparison in the same condition proves x is non-zero.</summary>
@@ -16,6 +18,6 @@ public class DivideIdempotencyProvenNonZeroTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x != 0 ? 1 : 0)
+		Create(x => Unsafe.BitCast<bool, byte>(x != 0))
 	];
 }

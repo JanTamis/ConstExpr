@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
@@ -30,7 +31,8 @@ public static class OptimizationPipeline
 	///   instead, which still carries the type the interpreter resolved before the tree was rewritten.
 	/// </summary>
 	public static SyntaxNode Apply(SyntaxNode body, ParameterListSyntax parameters, SyntaxToken methodName,
-	                               ConstExprAttribute attribute, IDictionary<string, VariableItem> variables, SemanticModel semanticModel)
+	                               ConstExprAttribute attribute, IDictionary<string, VariableItem> variables, SemanticModel semanticModel,
+	                               ConcurrentDictionary<ulong, ISymbol> symbolStore)
 	{
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
 		{
@@ -90,6 +92,13 @@ public static class OptimizationPipeline
 		{
 			body = BoundsCheckRewriter.Apply(body, parameters, variables);
 		}
+
+		// Last: the bool-to-int BitCast rewrite (unconditional, not gated by OptimizationFlags) always
+		// keeps its outer widening cast at creation time, since it only sees the conditional's immediate
+		// position — earlier passes above (e.g. single-use variable inlining, upstream in the main
+		// rewriter) may since have relocated it into a position where the cast is now provably redundant.
+		// Checking that here, on the fully-formed tree, is the only place it can be decided correctly.
+		body = RedundantBitCastElisionRewriter.Apply(body, semanticModel, symbolStore);
 
 		return body;
 

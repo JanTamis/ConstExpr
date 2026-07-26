@@ -790,7 +790,7 @@ public partial class ConstExprPartialRewriter
 	{
 		return body is null
 			? body
-			: OptimizationPipeline.Apply(body, parameterList, methodName, attribute, parameters, semanticModel) as BlockSyntax ?? body;
+			: OptimizationPipeline.Apply(body, parameterList, methodName, attribute, parameters, semanticModel, symbolStore) as BlockSyntax ?? body;
 	}
 
 	/// <summary>

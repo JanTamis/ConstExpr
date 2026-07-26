@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace ConstExpr.Tests.Linq;
 
 /// <summary>
@@ -106,7 +108,7 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 		{
 			var val = count > 0;
 
-			return ((val ? element : throw new InvalidOperationException("Sequence contains no elements")) << 2) + count + element * count + (val ? 1 : 0) + (val && element == 5 ? 1 : 0) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + (count <= 0 || element > 0 ? 1 : 0);
+			return ((val ? element : throw new InvalidOperationException("Sequence contains no elements")) << 2) + count + element * count + Unsafe.BitCast<bool, byte>(val) + Unsafe.BitCast<bool, byte>(val && element == 5) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(count <= 0 || element > 0);
 		}),
 		Create((_, _) => 40, [ 3, 4 ])
 	];

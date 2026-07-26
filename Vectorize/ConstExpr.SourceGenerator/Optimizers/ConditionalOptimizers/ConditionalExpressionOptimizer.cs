@@ -5,6 +5,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
+using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -138,6 +139,48 @@ public class ConditionalExpressionOptimizer
 			result = BinaryExpression(SyntaxKind.CoalesceExpression,
 				ConditionalAccessExpression(receiver, MemberBindingExpression(memberName)),
 				fallback);
+			return true;
+		}
+
+		if (Type is not null
+		    && WhenTrue.IsNumericOne()
+		    && WhenFalse.IsNumericZero())
+		{
+			var bitCast = InvocationExpression(
+					MemberAccessExpression(
+						ParseExpression("Unsafe"),
+						GenericName(Identifier("BitCast"))
+							.WithTypeArgumentList(
+								TypeArgumentList(
+									SeparatedList<TypeSyntax>(
+									[
+										PredefinedType(Token(SyntaxKind.BoolKeyword)),
+										PredefinedType(Token(SyntaxKind.ByteKeyword))
+									])))))
+				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(Condition))));
+
+			result = Type.SpecialType == SpecialType.System_Byte ? bitCast : CastExpression(Type.AsTypeSyntax(), bitCast);
+			return true;
+		}
+
+		if (Type is not null
+		    && WhenTrue.IsNumericZero()
+		    && WhenFalse.IsNumericOne())
+		{
+			var bitCast = InvocationExpression(
+					MemberAccessExpression(
+						ParseExpression("Unsafe"),
+						GenericName(Identifier("BitCast"))
+							.WithTypeArgumentList(
+								TypeArgumentList(
+									SeparatedList<TypeSyntax>(
+									[
+										PredefinedType(Token(SyntaxKind.BoolKeyword)),
+										PredefinedType(Token(SyntaxKind.ByteKeyword))
+									])))))
+				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(NegateExpressionRefactoring.Negate(Condition, false)))));
+
+			result = Type.SpecialType == SpecialType.System_Byte ? bitCast : CastExpression(Type.AsTypeSyntax(), bitCast);
 			return true;
 		}
 

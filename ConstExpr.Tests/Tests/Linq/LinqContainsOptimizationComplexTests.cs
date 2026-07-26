@@ -28,7 +28,7 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 		Create("""
 			var contains_FVnsrQVal = Contains_FVnsrQ(x);
 
-			return (contains_FVnsrQVal ? 2 : 0) + (contains_FVnsrQVal || Contains_ehiMwg(x) ? 1 : 0) + (Contains_0o_2rA(x) ? 1 : 0);
+			return (Unsafe.BitCast<bool, byte>(contains_FVnsrQVal) << 1) + Unsafe.BitCast<bool, byte>(contains_FVnsrQVal || Contains_ehiMwg(x)) + Unsafe.BitCast<bool, byte>(Contains_0o_2rA(x));
 			""", Unknown),
 		Create(_ => 4, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),

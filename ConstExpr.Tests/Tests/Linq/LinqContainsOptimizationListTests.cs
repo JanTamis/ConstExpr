@@ -37,7 +37,7 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 		Create("""
 			var asSpanVal = CollectionsMarshal.AsSpan(x);
 
-			return (Contains__KFndQ(asSpanVal) ? 6 : 0) + (Contains_H_mKqw(asSpanVal) ? 1 : 0);
+			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(asSpanVal)) * 6 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(asSpanVal));
 			""", Unknown),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ]),
