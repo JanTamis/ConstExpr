@@ -335,34 +335,51 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	/// <summary>
 	///   Creates a throw expression for a specific exception type with a message.
 	/// </summary>
+	/// <param name="context"></param>
 	/// <param name="message">The message to pass to the exception constructor</param>
+	/// <param name="expectedType">
+	///   The type this throw expression stands in for (e.g. the element type of a <c>cond ? element : throw</c>
+	///   branch). Defaults to <c>context.Method.ReturnType</c>, which is correct for every call site except
+	///   ones (like <c>SingleOrDefault</c>) where the branch type is narrower than the method's own
+	///   (nullable-annotated) return type.
+	/// </param>
 	/// <returns>A ThrowExpressionSyntax that throws the specified exception with the message</returns>
-	protected ThrowExpressionSyntax CreateThrowExpression<TException>(string message = "") where TException : Exception
+	protected ExpressionSyntax CreateThrowExpression<TException>(FunctionOptimizerContext context, string message = "", ITypeSymbol? expectedType = null) where TException : Exception
 	{
 		return ThrowExpression(
-			ObjectCreationExpression(
-					IdentifierName(typeof(TException).Name))
-				.WithArgumentList(
-					ArgumentList(
-						SingletonSeparatedList(
-							Argument(
-								LiteralExpression(
-									SyntaxKind.StringLiteralExpression,
-									Literal(message)))))));
+				ObjectCreationExpression(
+						IdentifierName(typeof(TException).Name))
+					.WithArgumentList(
+						ArgumentList(
+							SingletonSeparatedList(
+								Argument(
+									LiteralExpression(
+										SyntaxKind.StringLiteralExpression,
+										Literal(message)))))))
+			.WithAdditionalAnnotations(CreateThrowExpectedTypeAnnotation(context, expectedType));
 	}
 
-	protected ThrowExpressionSyntax CreateThrowExpression(Exception ex)
+	protected ExpressionSyntax CreateThrowExpression(FunctionOptimizerContext context, Exception ex)
 	{
 		return ThrowExpression(
-			ObjectCreationExpression(
-					IdentifierName(ex.GetType().Name))
-				.WithArgumentList(
-					ArgumentList(
-						SingletonSeparatedList(
-							Argument(
-								LiteralExpression(
-									SyntaxKind.StringLiteralExpression,
-									Literal(ex.Message)))))));
+				ObjectCreationExpression(IdentifierName(ex.GetType().Name))
+					.WithArgumentList(
+						ArgumentList(
+							SingletonSeparatedList(
+								Argument(CreateLiteral(ex.Message))))))
+			.WithAdditionalAnnotations(CreateThrowExpectedTypeAnnotation(context, null));
+	}
+
+	/// <summary>
+	///   Stashes the expected result type on a synthetic throw expression so <see cref="ThrowExpressionExtractionRewriter" />
+	///   — which runs as the final pass, once the throw may have relocated anywhere in the tree — knows the
+	///   generic argument for the helper method it extracts, without having to re-derive it from context.
+	/// </summary>
+	private static SyntaxAnnotation CreateThrowExpectedTypeAnnotation(FunctionOptimizerContext context, ITypeSymbol? expectedType)
+	{
+		var type = (expectedType ?? context.Method.ReturnType).WithNullableAnnotation(NullableAnnotation.None);
+
+		return new SyntaxAnnotation(ThrowExpressionExtractionRewriter.ExpectedTypeAnnotationKind, context.Model.Compilation.GetMinimalString(type));
 	}
 
 	protected CollectionExpressionSyntax CreateCollection(params IEnumerable<ExpressionSyntax> elements)
@@ -1132,7 +1149,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		}
 		catch (TargetInvocationException e) when (e.InnerException != null)
 		{
-			result = CreateThrowExpression(e.InnerException);
+			result = CreateThrowExpression(context, e.InnerException);
 			return true;
 		}
 		catch (ArgumentException)
@@ -1186,7 +1203,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		}
 		catch (TargetInvocationException e) when (e.InnerException != null)
 		{
-			result = CreateThrowExpression(e.InnerException);
+			result = CreateThrowExpression(context, e.InnerException);
 			return true;
 		}
 		catch (ArgumentException)
