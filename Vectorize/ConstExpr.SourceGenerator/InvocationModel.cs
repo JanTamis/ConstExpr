@@ -25,7 +25,7 @@ public class InvocationModel
 
 	public InvocationExpressionSyntax? Invocation { get; set; }
 
-	public IEnumerable<SyntaxNode>? AdditionalMethods { get; set; }
+	public IEnumerable<SyntaxNode>? Additionalitems { get; set; }
 
 	public HashSet<string>? Usings { get; set; }
 

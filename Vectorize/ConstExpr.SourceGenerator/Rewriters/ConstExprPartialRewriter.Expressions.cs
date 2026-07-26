@@ -1287,10 +1287,7 @@ public partial class ConstExprPartialRewriter
 		if (result is [ InterpolationSyntax { FormatClause: null, AlignmentClause: null } singleInterp ])
 		{
 			return InvocationExpression(
-					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						singleInterp.Expression,
-						IdentifierName("ToString")))
+					MemberAccessExpression(singleInterp.Expression, IdentifierName("ToString")))
 				.WithArgumentList(ArgumentList());
 		}
 

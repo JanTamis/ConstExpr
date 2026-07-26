@@ -138,6 +138,123 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						""");
 				}
 
+				spc.AddSource("IOperator.g.cs", """
+					using System;
+					using System.ComponentModel;
+					using System.Numerics;
+
+					namespace ConstantExpression.Interfaces;
+
+					[EditorBrowsable(EditorBrowsableState.Never)]
+					public interface IOperator<T>
+					{
+						static abstract bool Invoke(T item);
+						static abstract Vector<T> Invoke(Vector<T> vector);
+					}
+					""");
+
+				spc.AddSource("VectorOperations.g.cs", """
+					using System;
+					using System.ComponentModel;
+					using System.Numerics;
+					using System.Runtime.CompilerServices;
+					using System.Runtime.InteropServices;
+					using ConstantExpression.Interfaces;
+
+					namespace ConstantExpression.Operations;
+
+					[EditorBrowsable(EditorBrowsableState.Never)]
+					public static class VectorOperations
+					{
+						public static bool All<T, TOperator>(ReadOnlySpan<T> data)
+							where TOperator : struct, IOperator<T>
+						{
+							var i = 0;
+							var length = data.Length;
+							var count = Vector<T>.Count;
+							
+							ref var reference = ref MemoryMarshal.GetReference(data);
+						
+							if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+							{
+								do
+								{
+									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+									var mask = TOperator.Invoke(vector);
+						
+									if (Vector.EqualsAny(mask, Vector<T>.Zero))
+										return false;
+						
+									i += count;
+								}
+								while ((uint)i < (uint)(length - count));
+						
+								if ((uint)i < (uint)length)
+								{
+									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+									var remainderMask = TOperator.Invoke(remainderVector);
+						
+									if (Vector.EqualsAny(remainderMask, Vector<T>.Zero))
+										return false;
+								}
+							}
+						
+							for (; (uint)i < (uint)length; i++)
+							{
+								var item = Unsafe.Add(ref reference, i);
+						
+								if (!TOperator.Invoke(item))
+									return false;
+							}
+						
+							return true;
+						}
+						
+						public static bool Any<T, TOperator>(ReadOnlySpan<T> data)
+							where TOperator : struct, IOperator<T>
+						{
+							var i = 0;
+							var length = data.Length;
+							var count = Vector<T>.Count;
+							
+							ref var reference = ref MemoryMarshal.GetReference(data);
+						
+							if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+							{
+								do
+								{
+									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+									var mask = TOperator.Invoke(vector);
+						
+									if (Vector.EqualsAny(mask, Vector<T>.AllBitsSet))
+										return true;
+						
+									i += count;
+								}
+								while ((uint)i < (uint)(length - count));
+						
+								if ((uint)i < (uint)length)
+								{
+									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+									var remainderMask = TOperator.Invoke(remainderVector);
+						
+									return Vector.EqualsAny(remainderMask, Vector<T>.AllBitsSet);
+								}
+							}
+						
+							for (; (uint)i < (uint)length; i++)
+							{
+								var item  = Unsafe.Add(ref reference, i);
+								
+								if (TOperator.Invoke(item))
+									return true;
+							}
+						
+							return false;
+						}
+					}
+					""");
+
 				// Generate source code in parallel but collect results first
 				// spc.AddSource is NOT thread-safe, so we must add sources sequentially
 				var generatedSources = new ConcurrentBag<(string FileName, string Source)>();
@@ -191,7 +308,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.ToSet();
 
 		var distinctAdditionalMethods = methodGroup
-			.SelectMany(m => m?.AdditionalMethods)
+			.SelectMany(m => m?.Additionalitems)
 			.Distinct(SyntaxNodeComparer.Get())
 			.ToList();
 
@@ -214,7 +331,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			EmitGeneratedMethodsForValueGroups(code, compilation, methodGroup, loader);
 
-			foreach (var additionalMethod in distinctAdditionalMethods.Where(w => w is MethodDeclarationSyntax))
+			foreach (var additionalMethod in distinctAdditionalMethods)
 			{
 				code.WriteLine();
 				// Format at emission time to avoid expensive NormalizeWhitespace during processing
@@ -359,7 +476,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			// var variables = ProcessArguments(visitor, context.SemanticModel.Compilation, invocation, loader, token);
 			var variablesPartial = ProcessArguments(visitor, semanticModel, invocation, loader, apiCache, token);
-			var additionalMethods = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+			var additionalItems = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
 
 			var analyzer = new InlineVariableAnalyzer(model, symbolStore);
 			var candidates = analyzer.FindInlineCandidates(methodDecl.Body!);
@@ -387,7 +504,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
 			{
 				exceptions.TryAdd(node, ex);
-			}, variablesPartial, additionalMethods, usings, attribute, symbolStore, token);
+			}, variablesPartial, additionalItems, usings, attribute, symbolStore, token);
 
 			var timer = Stopwatch.StartNew();
 
@@ -399,7 +516,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
-			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore, additionalMethods, usings!);
+			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore, additionalItems, usings!);
 
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));
@@ -459,7 +576,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				OriginalMethod = methodDecl,
 				Method = FormattingHelper.Format(resultMethod) as MethodDeclarationSyntax ?? resultMethod,
 				// Defer formatting to emission time to avoid expensive NormalizeWhitespace calls
-				AdditionalMethods = additionalMethods
+				Additionalitems = additionalItems
 					.OrderByDescending(o => o.Value)
 					.Select(s => s.Key),
 				ParentType = methodDecl.Parent as TypeDeclarationSyntax,

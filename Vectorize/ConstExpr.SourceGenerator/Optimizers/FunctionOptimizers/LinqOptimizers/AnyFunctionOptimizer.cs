@@ -266,72 +266,58 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 		}
 
-		if (!TryVectorize(context, source, anyLambda, CreateVectorizedMethod,
-			    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, anyLambda),
-			    () => CreateInvocation(source, "Exists", anyLambda), out result))
+		if (IsInvokedOnArray(context, source))
 		{
-			result = UpdateInvocation(context, source, anyLambda);
+			if (TryVectorize(context, anyLambda, out var vectorizedCode))
+			{
+				result = CreateVectorizedinvocation(vectorizedCode, anyLambda, context)
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(source))));
+				return true;
+			}
+
+			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, anyLambda);
+			return true;
 		}
 
+		if (IsInvokedOnList(context, source))
+		{
+			if (TryVectorize(context, anyLambda, out var vectorizedCode))
+			{
+				var spanSource = CreateInvocation(
+					ParseTypeName("CollectionsMarshal"),
+					"AsSpan",
+					source);
+
+				result = CreateVectorizedinvocation(vectorizedCode, anyLambda, context)
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(spanSource))));
+				return true;
+			}
+
+			result = CreateInvocation(source, "Exists", anyLambda);
+			return true;
+		}
+
+		result = UpdateInvocation(context, source, anyLambda);
 		return true;
 	}
 
-	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	private InvocationExpressionSyntax CreateVectorizedinvocation(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
 	{
 		var typeName = context.Method.TypeArguments[0].ToDisplayString();
-		var ifStatement = $"Vector.AnyWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "vector")})";
-		var scalarStatement = $"Vector.AnyWhereAllBitsSet({ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")})";
 
-		if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
-		{
-			memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}Any"));
-			vectorizedCode = invocation.WithExpression(memberAccess);
-
-			ifStatement = ReplaceIdentifier(vectorizedCode, lambda, "vector");
-			scalarStatement = ReplaceIdentifier(vectorizedCode, lambda, "remainderVector");
-		}
-
-		var result = $$"""
-			private static bool Any(ReadOnlySpan<{{typeName}}> data)
+		var type = ParseTypeFromString<StructDeclarationSyntax>($$"""
+			private struct Operator{{lambda.Body.GetDeterministicHashString()}} : IOperator<{{typeName}}>
 			{
-				var i = 0;
-				var length = data.Length;
-				var count = Vector<{{typeName}}>.Count;
-
-				if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
-				{
-					ref var reference = ref MemoryMarshal.GetReference(data);
-
-					do
-					{
-						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-					
-						if ({{ifStatement}})
-							return true;
-							
-						i += count;
-					} while ((uint)i < (uint)(length  - count));
-					
-					if ((uint)i < (uint)length)
-					{
-						var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-
-						return {{scalarStatement}};
-					}
-				}
-
-				for (; (uint)i < (uint)length; i++)
-				{
-					if ({{ReplaceIdentifier(lambda.Body, lambda, "data[i]")}})
-						return true;
-				}
-
-				return false;
+				public static Vector<{{typeName}}> Invoke(Vector<{{typeName}}> vector) => {{ReplaceIdentifier(vectorizedCode, lambda, "vector")}};
+				public static bool Invoke({{typeName}} item) => {{ReplaceIdentifier(lambda.Body, lambda, "item")}};
 			}
-			""";
+			""");
 
-		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+		context.Usings.Add("ConstantExpression.Operations");
+		context.Usings.Add("System.Numerics");
+		context.Usings.Add("ConstantExpression.Interfaces");
+		context.AdditionalSyntax.TryAdd(type, false);
 
-		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
+		return CreateInvocation("VectorOperations.Any", [ context.Method.TypeArguments[0].AsTypeSyntax(), ParseTypeName(type.Identifier.Text) ], [ ]);
 	}
 }
