@@ -24,8 +24,8 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 	// Operations that don't affect Average behavior
 	private static readonly HashSet<string> OperationsThatDontAffectAverage =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Reverse)
 	];
 
@@ -41,7 +41,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 		if (IsEmptyEnumerable(source))
 		{
 			// Average of an empty sequence throws an exception, so we return a throw expression instead of optimizing to Average() which would be incorrect
-			result = CreateThrowExpression<InvalidOperationException>("Sequence contains no elements");
+			result = CreateThrowExpression<InvalidOperationException>(context, "Sequence contains no elements");
 			return true;
 		}
 
@@ -101,7 +101,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, countArg.Expression, CreateLiteral(0), intType),
 						averageValue,
-						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
+						CreateThrowExpression<InvalidOperationException>(context, "Sequence contains no elements"));
 					return true;
 				}
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
@@ -114,7 +114,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 						castExpr,
-						CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
+						CreateThrowExpression<InvalidOperationException>(context, "Sequence contains no elements"));
 					return true;
 				}
 			}

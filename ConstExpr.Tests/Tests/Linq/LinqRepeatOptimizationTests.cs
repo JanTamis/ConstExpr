@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ConstExpr.Tests.Linq;
@@ -106,10 +107,26 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 	[
 		Create((element, count) =>
 		{
-			var val = count > 0;
+			var gt = count > 0;
 
-			return ((val ? element : throw new InvalidOperationException("Sequence contains no elements")) << 2) + count + element * count + Unsafe.BitCast<bool, byte>(val) + Unsafe.BitCast<bool, byte>(val && element == 5) + (count > 2 ? element : throw new ArgumentOutOfRangeException("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(count <= 0 || element > 0);
+			return ((gt ? element : ThrowInvalidOperationException<int>("Sequence contains no elements")) << 2) + count + element * count + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(gt && element == 5) + (count > 2 ? element : ThrowArgumentOutOfRangeException<int>("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(count <= 0 || element > 0);
 		}),
 		Create((_, _) => 40, [ 3, 4 ])
 	];
+
+	// Local stand-ins for the private helpers the generator extracts throw-expressions into (see
+	// ThrowExpressionExtractionRewriter) — needed so the expected-body lambda above compiles; only their
+	// call syntax is compared, not these bodies. Generic because a throw expression only ever occupies a
+	// value position (cond ? a : throw ...), so the extracted helper can't be void.
+	[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+	private static T ThrowInvalidOperationException<T>(string message)
+	{
+		throw new InvalidOperationException(message);
+	}
+
+	[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+	private static T ThrowArgumentOutOfRangeException<T>(string message)
+	{
+		throw new ArgumentOutOfRangeException(message);
+	}
 }

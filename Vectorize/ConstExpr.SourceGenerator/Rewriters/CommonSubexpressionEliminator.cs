@@ -38,6 +38,14 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				SyntaxKind.BitwiseAndExpression => "and",
 				SyntaxKind.BitwiseOrExpression => "or",
 				SyntaxKind.ExclusiveOrExpression => "xor",
+				SyntaxKind.LessThanExpression => "lt",
+				SyntaxKind.LessThanOrEqualExpression => "lte",
+				SyntaxKind.GreaterThanExpression => "gt",
+				SyntaxKind.GreaterThanOrEqualExpression => "gte",
+				SyntaxKind.EqualsExpression => "eq",
+				SyntaxKind.NotEqualsExpression => "ne",
+				SyntaxKind.LogicalAndExpression => "and",
+				SyntaxKind.LogicalOrExpression => "or",
 				_ => "val"
 			},
 			InvocationExpressionSyntax invocation => invocation.Expression switch

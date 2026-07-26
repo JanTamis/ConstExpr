@@ -399,7 +399,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
-			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore);
+			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore, additionalMethods, usings!);
 
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));

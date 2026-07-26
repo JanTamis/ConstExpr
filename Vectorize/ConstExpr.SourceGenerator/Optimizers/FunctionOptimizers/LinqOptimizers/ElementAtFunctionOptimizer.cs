@@ -65,7 +65,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, countArg.Expression, intType),
 						OptimizeArithmetic(context, SyntaxKind.AddExpression, startArg.Expression, indexParameter, intType),
-						CreateThrowExpression<ArgumentOutOfRangeException>());
+						CreateThrowExpression<ArgumentOutOfRangeException>(context));
 					return true;
 				}
 				case nameof(Enumerable.Repeat) when invocation.ArgumentList.Arguments is [ var repeatElementArg, var repeatCountArg ]:
@@ -74,7 +74,7 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 					result = ConditionalExpression(
 						OptimizeComparison(context, SyntaxKind.LessThanExpression, indexParameter, repeatCountArg.Expression, intType),
 						repeatElementArg.Expression,
-						CreateThrowExpression<ArgumentOutOfRangeException>());
+						CreateThrowExpression<ArgumentOutOfRangeException>(context));
 					return true;
 				}
 			}

@@ -197,7 +197,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 						result = ConditionalExpression(
 							OptimizeComparison(context, SyntaxKind.GreaterThanExpression, repeatCountArg.Expression, CreateLiteral(0), context.Model.Compilation.CreateInt32()),
 							repeatElementArg.Expression,
-							CreateThrowExpression<InvalidOperationException>("Sequence contains no elements"));
+							CreateThrowExpression<InvalidOperationException>(context, "Sequence contains no elements"));
 						return true;
 					}
 

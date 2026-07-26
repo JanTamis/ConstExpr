@@ -60,7 +60,7 @@ public class SingleOrDefaultFunctionOptimizer() : BaseLinqFunctionOptimizer(name
 						case > 1:
 						{
 							// More than one matching element, SingleOrDefault will throw
-							result = CreateThrowExpression<InvalidOperationException>("Sequence contains more than one matching element");
+							result = CreateThrowExpression<InvalidOperationException>(context, "Sequence contains more than one matching element", context.Method.TypeArguments[0]);
 							return true;
 						}
 						case 1

@@ -60,10 +60,10 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var val = x.Length > 0;
+			var gt = x.Length > 0;
 			var any_zVhFgQVal = Any_zVhFgQ(x);
 
-			return Unsafe.BitCast<bool, byte>(val) * 9 + Unsafe.BitCast<bool, byte>(any_zVhFgQVal || val) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(x)) + Unsafe.BitCast<bool, byte>(any_zVhFgQVal) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));
+			return Unsafe.BitCast<bool, byte>(gt) * 9 + Unsafe.BitCast<bool, byte>(any_zVhFgQVal || gt) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(x)) + Unsafe.BitCast<bool, byte>(any_zVhFgQVal) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));
 			"""),
 		Create("return Unsafe.BitCast<bool, byte>(Any_zVhFgQ(x)) + 14 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));", new[] { 1, 2, 3, 4, 5 }),
 		Create("return Unsafe.BitCast<bool, byte>(Any_zVhFgQ(x)) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));", System.Array.Empty<int>())

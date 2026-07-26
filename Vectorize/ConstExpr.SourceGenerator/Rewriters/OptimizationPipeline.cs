@@ -32,7 +32,7 @@ public static class OptimizationPipeline
 	/// </summary>
 	public static SyntaxNode Apply(SyntaxNode body, ParameterListSyntax parameters, SyntaxToken methodName,
 	                               ConstExprAttribute attribute, IDictionary<string, VariableItem> variables, SemanticModel semanticModel,
-	                               ConcurrentDictionary<ulong, ISymbol> symbolStore)
+	                               ConcurrentDictionary<ulong, ISymbol> symbolStore, IDictionary<SyntaxNode, bool> additionalMethods, ISet<string> usings)
 	{
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
 		{
@@ -99,6 +99,10 @@ public static class OptimizationPipeline
 		// rewriter) may since have relocated it into a position where the cast is now provably redundant.
 		// Checking that here, on the fully-formed tree, is the only place it can be decided correctly.
 		body = RedundantBitCastElisionRewriter.Apply(body, semanticModel, symbolStore);
+
+		// Last of all: extraction reduces every remaining throw expression's static shape to an
+		// invocation, which is exactly what the two passes above still need to see as ThrowExpressionSyntax.
+		body = ThrowExpressionExtractionRewriter.Apply(body, additionalMethods, usings);
 
 		return body;
 

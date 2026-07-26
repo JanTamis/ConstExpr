@@ -152,7 +152,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
 		var exceptionsDuringRewriting = new List<Exception>();
-		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, new HashSet<string>(), attribute, symbolStore, CancellationToken.None, visitedMethods);
+		var usings = new HashSet<string>();
+		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, usings, attribute, symbolStore, CancellationToken.None, visitedMethods);
 
 		var accessVariables = new Dictionary<string, int>();
 
@@ -223,7 +224,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
 		// Same shared pipeline the generator runs, so the harness cannot drift from it.
-		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore) as BlockSyntax ?? newBody;
+		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings) as BlockSyntax ?? newBody;
 
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);

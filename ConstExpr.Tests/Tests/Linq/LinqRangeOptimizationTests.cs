@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ConstExpr.Tests.Linq;
@@ -108,11 +109,27 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 		Create((start, count) =>
 		{
 			var diff = start + count - 1;
-			var val = count > 0;
+			var gt = count > 0;
 			var sum = count + start;
 
-			return count + count * (start * 2 + count - 1) / 2 + Unsafe.BitCast<bool, byte>(val) + Unsafe.BitCast<bool, byte>(start <= 5 && sum > 5) + start + diff + (count > 2 ? start + 2 : throw new ArgumentOutOfRangeException("")) + (val ? start + Double.MultiplyAddEstimate(count, 0.5, -0.5) : throw new InvalidOperationException("Sequence contains no elements")) + (val ? start : throw new InvalidOperationException("Sequence contains no elements")) + (val ? diff : throw new InvalidOperationException("Sequence contains no elements")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(Enumerable.Range(start, count).All(x => x >= 0));
+			return count + count * (start * 2 + count - 1) / 2 + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(start <= 5 && sum > 5) + start + diff + (count > 2 ? start + 2 : ThrowArgumentOutOfRangeException<int>("")) + (gt ? start + Double.MultiplyAddEstimate(count, 0.5, -0.5) : ThrowInvalidOperationException<double>("Sequence contains no elements")) + (gt ? start : ThrowInvalidOperationException<int>("Sequence contains no elements")) + (gt ? diff : ThrowInvalidOperationException<int>("Sequence contains no elements")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(Enumerable.Range(start, count).All(x => x >= 0));
 		}),
 		Create((_, _) => 57D, [ 2, 5 ])
 	];
+
+	// Local stand-ins for the private helpers the generator extracts throw-expressions into (see
+	// ThrowExpressionExtractionRewriter) — needed so the expected-body lambda above compiles; only their
+	// call syntax is compared, not these bodies. Generic because a throw expression only ever occupies a
+	// value position (cond ? a : throw ...), so the extracted helper can't be void.
+	[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+	private static T ThrowArgumentOutOfRangeException<T>(string message)
+	{
+		throw new ArgumentOutOfRangeException(message);
+	}
+
+	[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+	private static T ThrowInvalidOperationException<T>(string message)
+	{
+		throw new InvalidOperationException(message);
+	}
 }
