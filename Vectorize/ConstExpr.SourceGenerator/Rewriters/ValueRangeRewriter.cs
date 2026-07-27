@@ -100,7 +100,33 @@ public sealed class ValueRangeRewriter : CSharpSyntaxRewriter
 
 		var reduced = ValueRangeAnalysis.Reduce(node.Pattern, subject, _root);
 
-		return reduced == node.Pattern ? visited : visited.WithPattern(reduced);
+		if (reduced == node.Pattern)
+		{
+			return visited;
+		}
+
+		// A combinator that lost every conjunct but one is no longer a combinator: `x is <= 15 and < 8`
+		// reduces to the bare relational pattern `< 8`, and a bare relational pattern reads better as
+		// the binary expression it means (`x < 8`) than left wrapped in `is`.
+		if (reduced is RelationalPatternSyntax { OperatorToken: var operatorToken } relational
+		    && RelationalBinaryKind(operatorToken.Kind()) is { } binaryKind)
+		{
+			return BinaryExpression(binaryKind, visited.Expression, relational.Expression).WithTriviaFrom(visited);
+		}
+
+		return visited.WithPattern(reduced);
+	}
+
+	private static SyntaxKind? RelationalBinaryKind(SyntaxKind operatorTokenKind)
+	{
+		return operatorTokenKind switch
+		{
+			SyntaxKind.LessThanToken => SyntaxKind.LessThanExpression,
+			SyntaxKind.LessThanEqualsToken => SyntaxKind.LessThanOrEqualExpression,
+			SyntaxKind.GreaterThanToken => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.GreaterThanEqualsToken => SyntaxKind.GreaterThanOrEqualExpression,
+			_ => null
+		};
 	}
 
 	public override SyntaxNode VisitBlock(BlockSyntax node)
