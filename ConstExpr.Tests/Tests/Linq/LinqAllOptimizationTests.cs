@@ -59,12 +59,12 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var all_WjHQfwVal = All_WjHQfw(x);
+			var callVal = VectorOperations.All<int, OperatorkNzSYw>(x);
 
-			return (Unsafe.BitCast<bool, byte>(All_AFZffQ(x)) << 3) + Unsafe.BitCast<bool, byte>(All_hqn4dw(x)) * 3 + Unsafe.BitCast<bool, byte>(All_PXm5Qw(x)) + Unsafe.BitCast<bool, byte>(All_FMFasw(x)) + Unsafe.BitCast<bool, byte>(all_WjHQfwVal && all_WjHQfwVal) + Unsafe.BitCast<bool, byte>(All_gd0xRw(x));
+			return (Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorF8nEFw>(x)) << 3) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoronoWMw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoriNrkaQ>(x)) + Unsafe.BitCast<bool, byte>(callVal && callVal) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorJtMU7Q>(x));
 			"""),
-		Create("return Unsafe.BitCast<bool, byte>(All_hqn4dw(x)) * 3 + 11;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return Unsafe.BitCast<bool, byte>(All_hqn4dw(x)) * 3 + 12;", System.Array.Empty<int>()),
-		Create("return Unsafe.BitCast<bool, byte>(All_hqn4dw(x)) * 3 + 9;", new[] { 1, 2, 3, 4, 5, 100 })
+		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 11;", new[] { 1, 2, 3, 4, 5 }),
+		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 12;", System.Array.Empty<int>()),
+		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 9;", new[] { 1, 2, 3, 4, 5, 100 })
 	];
 }

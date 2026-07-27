@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
-using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -230,9 +229,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 			}
 		}
 
-		if (TryVectorize(context, source, allLambda, CreateVectorizedMethod,
-			    () => CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda),
-			    () => CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda), out result))
+		if (Vectorize(context, source, allLambda, out result))
 		{
 			return true;
 		}
@@ -268,73 +265,61 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		);
 	}
 
-	private MethodDeclarationSyntax CreateVectorizedMethod(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	private bool Vectorize(FunctionOptimizerContext context, ExpressionSyntax source, LambdaExpressionSyntax allLambda, [NotNullWhen(true)] out SyntaxNode? result)
 	{
-		var typeName = context.Model.Compilation.TryGetIEnumerableType(context.Method.Parameters[0].Type, false, out var elementType) ? elementType.ToDisplayString() : context.Method.TypeArguments[0].ToDisplayString();
-
-		if (!InvertLogicalRefactoring.TryInvertLogical(lambda.Body as BinaryExpressionSyntax, out var inverted))
+		if (IsInvokedOnArray(context, source))
 		{
-			inverted = LogicalNotExpression((ExpressionSyntax) lambda.Body);
-		}
-
-		var maskStatement = ReplaceIdentifier(vectorizedCode, lambda, "vector");
-		var remainderStatement = ReplaceIdentifier(vectorizedCode, lambda, "remainderVector");
-
-		// if (vectorizedCode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation)
-		// {
-		// 	memberAccess = memberAccess.WithName(IdentifierName($"{memberAccess.Name.Identifier.Text}All"));
-		// 	vectorizedCode = invocation.WithExpression(memberAccess);
-		//
-		// 	ifStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "vector")}";
-		// 	scalarStatement = $"!{ReplaceIdentifier(vectorizedCode, lambda, "remainderVector")}";
-		// }
-
-		var result = $$"""
-			private static bool All(ReadOnlySpan<{{typeName}}> data)
+			if (TryVectorize(context, allLambda, out var vectorizedCode))
 			{
-				var i = 0;
-				var length = data.Length;
-				var count = Vector<{{typeName}}>.Count;
-
-				if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
-				{
-					ref var reference = ref MemoryMarshal.GetReference(data);
-
-					do
-					{
-						var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-						var mask = {{maskStatement}};
-						
-						if (Vector.EqualsAny(mask, Vector<{{typeName}}>.Zero))
-							return false;
-							
-						i += count;
-					} while ((uint)i < (uint)(length - count));
-					
-					if ((uint)i < (uint)length)
-					{
-						var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-						var remainderMask = {{remainderStatement}};
-					
-						if (Vector.EqualsAny(remainderMask, Vector<{{typeName}}>.Zero))
-							return false;
-					}
-				}
-				
-				for (; (uint)i < (uint)length; i++)
-				{
-					var item = data[i];
-				
-					if ({{ReplaceIdentifier(inverted, lambda, "item")}})
-						return false;
-				}
-				
+				result = CreateVectorizedinvocation(vectorizedCode, allLambda, context)
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(source))));
 				return true;
 			}
-			""";
 
-		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.TrueForAll), source, context.Visit(allLambda) ?? allLambda);
+			return true;
+		}
 
-		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
+		if (IsInvokedOnList(context, source))
+		{
+			if (TryVectorize(context, allLambda, out var vectorizedCode))
+			{
+				var spanSource = CreateInvocation(
+					ParseTypeName("CollectionsMarshal"),
+					"AsSpan",
+					source);
+
+				result = CreateVectorizedinvocation(vectorizedCode, allLambda, context)
+					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(spanSource))));
+				return true;
+			}
+
+			result = CreateInvocation(source, "TrueForAll", context.Visit(allLambda) ?? allLambda);
+			return true;
+		}
+
+		result = null;
+		return false;
+	}
+
+	private InvocationExpressionSyntax CreateVectorizedinvocation(SyntaxNode vectorizedCode, LambdaExpressionSyntax lambda, FunctionOptimizerContext context)
+	{
+		var elementType = context.Model.Compilation.TryGetIEnumerableType(context.Method.Parameters[0].Type, false, out var enumerableElementType) ? enumerableElementType : context.Method.TypeArguments[0];
+		var typeName = elementType.ToDisplayString();
+
+		var type = ParseTypeFromString<StructDeclarationSyntax>($$"""
+			private struct Operator{{lambda.Body.GetDeterministicHashString()}} : IOperator<{{typeName}}>
+			{
+				public static Vector<{{typeName}}> Invoke(Vector<{{typeName}}> vector) => {{ReplaceIdentifier(vectorizedCode, lambda, "vector")}};
+				public static bool Invoke({{typeName}} item) => {{ReplaceIdentifier(lambda.Body, lambda, "item")}};
+			}
+			""");
+
+		context.Usings.Add("ConstantExpression.Operations");
+		context.Usings.Add("System.Numerics");
+		context.Usings.Add("ConstantExpression.Interfaces");
+		context.AdditionalSyntax.TryAdd(type, false);
+
+		return CreateInvocation("VectorOperations.All", [ elementType.AsTypeSyntax(), ParseTypeName(type.Identifier.Text) ], [ ]);
 	}
 }
