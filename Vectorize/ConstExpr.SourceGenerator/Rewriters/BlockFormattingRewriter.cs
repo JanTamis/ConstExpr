@@ -611,7 +611,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			if (visited[i] is LocalDeclarationStatementSyntax)
 			{
-				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax, j => IsAccumulatorHeadDeclaration(visited, j));
+				SurroundContiguousGroup(visited, ref i, static s => s is LocalDeclarationStatementSyntax,
+					j => IsAccumulatorHeadDeclaration(visited, j) || IsRefHoistDeclaration(visited[j - 1]) && !IsRefHoistDeclaration(visited[j]));
 			}
 		}
 
@@ -1704,6 +1705,20 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		       && assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
 		       && assignment.Left is IdentifierNameSyntax identifier
 		       && identifier.Identifier.ValueText == variable.Identifier.ValueText;
+	}
+
+	// A hoisted "ref var xRef = ref MemoryMarshal...(x);" from BoundsCheckRewriter closes its own
+	// setup unit; whatever plain declaration follows it belongs to a new group, not this one.
+	private static bool IsRefHoistDeclaration(StatementSyntax statement)
+	{
+		return statement is LocalDeclarationStatementSyntax
+		{
+			Declaration:
+			{
+				Type: RefTypeSyntax,
+				Variables: [ { Initializer.Value: RefExpressionSyntax } ]
+			}
+		};
 	}
 
 	private static bool IsConditionalSyntax(StatementSyntax statement)
