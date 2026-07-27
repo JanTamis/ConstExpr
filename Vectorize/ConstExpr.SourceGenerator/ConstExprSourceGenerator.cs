@@ -151,7 +151,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						namespace ConstantExpression.Interfaces;
 
 						[EditorBrowsable(EditorBrowsableState.Never)]
-						public interface IOperator<T>
+						internal interface IOperator<T>
 						{
 							static abstract bool Invoke(T item);
 							static abstract Vector<T> Invoke(Vector<T> vector);
@@ -172,7 +172,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						namespace ConstantExpression.Operations;
 
 						[EditorBrowsable(EditorBrowsableState.Never)]
-						public static class VectorOperations
+						internal static class VectorOperations
 						{
 							public static bool All<T, TOperator>(ReadOnlySpan<T> data)
 								where TOperator : struct, IOperator<T>
