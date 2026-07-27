@@ -630,7 +630,8 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		{
 			if (visited[i] is ExpressionStatementSyntax)
 			{
-				SurroundContiguousGroup(visited, ref i, static s => s is ExpressionStatementSyntax);
+				SurroundContiguousGroup(visited, ref i, static s => s is ExpressionStatementSyntax,
+					j => IsTupleSwapAssignment(visited[j - 1]) && !IsTupleSwapAssignment(visited[j]));
 			}
 		}
 
@@ -1705,6 +1706,19 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		       && assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
 		       && assignment.Left is IdentifierNameSyntax identifier
 		       && identifier.Identifier.ValueText == variable.Identifier.ValueText;
+	}
+
+	// A tuple-swap statement like "(a, b) = (b, a);" is a self-contained unit; whatever
+	// non-swap statement follows it (e.g. left++/right--) starts a new group.
+	private static bool IsTupleSwapAssignment(StatementSyntax statement)
+	{
+		return statement is ExpressionStatementSyntax
+		{
+			Expression: AssignmentExpressionSyntax
+			{
+				Left: TupleExpressionSyntax
+			} assignment
+		} && assignment.IsKind(SyntaxKind.SimpleAssignmentExpression);
 	}
 
 	// A hoisted "ref var xRef = ref MemoryMarshal...(x);" from BoundsCheckRewriter closes its own

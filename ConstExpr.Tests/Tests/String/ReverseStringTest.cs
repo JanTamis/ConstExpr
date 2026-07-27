@@ -37,6 +37,7 @@ public class ReverseStringTest : BaseTest<Func<string, string>>
 			while (left < right)
 			{
 				(Unsafe.Add(ref charsRef, left), Unsafe.Add(ref charsRef, right)) = (Unsafe.Add(ref charsRef, right), Unsafe.Add(ref charsRef, left));
+
 				left++;
 				right--;
 			}

@@ -35,6 +35,7 @@ public class ArrayReverseTest : BaseTest<Func<int[], int[]>>
 			while (left < right)
 			{
 				(Unsafe.Add(ref arrRef, left), Unsafe.Add(ref arrRef, right)) = (Unsafe.Add(ref arrRef, right), Unsafe.Add(ref arrRef, left));
+
 				left++;
 				right--;
 			}
