@@ -138,122 +138,131 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						""");
 				}
 
-				spc.AddSource("IOperator.g.cs", """
-					using System;
-					using System.ComponentModel;
-					using System.Numerics;
+				var usesVectorOperations = processedModels.Any(m => m.Usings?.Contains("ConstantExpression.Operations") == true);
+				var usesInferfaces = processedModels.Any(m => m.Usings?.Contains("ConstantExpression.Interfaces") == true);
 
-					namespace ConstantExpression.Interfaces;
+				if (usesInferfaces)
+				{
+					spc.AddSource("IOperator.g.cs", """
+						using System;
+						using System.ComponentModel;
+						using System.Numerics;
 
-					[EditorBrowsable(EditorBrowsableState.Never)]
-					public interface IOperator<T>
-					{
-						static abstract bool Invoke(T item);
-						static abstract Vector<T> Invoke(Vector<T> vector);
-					}
-					""");
+						namespace ConstantExpression.Interfaces;
 
-				spc.AddSource("VectorOperations.g.cs", """
-					using System;
-					using System.ComponentModel;
-					using System.Numerics;
-					using System.Runtime.CompilerServices;
-					using System.Runtime.InteropServices;
-					using ConstantExpression.Interfaces;
-
-					namespace ConstantExpression.Operations;
-
-					[EditorBrowsable(EditorBrowsableState.Never)]
-					public static class VectorOperations
-					{
-						public static bool All<T, TOperator>(ReadOnlySpan<T> data)
-							where TOperator : struct, IOperator<T>
+						[EditorBrowsable(EditorBrowsableState.Never)]
+						public interface IOperator<T>
 						{
-							var i = 0;
-							var length = data.Length;
-							var count = Vector<T>.Count;
-							
-							ref var reference = ref MemoryMarshal.GetReference(data);
-						
-							if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
-							{
-								do
-								{
-									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-									var mask = TOperator.Invoke(vector);
-						
-									if (Vector.EqualsAny(mask, Vector<T>.Zero))
-										return false;
-						
-									i += count;
-								}
-								while ((uint)i < (uint)(length - count));
-						
-								if ((uint)i < (uint)length)
-								{
-									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-									var remainderMask = TOperator.Invoke(remainderVector);
-						
-									if (Vector.EqualsAny(remainderMask, Vector<T>.Zero))
-										return false;
-								}
-							}
-						
-							for (; (uint)i < (uint)length; i++)
-							{
-								var item = Unsafe.Add(ref reference, i);
-						
-								if (!TOperator.Invoke(item))
-									return false;
-							}
-						
-							return true;
+							static abstract bool Invoke(T item);
+							static abstract Vector<T> Invoke(Vector<T> vector);
 						}
-						
-						public static bool Any<T, TOperator>(ReadOnlySpan<T> data)
-							where TOperator : struct, IOperator<T>
+						""");
+				}
+
+				if (usesVectorOperations)
+				{
+					spc.AddSource("VectorOperations.g.cs", """
+						using System;
+						using System.ComponentModel;
+						using System.Numerics;
+						using System.Runtime.CompilerServices;
+						using System.Runtime.InteropServices;
+						using ConstantExpression.Interfaces;
+
+						namespace ConstantExpression.Operations;
+
+						[EditorBrowsable(EditorBrowsableState.Never)]
+						public static class VectorOperations
 						{
-							var i = 0;
-							var length = data.Length;
-							var count = Vector<T>.Count;
-							
-							ref var reference = ref MemoryMarshal.GetReference(data);
-						
-							if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+							public static bool All<T, TOperator>(ReadOnlySpan<T> data)
+								where TOperator : struct, IOperator<T>
 							{
-								do
-								{
-									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-									var mask = TOperator.Invoke(vector);
-						
-									if (Vector.EqualsAny(mask, Vector<T>.AllBitsSet))
-										return true;
-						
-									i += count;
-								}
-								while ((uint)i < (uint)(length - count));
-						
-								if ((uint)i < (uint)length)
-								{
-									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-									var remainderMask = TOperator.Invoke(remainderVector);
-						
-									return Vector.EqualsAny(remainderMask, Vector<T>.AllBitsSet);
-								}
-							}
-						
-							for (; (uint)i < (uint)length; i++)
-							{
-								var item  = Unsafe.Add(ref reference, i);
+								var i = 0;
+								var length = data.Length;
+								var count = Vector<T>.Count;
 								
-								if (TOperator.Invoke(item))
-									return true;
+								ref var reference = ref MemoryMarshal.GetReference(data);
+							
+								if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+								{
+									do
+									{
+										var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+										var mask = TOperator.Invoke(vector);
+							
+										if (Vector.EqualsAny(mask, Vector<T>.Zero))
+											return false;
+							
+										i += count;
+									}
+									while ((uint)i < (uint)(length - count));
+							
+									if ((uint)i < (uint)length)
+									{
+										var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+										var remainderMask = TOperator.Invoke(remainderVector);
+							
+										if (Vector.EqualsAny(remainderMask, Vector<T>.Zero))
+											return false;
+									}
+								}
+							
+								for (; (uint)i < (uint)length; i++)
+								{
+									var item = Unsafe.Add(ref reference, i);
+							
+									if (!TOperator.Invoke(item))
+										return false;
+								}
+							
+								return true;
 							}
-						
-							return false;
+							
+							public static bool Any<T, TOperator>(ReadOnlySpan<T> data)
+								where TOperator : struct, IOperator<T>
+							{
+								var i = 0;
+								var length = data.Length;
+								var count = Vector<T>.Count;
+								
+								ref var reference = ref MemoryMarshal.GetReference(data);
+							
+								if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+								{
+									do
+									{
+										var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+										var mask = TOperator.Invoke(vector);
+							
+										if (Vector.EqualsAny(mask, Vector<T>.AllBitsSet))
+											return true;
+							
+										i += count;
+									}
+									while ((uint)i < (uint)(length - count));
+							
+									if ((uint)i < (uint)length)
+									{
+										var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+										var remainderMask = TOperator.Invoke(remainderVector);
+							
+										return Vector.EqualsAny(remainderMask, Vector<T>.AllBitsSet);
+									}
+								}
+							
+								for (; (uint)i < (uint)length; i++)
+								{
+									var item  = Unsafe.Add(ref reference, i);
+									
+									if (TOperator.Invoke(item))
+										return true;
+								}
+							
+								return false;
+							}
 						}
-					}
-					""");
+						""");
+				}
 
 				// Generate source code in parallel but collect results first
 				// spc.AddSource is NOT thread-safe, so we must add sources sequentially
