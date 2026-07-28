@@ -39,7 +39,7 @@ public sealed class RedundantBitCastElisionRewriter(SemanticModel semanticModel,
 		return new RedundantBitCastElisionRewriter(semanticModel, symbolStore).Visit(node);
 	}
 
-	public override SyntaxNode? VisitCastExpression(CastExpressionSyntax node)
+	public override SyntaxNode VisitCastExpression(CastExpressionSyntax node)
 	{
 		var visited = (CastExpressionSyntax) base.VisitCastExpression(node)!;
 
@@ -52,6 +52,25 @@ public sealed class RedundantBitCastElisionRewriter(SemanticModel semanticModel,
 		}
 
 		return visited.Expression.WithTriviaFrom(visited);
+	}
+
+	/// <summary>
+	///   Strips parentheses left orphaned by the cast elision above. <see cref="VisitCastExpression" />
+	///   only replaces the cast node itself; a <c>(byte)Unsafe.BitCast&lt;bool, byte&gt;(cond)</c> that was
+	///   parenthesized (e.g. the original source wrapped the ternary this pattern came from) still has
+	///   those parens as a separate ancestor node once the cast is gone — and since an invocation never
+	///   needs grouping, they're now always redundant at a position this rewriter already proved safe.
+	/// </summary>
+	public override SyntaxNode VisitParenthesizedExpression(ParenthesizedExpressionSyntax node)
+	{
+		var visited = (ParenthesizedExpressionSyntax) base.VisitParenthesizedExpression(node)!;
+
+		if (IsBoolToByteBitCast(visited.Expression) && IsSafePosition(node))
+		{
+			return visited.Expression.WithTriviaFrom(visited);
+		}
+
+		return visited;
 	}
 
 	/// <summary>Whether dropping the cast at <paramref name="node" />'s current position is provably safe (see class doc).</summary>

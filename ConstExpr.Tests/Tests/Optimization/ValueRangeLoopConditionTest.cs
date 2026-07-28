@@ -31,19 +31,7 @@ public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unchanged: the condition stays exactly where it was.
-		Create(n =>
-		{
-			var x = n & 3;
-			var count = 0;
-
-			while (x < 10)
-			{
-				x += 1;
-				count++;
-			}
-
-			return count;
-		}, [ Unknown ]),
+		CreateDefault(),
 
 		// n = 5 masks to 1, so the loop runs from 1 up to 10: nine iterations.
 		Create(_ => 9, [ 5 ])

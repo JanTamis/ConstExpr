@@ -27,9 +27,7 @@ public class CountEvensTest : BaseTest<Func<int[], int>>
 			foreach (var num in arr)
 			{
 				if (Int32.IsEvenInteger(num))
-				{
 					count++;
-				}
 			}
 
 			return count;

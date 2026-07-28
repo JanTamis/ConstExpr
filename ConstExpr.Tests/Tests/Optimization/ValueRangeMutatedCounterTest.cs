@@ -33,22 +33,7 @@ public class ValueRangeMutatedCounterTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		// Unchanged: the guard stays exactly where it was.
-		Create(n =>
-		{
-			var sum = 0;
-
-			for (var i = 0; i < n; i++)
-			{
-				i += n;
-
-				if (i >= 0)
-				{
-					sum += i;
-				}
-			}
-
-			return sum;
-		}, [ Unknown ]),
+		CreateDefault(),
 
 		// n = 5 advances i to 5 in the body and 6 in the incrementor, so the second test of i < n
 		// already fails. One pass, sum 5.

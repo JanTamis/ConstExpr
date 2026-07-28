@@ -26,6 +26,7 @@ public class BoundsCheckEliminationLocalArrayTests : BaseTest<Func<int, int>>
 		{
 			Span<int> buf = stackalloc int[4];
 			ref var bufRef = ref MemoryMarshal.GetReference(buf);
+
 			var mod = n % 4;
 
 			Unsafe.Add(ref bufRef, mod) = n;

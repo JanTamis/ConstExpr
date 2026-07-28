@@ -30,6 +30,7 @@ public class CharArrayLoopWhileNotRewrittenTest : BaseTest<Func<string, string>>
 		{
 			var result = input.ToCharArray();
 			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
 			var i = 0;
 
 			while (i < result.Length)

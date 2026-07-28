@@ -30,6 +30,7 @@ public class StackAllocConversionTests : BaseTest<Func<int, int>>
 		{
 			Span<int> counts = stackalloc int[8];
 			ref var countsRef = ref MemoryMarshal.GetReference(counts);
+
 			var mod = n % 8;
 
 			Unsafe.Add(ref countsRef, mod)++;

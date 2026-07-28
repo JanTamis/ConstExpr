@@ -8,12 +8,12 @@ public class PatternBitmaskLargeTest : BaseTest<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
-		return n is 0 or 10 or 20 or 30 or 40 or 50 or 60;
+		return n is 0 or 10 or 20 or 30 or 40 or 50 or 60 or 70 or 80;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => (uint) n <= 60U && (0x1004010040100401UL >> n & 1) != 0),
+		Create(n => (uint) n <= 80U && n % 10 == 0),
 		Create(_ => true, [ 0 ]),
 		Create(_ => true, [ 10 ]),
 		Create(_ => true, [ 20 ]),

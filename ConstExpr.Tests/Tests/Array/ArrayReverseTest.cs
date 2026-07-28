@@ -29,6 +29,7 @@ public class ArrayReverseTest : BaseTest<Func<int[], int[]>>
 		Create(arr =>
 		{
 			ref var arrRef = ref MemoryMarshal.GetArrayDataReference(arr);
+
 			var left = 0;
 			var right = arr.Length - 1;
 

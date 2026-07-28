@@ -21,9 +21,7 @@ public class SumRangeTest : BaseTest<Func<int, int, long>>
 		Create((start, end) =>
 		{
 			if (start > end)
-			{
 				(start, end) = (end, start);
-			}
 
 			return (long) (end - start + 1) * (start + end) / 2L;
 		}),

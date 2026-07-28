@@ -27,16 +27,12 @@ public class AverageTest : BaseTest<Func<int[], double>>
 			var numbersLength = numbers.Length;
 
 			if (numbersLength == 0)
-			{
 				return 0.0;
-			}
 
 			var sum = 0;
 
 			foreach (var num in numbers)
-			{
 				sum += num;
-			}
 
 			return (double) sum / numbersLength;
 		}),
