@@ -73,15 +73,11 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 	[
 		Create((h, s, v) =>
 		{
-			double r, g, b;
+			var r = v;
+			var g = v;
+			var b = v;
 
-			if (s == 0D)
-			{
-				r = v;
-				g = v;
-				b = v;
-			}
-			else
+			if (s != 0D)
 			{
 				h = h == 360D ? 0D : h * 0.016666666666666666;
 
@@ -95,7 +91,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 				{
 					case 0:
 					{
-						r = v;
 						g = doubleMultiplyAddEstimate;
 						b = doubleMultiplyAddEstimate2;
 
@@ -105,7 +100,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					case 1:
 					{
 						r = prod;
-						g = v;
 						b = doubleMultiplyAddEstimate2;
 
 						break;
@@ -114,7 +108,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					case 2:
 					{
 						r = doubleMultiplyAddEstimate2;
-						g = v;
 						b = doubleMultiplyAddEstimate;
 
 						break;
@@ -124,7 +117,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = doubleMultiplyAddEstimate2;
 						g = prod;
-						b = v;
 
 						break;
 					}
@@ -133,14 +125,12 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = doubleMultiplyAddEstimate;
 						g = doubleMultiplyAddEstimate2;
-						b = v;
 
 						break;
 					}
 
 					default:
 					{
-						r = v;
 						g = doubleMultiplyAddEstimate2;
 						b = prod;
 
@@ -153,14 +143,10 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 		}),
 		Create((_, s, v) =>
 		{
-			double r, g;
+			var r = v;
+			var g = v;
 
-			if (s == 0D)
-			{
-				r = v;
-				g = v;
-			}
-			else
+			if (s != 0D)
 			{
 				r = Double.MultiplyAddEstimate(-s, v, v);
 				g = v * Double.MultiplyAddEstimate(-s, 0.3333333333333335, 1D);
@@ -241,15 +227,11 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 		}, [ Unknown, 0.5, Unknown ]),
 		Create((h, s, _) =>
 		{
-			double r, g, b;
+			var r = 0.5;
+			var g = 0.5;
+			var b = 0.5;
 
-			if (s == 0D)
-			{
-				r = 0.5;
-				g = 0.5;
-				b = 0.5;
-			}
-			else
+			if (s != 0D)
 			{
 				h = h == 360D ? 0D : h * 0.016666666666666666;
 
@@ -263,7 +245,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 				{
 					case 0:
 					{
-						r = 0.5;
 						g = doubleMultiplyAddEstimate;
 						b = doubleMultiplyAddEstimate2;
 
@@ -273,7 +254,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					case 1:
 					{
 						r = prod;
-						g = 0.5;
 						b = doubleMultiplyAddEstimate2;
 
 						break;
@@ -282,7 +262,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					case 2:
 					{
 						r = doubleMultiplyAddEstimate2;
-						g = 0.5;
 						b = doubleMultiplyAddEstimate;
 
 						break;
@@ -292,7 +271,6 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = doubleMultiplyAddEstimate2;
 						g = prod;
-						b = 0.5;
 
 						break;
 					}
@@ -301,14 +279,12 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = doubleMultiplyAddEstimate;
 						g = doubleMultiplyAddEstimate2;
-						b = 0.5;
 
 						break;
 					}
 
 					default:
 					{
-						r = 0.5;
 						g = doubleMultiplyAddEstimate2;
 						b = prod;
 

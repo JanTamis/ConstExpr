@@ -126,11 +126,27 @@ public enum OptimizationFlags
 	ValueRangePropagation = 1 << 10,
 
 	/// <summary>
+	///   Enable default-branch hoisting.
+	///   When a declared local is immediately followed by an <c>if</c>/<c>else</c> whose <c>then</c>
+	///   branch is nothing but a straight-line assignment of every one of those locals to a
+	///   side-effect-free value, that branch becomes the locals' initializer and the condition is
+	///   negated, dropping the now-redundant branch entirely:
+	///   <code>
+	///   double r, g, b;                    var r = v;
+	///   if (s == 0)                        var g = v;
+	///       r = v; g = v; b = v;    =>      var b = v;
+	///   else                                if (s != 0)
+	///       ...                                 ...
+	///   </code>
+	/// </summary>
+	DefaultBranchHoisting = 1 << 11,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
-	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>
-	///   and <see cref="ValueRangePropagation" />.
+	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>,
+	///   <see cref="ValueRangePropagation" /> and <see cref="DefaultBranchHoisting" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting
 }

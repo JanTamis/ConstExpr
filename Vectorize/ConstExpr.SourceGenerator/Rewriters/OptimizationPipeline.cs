@@ -47,6 +47,13 @@ public static class OptimizationPipeline
 			body = Prune(ValueRangeRewriter.Apply(body));
 		}
 
+		// Before CSE, same reasoning as ValueRangePropagation above: folding the if/else down to its
+		// surviving branch lifts that branch's statements into the enclosing block.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.DefaultBranchHoisting))
+		{
+			body = Prune(DefaultBranchHoistingRewriter.Apply(body, variables));
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);
