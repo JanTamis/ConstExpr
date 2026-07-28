@@ -73,7 +73,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 	[
 		Create((h, s, v) =>
 		{
-			double r = 0D, g = 0D, b = 0D;
+			double r, g, b;
 
 			if (s == 0D)
 			{
@@ -153,7 +153,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 		}),
 		Create((_, s, v) =>
 		{
-			double r = 0D, g = 0D;
+			double r, g;
 
 			if (s == 0D)
 			{
@@ -170,7 +170,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 		}, [ 200.0, Unknown, Unknown ]),
 		Create((h, _, v) =>
 		{
-			double r = 0D, g = 0D, b = 0D;
+			double r, g, b;
 
 			h = h == 360D ? 0D : h * 0.016666666666666666;
 
@@ -241,7 +241,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 		}, [ Unknown, 0.5, Unknown ]),
 		Create((h, s, _) =>
 		{
-			double r = 0D, g = 0D, b = 0D;
+			double r, g, b;
 
 			if (s == 0D)
 			{

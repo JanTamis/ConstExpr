@@ -1023,7 +1023,13 @@ public partial class ConstExprPartialRewriter
 		var mergedSwaps = MergeSwapPattern(mergedIfAssignments);
 		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedSwaps);
 
-		var untilThrown = TakeUntilThrownStatements(mergedIncDec);
+		// Runs after the merges above have had their (more thorough) chance to fold a declaration
+		// forward into a single conditional-expression initializer: those passes need to see the
+		// original constant initializer to prove it foldable, so eliding it first would block them.
+		// This only mops up whatever branchy if/switch shape survives that they couldn't collapse.
+		var elidedInitializers = ElideDeadLocalInitializers(mergedIncDec);
+
+		var untilThrown = TakeUntilThrownStatements(elidedInitializers);
 		var combined = CombineConsecutiveIfStatements(untilThrown, Visit);
 		var mergedIfChain = MergeMixedBoolReturnIfs(combined, Visit);
 		var simplified = SimplifyIfReturnPatterns(mergedIfChain);
@@ -1646,6 +1652,225 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return List(result);
+	}
+
+	/// <summary>
+	///   Removes an initializer whose value can never be observed: for a side-effect-free constant
+	///   initializer (e.g. <c>double r = 0D</c>), if the first later statement that mentions the
+	///   variable is proven — via a small forward, path-exhaustive scan — to always assign it a real
+	///   value before ever reading it, the initial store is dead and is dropped, leaving a plain
+	///   uninitialized declaration (<c>double r;</c>). Each declared variable in a comma-list
+	///   declaration (<c>double r = 0D, g = 0D;</c>) is checked independently.
+	///   <para>
+	///     Deliberately conservative: a construct that isn't recognized as exhaustive (a loop, a
+	///     try/catch, a goto, a compound assignment, ref/out usage, an <c>if</c> without an
+	///     <c>else</c>, or a <c>switch</c> without a <c>default</c>) leaves that variable's
+	///     initializer untouched rather than risk producing an unassigned-use compile error.
+	///   </para>
+	/// </summary>
+	private static SyntaxList<StatementSyntax> ElideDeadLocalInitializers(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = statements.ToList();
+
+		for (var i = 0; i < result.Count; i++)
+		{
+			if (result[i] is not LocalDeclarationStatementSyntax { Modifiers.Count: 0 } declarationStatement)
+			{
+				continue;
+			}
+
+			List<VariableDeclaratorSyntax>? newVariables = null;
+			var variableList = declarationStatement.Declaration.Variables;
+
+			for (var v = 0; v < variableList.Count; v++)
+			{
+				var declarator = variableList[v];
+
+				if (declarator.Initializer?.Value is not { } initializer || !IsSideEffectFreeInitializer(initializer))
+				{
+					continue;
+				}
+
+				var name = declarator.Identifier.Text;
+				var j = i + 1;
+
+				while (j < result.Count && !result[j].HasIdentifier(name))
+				{
+					j++;
+				}
+
+				// A plain top-level assignment is left for MergeRedundantInitializers, which folds
+				// the pair into `var name = rhs;` — a strictly better result than just dropping the
+				// initializer here, and doing so first would prevent that merge (it requires seeing
+				// the original initializer to prove it's dead before it will fire).
+				if (j >= result.Count
+				    || result[j] is not (IfStatementSyntax or SwitchStatementSyntax)
+				    || AnalyzeInitializerAssignment(result[j], name) is not (InitializerAssignState.Assigned or InitializerAssignState.Terminates))
+				{
+					continue;
+				}
+
+				(newVariables ??= variableList.ToList())[v] = declarator.WithInitializer(null);
+			}
+
+			if (newVariables is null)
+			{
+				continue;
+			}
+
+			result[i] = declarationStatement.WithDeclaration(declarationStatement.Declaration.WithVariables(SeparatedList(newVariables)));
+		}
+
+		return List(result);
+	}
+
+	private enum InitializerAssignState
+	{
+		NotMentioned,
+		Assigned,
+		Terminates,
+		Unsafe
+	}
+
+	/// <summary>
+	///   Determines, for a single variable, whether every execution path through <paramref name="statement" />
+	///   assigns it a real value (via a plain <c>=</c>) before ever reading it. See
+	///   <see cref="ElideDeadLocalInitializers" /> for the constructs this recognizes as exhaustive.
+	/// </summary>
+	private static InitializerAssignState AnalyzeInitializerAssignment(StatementSyntax statement, string name)
+	{
+		if (!statement.HasIdentifier(name))
+		{
+			return InitializerAssignState.NotMentioned;
+		}
+
+		switch (statement)
+		{
+			case BlockSyntax block:
+			{
+				return AnalyzeInitializerAssignmentSequence(block.Statements, name);
+			}
+			case ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }:
+			{
+				if (assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
+				    && assignment.Left is IdentifierNameSyntax { Identifier.Text: var target }
+				    && target == name)
+				{
+					// A self-referencing RHS (`r = r + 1`) still reads the dead initial value.
+					return assignment.Right.HasIdentifier(name) ? InitializerAssignState.Unsafe : InitializerAssignState.Assigned;
+				}
+
+				// Compound assignment, deconstruction, or a member-access target — all read first.
+				return InitializerAssignState.Unsafe;
+			}
+			case ReturnStatementSyntax { Expression: { } returnExpr }:
+			{
+				return returnExpr.HasIdentifier(name) ? InitializerAssignState.Unsafe : InitializerAssignState.Terminates;
+			}
+			case ThrowStatementSyntax { Expression: { } throwExpr }:
+			{
+				return throwExpr.HasIdentifier(name) ? InitializerAssignState.Unsafe : InitializerAssignState.Terminates;
+			}
+			case IfStatementSyntax { Else: null }:
+			{
+				// No else: cannot prove every path assigns (or terminates) before falling through.
+				return InitializerAssignState.Unsafe;
+			}
+			case IfStatementSyntax ifStatement:
+			{
+				if (ifStatement.Condition.HasIdentifier(name))
+				{
+					return InitializerAssignState.Unsafe;
+				}
+
+				var thenState = AnalyzeInitializerAssignment(ifStatement.Statement, name);
+				var elseState = AnalyzeInitializerAssignment(ifStatement.Else!.Statement, name);
+
+				return CombineExhaustiveBranches(thenState, elseState);
+			}
+			case SwitchStatementSyntax switchStatement:
+			{
+				if (switchStatement.Expression.HasIdentifier(name))
+				{
+					return InitializerAssignState.Unsafe;
+				}
+
+				if (!switchStatement.Sections.Any(s => s.Labels.Any(l => l.IsKind(SyntaxKind.DefaultSwitchLabel))))
+				{
+					return InitializerAssignState.Unsafe;
+				}
+
+				var sawFallthrough = false;
+
+				foreach (var section in switchStatement.Sections)
+				{
+					var sectionState = AnalyzeInitializerAssignmentSequence(section.Statements, name);
+
+					switch (sectionState)
+					{
+						case InitializerAssignState.Terminates:
+						{
+							continue;
+						}
+						case InitializerAssignState.Assigned:
+						{
+							sawFallthrough = true;
+							continue;
+						}
+						default:
+						{
+							// NotMentioned (falls to the closing `break;` without assigning) or Unsafe.
+							return InitializerAssignState.Unsafe;
+						}
+					}
+				}
+
+				return sawFallthrough ? InitializerAssignState.Assigned : InitializerAssignState.Terminates;
+			}
+			default:
+			{
+				// Loops, try/catch, goto, local functions, ref/out arguments, etc. — not proven safe.
+				return InitializerAssignState.Unsafe;
+			}
+		}
+	}
+
+	private static InitializerAssignState AnalyzeInitializerAssignmentSequence(SyntaxList<StatementSyntax> statements, string name)
+	{
+		foreach (var statement in statements)
+		{
+			var state = AnalyzeInitializerAssignment(statement, name);
+
+			if (state != InitializerAssignState.NotMentioned)
+			{
+				return state;
+			}
+		}
+
+		return InitializerAssignState.NotMentioned;
+	}
+
+	private static InitializerAssignState CombineExhaustiveBranches(InitializerAssignState thenState, InitializerAssignState elseState)
+	{
+		if (thenState == InitializerAssignState.Unsafe || elseState == InitializerAssignState.Unsafe)
+		{
+			return InitializerAssignState.Unsafe;
+		}
+
+		if (thenState == InitializerAssignState.Terminates && elseState == InitializerAssignState.Terminates)
+		{
+			return InitializerAssignState.Terminates;
+		}
+
+		var thenOk = thenState is InitializerAssignState.Assigned or InitializerAssignState.Terminates;
+		var elseOk = elseState is InitializerAssignState.Assigned or InitializerAssignState.Terminates;
+
+		return thenOk && elseOk ? InitializerAssignState.Assigned : InitializerAssignState.Unsafe;
 	}
 
 	/// <summary>

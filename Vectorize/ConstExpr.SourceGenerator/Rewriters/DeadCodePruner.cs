@@ -181,8 +181,11 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			{
 				// `var x = stackalloc T[n]` infers a pointer (`T*`) in an unsafe-enabled compilation,
 				// not `Span<T>` — so normalizing a stackalloc declaration to `var` would change its
-				// type. Keep the explicit `Span<T>` the StackAllocRewriter emitted.
-				if (remainingVariables[0].Initializer?.Value is not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
+				// type. Keep the explicit `Span<T>` the StackAllocRewriter emitted. An uninitialized
+				// declarator (initializer already elided) must also keep its explicit type: `var x;`
+				// with no initializer is CS0818.
+				if (remainingVariables[0].Initializer?.Value is { } survivingInitializer
+				    && survivingInitializer is not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
 				{
 					node = node.WithType(ParseTypeName("var"));
 				}
