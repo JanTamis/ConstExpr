@@ -108,9 +108,9 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 	[
 		Create((start, count) =>
 		{
-			var diff = start + count - 1;
 			var gt = count > 0;
 			var sum = count + start;
+			var diff = sum - 1;
 
 			return count + count * (start * 2 + count - 1) / 2 + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(start <= 5 && sum > 5) + start + diff + (count > 2 ? start + 2 : ThrowArgumentOutOfRangeException<int>("")) + (gt ? start + Double.MultiplyAddEstimate(count, 0.5, -0.5) : ThrowInvalidOperationException<double>("Sequence contains no elements")) + (gt ? start : ThrowInvalidOperationException<int>("Sequence contains no elements")) + (gt ? diff : ThrowInvalidOperationException<int>("Sequence contains no elements")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(Enumerable.Range(start, count).All(x => x >= 0));
 		}),

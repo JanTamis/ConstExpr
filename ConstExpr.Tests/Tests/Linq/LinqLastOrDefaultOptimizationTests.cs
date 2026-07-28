@@ -47,9 +47,11 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
-			var gt = x.Length > 0;
 
-			return (Array.FindLast(x, v => v > 0) << 1) + (gt ? Unsafe.Add(ref xRef, x.Length - 1) << 2 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + TensorPrimitives.Max(x) + (gt ? xRef : 0);
+			var xLength = x.Length;
+			var gt = xLength > 0;
+
+			return (Array.FindLast(x, v => v > 0) << 1) + (gt ? Unsafe.Add(ref xRef, xLength - 1) << 2 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + TensorPrimitives.Max(x) + (gt ? xRef : 0);
 			"""),
 		Create(_ => 53, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ])

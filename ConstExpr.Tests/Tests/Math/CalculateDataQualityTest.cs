@@ -14,11 +14,16 @@ public class CalculateDataQualityTest() : BaseTest<Func<double[], double>>(FastM
 
 		var nonNullCount = values.Count(v => !Double.IsNaN(v) && !Double.IsInfinity(v));
 
-		return (double)nonNullCount / values.Length;
+		return (double) nonNullCount / values.Length;
 	});
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(values => values.Length == 0 ? 0D : (double)values.Count(Double.IsFinite) / values.Length)
+		Create(values =>
+		{
+			var valuesLength = values.Length;
+
+			return valuesLength == 0 ? 0D : (double) values.Count(Double.IsFinite) / valuesLength;
+		})
 	];
 }

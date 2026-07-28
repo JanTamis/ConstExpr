@@ -33,9 +33,11 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 	[
 		Create("""
 			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
-			var gt = x.Length > 0;
 
-			return (gt ? xRef * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (gt ? Unsafe.Add(ref xRef, x.Length - 1) : 0) + Array.Find(x, v => v > 2);
+			var xLength = x.Length;
+			var gt = xLength > 0;
+
+			return (gt ? xRef * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (gt ? Unsafe.Add(ref xRef, xLength - 1) : 0) + Array.Find(x, v => v > 2);
 			"""),
 		Create(_ => 17, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 5 + 5 + 3 + 2 + 1 = 17
 		Create(_ => 0, [ System.Array.Empty<int>() ])

@@ -22,7 +22,12 @@ public class LinqToArrayOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => (x.Length << 1) + x.Length),
+		Create(x =>
+		{
+			var xLength = x.Length;
+
+			return (xLength << 1) + xLength;
+		}),
 		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];

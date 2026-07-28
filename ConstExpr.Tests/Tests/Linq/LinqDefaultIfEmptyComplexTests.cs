@@ -27,9 +27,11 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 	[
 		Create("""
 			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
-			var gt = x.Length > 0;
 
-			return (gt ? xRef << 1 : 20) + (gt ? Unsafe.Add(ref xRef, x.Length - 1) << 1 : 20) + Sum_HI9NYg(x) + Sum_swQo7g(x);
+			var xLength = x.Length;
+			var gt = xLength > 0;
+
+			return (gt ? xRef << 1 : 20) + (gt ? Unsafe.Add(ref xRef, xLength - 1) << 1 : 20) + Sum_HI9NYg(x) + Sum_swQo7g(x);
 			"""),
 		Create(_ => 52, [ new[] { 1, 2, 3, 4, 5 } ]), // a=15 (sum 1-5), b=25 (empty→default), c=1, d=1 (first), e=5, f=5 (last) = 52
 		Create(_ => 115, [ System.Array.Empty<int>() ]) // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115

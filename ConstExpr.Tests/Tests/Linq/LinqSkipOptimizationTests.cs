@@ -18,7 +18,12 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => x.Length + Int32.Max(0, x.Length - 4)),
+		Create(x =>
+		{
+			var xLength = x.Length;
+
+			return xLength + Int32.Max(0, xLength - 4);
+		}),
 		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];

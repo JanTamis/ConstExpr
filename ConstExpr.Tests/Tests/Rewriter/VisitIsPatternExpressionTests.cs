@@ -26,9 +26,9 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 	[
 		Create((x, y, obj, ch) =>
 		{
-			var castVal = (uint) (x - 1);
 			var diff = ch - 'a';
 			var diff2 = x - 1;
+			var castVal = (uint) diff2;
 
 			return [ true, false, x == 0, y > 0, obj is int, (uint) diff <= 20U && (0x104111u >> diff & 1) != 0, (uint) x <= 80U && x % 20 == 0, castVal <= 4U, castVal <= 9U && (0x28Du >> diff2 & 1) != 0, (uint) (x - 2) > 1U ];
 		}),

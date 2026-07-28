@@ -29,9 +29,9 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var minVal = TensorPrimitives.Min(x);
+			var tensorPrimitivesMin = TensorPrimitives.Min(x);
 
-			return (minVal << 2) + Int32.Min(Min_lB3pdg(x), minVal);
+			return (tensorPrimitivesMin << 2) + Int32.Min(Min_lB3pdg(x), tensorPrimitivesMin);
 			"""),
 		Create(_ => 5, [ new[] { 1, 2, 3 } ]),
 		Create(_ => 25, [ new[] { 5 } ])

@@ -49,8 +49,9 @@ public class IsValidEmailTest : BaseTest<Func<string, bool>>
 			var dotCount = 0;
 			var atIndex = -1;
 			var lastDotIndex = -1;
+			var emailLength = email.Length;
 
-			for (var i = 0; i < email.Length; i++)
+			for (var i = 0; i < emailLength; i++)
 			{
 				switch (Unsafe.Add(ref emailRef, i))
 				{
@@ -72,9 +73,7 @@ public class IsValidEmailTest : BaseTest<Func<string, bool>>
 				}
 			}
 
-			var diff = email.Length - 1;
-
-			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < diff && lastDotIndex > atIndex + 1 && lastDotIndex < diff;
+			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < emailLength - 1 && lastDotIndex > atIndex + 1 && lastDotIndex < emailLength - 1;
 		}), // Unknown input → body unchanged
 		Create(_ => false, [ System.String.Empty ]), // Empty string → guard fires
 		Create(_ => false, [ "a@b" ]), // Too short (length < 5) → guard fires

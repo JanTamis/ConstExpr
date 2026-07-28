@@ -22,7 +22,24 @@ public class AverageTest : BaseTest<Func<int[], double>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(numbers =>
+		{
+			var numbersLength = numbers.Length;
+
+			if (numbersLength == 0)
+			{
+				return 0.0;
+			}
+
+			var sum = 0;
+
+			foreach (var num in numbers)
+			{
+				sum += num;
+			}
+
+			return (double) sum / numbersLength;
+		}),
 		Create(_ => 30D, [ new[] { 10, 20, 30, 40, 50 } ]),
 		Create(_ => 15D, [ new[] { 5, 15, 25 } ]),
 		Create(_ => 0D, [ System.Array.Empty<int>() ])

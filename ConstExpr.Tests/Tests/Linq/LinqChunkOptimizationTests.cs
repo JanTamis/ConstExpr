@@ -32,15 +32,13 @@ public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 	[
 		Create(x =>
 		{
-			var sum = x.Length + 2;
+			var xLength = x.Length;
+			var sum = xLength + 2;
 
-			return x.Length + ((int) (sum * 1431655766L >> 32) - (sum >> 31)) + (x.Length + 1) / 2 + x[..5].Length + x[(x.Length - 4)..].Length;
+			return xLength + ((int) (sum * 1431655766L >> 32) - (sum >> 31)) + (xLength + 1) / 2 + x[..5].Length + x[(xLength - 4)..].Length;
 		}),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 18, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
-		Create(_ =>
-		{
-			throw new InvalidOperationException("Sequence contains no elements");
-		}, [ System.Array.Empty<int>() ])
+		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", System.Array.Empty<int>())
 	];
 }

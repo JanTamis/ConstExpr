@@ -87,17 +87,17 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 				var i = (int) Double.Truncate(h);
 				var f = h - i;
-				var multiplyAddEstimateVal = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
+				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
 				var prod = v * Double.MultiplyAddEstimate(-s, f, 1D);
-				var multiplyAddEstimateVal3 = Double.MultiplyAddEstimate(-s, v, v);
+				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(-s, v, v);
 
 				switch (i)
 				{
 					case 0:
 					{
 						r = v;
-						g = multiplyAddEstimateVal;
-						b = multiplyAddEstimateVal3;
+						g = doubleMultiplyAddEstimate;
+						b = doubleMultiplyAddEstimate2;
 
 						break;
 					}
@@ -106,23 +106,23 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = prod;
 						g = v;
-						b = multiplyAddEstimateVal3;
+						b = doubleMultiplyAddEstimate2;
 
 						break;
 					}
 
 					case 2:
 					{
-						r = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate2;
 						g = v;
-						b = multiplyAddEstimateVal;
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 3:
 					{
-						r = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate2;
 						g = prod;
 						b = v;
 
@@ -131,8 +131,8 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 					case 4:
 					{
-						r = multiplyAddEstimateVal;
-						g = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate;
+						g = doubleMultiplyAddEstimate2;
 						b = v;
 
 						break;
@@ -141,7 +141,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					default:
 					{
 						r = v;
-						g = multiplyAddEstimateVal3;
+						g = doubleMultiplyAddEstimate2;
 						b = prod;
 
 						break;
@@ -176,7 +176,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 			var i = (int) Double.Truncate(h);
 			var f = h - i;
-			var multiplyAddEstimateVal = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, 0.5, 0.5), v, v);
+			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, 0.5, 0.5), v, v);
 			var prod = v * Double.MultiplyAddEstimate(-f, 0.5, 1D);
 			var prod2 = v * 0.5;
 
@@ -185,7 +185,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 				case 0:
 				{
 					r = v;
-					g = multiplyAddEstimateVal;
+					g = doubleMultiplyAddEstimate;
 					b = prod2;
 
 					break;
@@ -204,7 +204,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 				{
 					r = prod2;
 					g = v;
-					b = multiplyAddEstimateVal;
+					b = doubleMultiplyAddEstimate;
 
 					break;
 				}
@@ -220,7 +220,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 				case 4:
 				{
-					r = multiplyAddEstimateVal;
+					r = doubleMultiplyAddEstimate;
 					g = prod2;
 					b = v;
 
@@ -255,17 +255,17 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 				var i = (int) Double.Truncate(h);
 				var f = h - i;
-				var multiplyAddEstimateVal = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), 0.5, 0.5);
+				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), 0.5, 0.5);
 				var prod = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
-				var multiplyAddEstimateVal3 = Double.MultiplyAddEstimate(-s, 0.5, 0.5);
+				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(-s, 0.5, 0.5);
 
 				switch (i)
 				{
 					case 0:
 					{
 						r = 0.5;
-						g = multiplyAddEstimateVal;
-						b = multiplyAddEstimateVal3;
+						g = doubleMultiplyAddEstimate;
+						b = doubleMultiplyAddEstimate2;
 
 						break;
 					}
@@ -274,23 +274,23 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					{
 						r = prod;
 						g = 0.5;
-						b = multiplyAddEstimateVal3;
+						b = doubleMultiplyAddEstimate2;
 
 						break;
 					}
 
 					case 2:
 					{
-						r = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate2;
 						g = 0.5;
-						b = multiplyAddEstimateVal;
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 3:
 					{
-						r = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate2;
 						g = prod;
 						b = 0.5;
 
@@ -299,8 +299,8 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 
 					case 4:
 					{
-						r = multiplyAddEstimateVal;
-						g = multiplyAddEstimateVal3;
+						r = doubleMultiplyAddEstimate;
+						g = doubleMultiplyAddEstimate2;
 						b = 0.5;
 
 						break;
@@ -309,7 +309,7 @@ public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, b
 					default:
 					{
 						r = 0.5;
-						g = multiplyAddEstimateVal3;
+						g = doubleMultiplyAddEstimate2;
 						b = prod;
 
 						break;

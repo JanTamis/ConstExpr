@@ -17,9 +17,9 @@ public class BitOperationsPopCountCompareTest : BaseTest<Func<uint, (bool, bool,
 	[
 		Create(x =>
 		{
-			var isPow2Val = System.Numerics.BitOperations.IsPow2(x);
+			var bitOperationsIsPow2 = System.Numerics.BitOperations.IsPow2(x);
 
-			return (isPow2Val, x == 0, !isPow2Val, x != 0);
+			return (bitOperationsIsPow2, x == 0, !bitOperationsIsPow2, x != 0);
 		}),
 		Create(_ => (true, false, false, true), [ 8u ]),
 		Create(_ => (false, true, true, false), [ 0u ]),

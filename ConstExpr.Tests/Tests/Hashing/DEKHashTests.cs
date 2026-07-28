@@ -24,9 +24,11 @@ public class DEKHashTests : BaseTest<Func<string, uint>>
 		Create(str =>
 		{
 			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
-			var hash = (uint) str.Length;
 
-			for (var i = 0U; i < str.Length; i++)
+			var strLength = str.Length;
+			var hash = (uint) strLength;
+
+			for (var i = 0U; i < strLength; i++)
 				hash = hash << 5 ^ hash >> 27 ^ (byte) Unsafe.Add(ref strRef, (int) i);
 
 			return hash;

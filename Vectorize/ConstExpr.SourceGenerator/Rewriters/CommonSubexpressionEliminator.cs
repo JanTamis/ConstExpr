@@ -18,7 +18,6 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 {
 	private static readonly IEqualityComparer<ExpressionSyntax> _comparer = new NormalizedExpressionComparer();
 	private readonly HashSet<string> _usedNames = new();
-	private int _cseCounter;
 
 	private string GenerateName(ExpressionSyntax expr)
 	{
@@ -51,9 +50,10 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			InvocationExpressionSyntax invocation => invocation.Expression switch
 			{
 				IdentifierNameSyntax id => $"{SanitizeIdentifierPart(id.Identifier.Text)}Val",
-				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(ma.Name.Identifier.Text)}Val",
+				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(ma.Expression.TryGetInferredMemberName() ?? String.Empty)}{ma.Name.Identifier.Text}",
 				_ => "callVal"
 			},
+			MemberAccessExpressionSyntax ma => $"{ma.Expression}{ma.Name.Identifier.Text}",
 			ElementAccessExpressionSyntax => "item",
 			CastExpressionSyntax => "castVal",
 			ConditionalExpressionSyntax => "condVal",
@@ -142,7 +142,8 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		var sideEffectCalls = new HashSet<ExpressionSyntax>(_comparer);
 		var mutatedNames = new HashSet<string>();
 		var unconditionalOccurrences = new HashSet<ExpressionSyntax>(_comparer);
-		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls, mutatedNames, unconditionalOccurrences);
+		var ternaryFreeOccurrences = new HashSet<ExpressionSyntax>(_comparer);
+		var collector = new ExpressionCollector(counts, lValues, sideEffectCalls, mutatedNames, unconditionalOccurrences, ternaryFreeOccurrences);
 
 		foreach (var statement in visitedNode.Statements)
 		{
@@ -156,12 +157,40 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		// changes performance for any expensive one. Requiring at least one occurrence outside every
 		// ternary branch (i.e. already evaluated unconditionally, in the condition or at the
 		// statement's top level) keeps hoisting to cases where moving the evaluation earlier is safe.
-		var candidates = counts.Where(kvp => kvp.Value > 1
-		                                     && unconditionalOccurrences.Contains(kvp.Key)
-		                                     && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
+		//
+		// A short-circuit (&&/||) right operand is conditional the same way, but for a DIFFERENT
+		// reason than a ternary branch: it's not an alternative that might not have "won" (both a
+		// ternary's branches produce a value; only one runs), it's a later term in a sequential
+		// chain that just might not be reached. For an expression that can never throw or have a
+		// side effect (see IsProvablyPureArithmetic), evaluating it earlier than the original chain
+		// would have changes nothing observable, so a ternary-free-but-short-circuit-only occurrence
+		// is just as safe to hoist as a fully unconditional one — unlike a ternary branch, where
+		// forcing both arms is never a no-op even for pure arithmetic (the arm may exist specifically
+		// to avoid the cost of the other).
+		var allCandidates = counts.Where(kvp => kvp.Value > 1
+		                                        && (unconditionalOccurrences.Contains(kvp.Key)
+		                                            || ternaryFreeOccurrences.Contains(kvp.Key) && IsProvablyPureArithmetic(kvp.Key))
+		                                        && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
 			.Select(kvp => kvp.Key)
-			.OrderByDescending(c => c.DescendantNodes().Count()) // Prefer larger expressions first
 			.ToList();
+
+		if (allCandidates.Count == 0)
+		{
+			return visitedNode;
+		}
+
+		var candidateKeys = new HashSet<ExpressionSyntax>(allCandidates, _comparer);
+
+		// A candidate every one of whose occurrences sits inside another candidate's occurrence
+		// (e.g. `x*y` occurring only as part of repeated `x*y+1`) has nothing to gain from its own
+		// declaration: the containing candidate's hoist already covers it (see the outer-match
+		// short-circuit in ExpressionReplacementRewriter.Visit below), and a separate `var prod = x*y;`
+		// would just sit there unused. Drop those; keep candidates that also occur bare somewhere
+		// (e.g. `x.Length` reused outside of `x.Length + 2`), so the containing candidate's
+		// initializer can reference the hoisted variable instead of re-reading the raw subexpression.
+		var candidates = OrderByContainment(allCandidates
+			.Where(c => !IsFullyContainedInAnotherCandidate(c, visitedNode, candidateKeys))
+			.ToList(), visitedNode);
 
 		if (candidates.Count == 0)
 		{
@@ -181,7 +210,8 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 					continue;
 				}
 
-				if (ContainsExpression(statement, candidate))
+				if (ContainsUnconditionalOccurrence(statement, candidate)
+				    || IsProvablyPureArithmetic(candidate) && ContainsTernaryFreeOccurrence(statement, candidate))
 				{
 					var name = GenerateName(candidate);
 
@@ -205,7 +235,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 			// Rewrite the statement using the current replacement map
 			var rewriter = new ExpressionReplacementRewriter(replacementMap);
-			newStatements.Add((StatementSyntax) rewriter.Visit(statement));
+			newStatements.Add((StatementSyntax) rewriter.Visit(statement)!);
 		}
 
 		return visitedNode.WithStatements(List(newStatements));
@@ -488,11 +518,226 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		};
 	}
 
-	private static bool ContainsExpression(SyntaxNode root, ExpressionSyntax expression)
+	/// <summary>
+	///   Whether <paramref name="candidate" /> occurs somewhere in <paramref name="root" /> that is
+	///   guaranteed to run — mirrors <see cref="ExpressionCollector" />'s conditional-branch rules
+	///   (a ternary's branches and a short-circuit <c>&amp;&amp;</c>/<c>||</c>'s right operand are
+	///   NOT guaranteed). Used to pick the insertion point for a hoisted declaration: inserting
+	///   before a statement whose only occurrence is conditional would evaluate the candidate
+	///   somewhere the original never did — e.g. hoisting <c>s.Length</c> out of
+	///   <c>IsNullOrEmpty(s) || s.Length &lt; 5</c> would throw on a null <c>s</c> where the
+	///   original short-circuited before ever reading <c>Length</c>.
+	/// </summary>
+	private static bool ContainsUnconditionalOccurrence(SyntaxNode root, ExpressionSyntax candidate)
 	{
-		return root.DescendantNodesAndSelf(n => n is not BlockSyntax && n is not AnonymousFunctionExpressionSyntax)
+		return ContainsOccurrence(root, candidate, true);
+	}
+
+	/// <summary>
+	///   Like <see cref="ContainsUnconditionalOccurrence" />, but doesn't treat a short-circuit
+	///   <c>&amp;&amp;</c>/<c>||</c>'s right operand as conditional — only ternary branches still are.
+	///   Only meaningful combined with <see cref="IsProvablyPureArithmetic" />: a candidate that can
+	///   never throw or have a side effect loses nothing by being evaluated earlier than a sequential
+	///   <c>&amp;&amp;</c>/<c>||</c> chain would have reached it (unlike a ternary, where exactly one
+	///   branch runs and forcing both is never a no-op — see <see cref="ContainsUnconditionalOccurrence" />'s
+	///   own doc for why short-circuit and ternary conditionality get treated the same there).
+	/// </summary>
+	private static bool ContainsTernaryFreeOccurrence(SyntaxNode root, ExpressionSyntax candidate)
+	{
+		return ContainsOccurrence(root, candidate, false);
+	}
+
+	private static bool ContainsOccurrence(SyntaxNode root, ExpressionSyntax candidate, bool blockShortCircuit)
+	{
+		return Walk(root, false);
+
+		bool Walk(SyntaxNode? node, bool conditional)
+		{
+			switch (node)
+			{
+				case null:
+				case BlockSyntax:
+				case AnonymousFunctionExpressionSyntax:
+					return false;
+
+				case ExpressionSyntax expr when !conditional && _comparer.Equals(Unparenthesize(expr), candidate):
+					return true;
+
+				case ConditionalExpressionSyntax cond:
+					return Walk(cond.Condition, conditional) || Walk(cond.WhenTrue, true) || Walk(cond.WhenFalse, true);
+
+				case BinaryExpressionSyntax binary when blockShortCircuit && (binary.IsKind(SyntaxKind.LogicalAndExpression) || binary.IsKind(SyntaxKind.LogicalOrExpression)):
+					return Walk(binary.Left, conditional) || Walk(binary.Right, true);
+
+				default:
+					foreach (var child in node.ChildNodes())
+					{
+						if (Walk(child, conditional))
+						{
+							return true;
+						}
+					}
+					return false;
+			}
+		}
+	}
+
+	/// <summary>
+	///   Whether <paramref name="expr" /> is built entirely from operations that can never throw or
+	///   have a side effect: literals, identifiers, the non-throwing arithmetic/bitwise/comparison
+	///   binary operators (division and modulo are excluded — they can throw
+	///   <see cref="DivideByZeroException" /> for integer operands), explicit casts to a numeric
+	///   primitive type, and numeric unary +/-/~. Deliberately excludes member/element access,
+	///   invocations, and casts to anything else — those can throw or run arbitrary code, and (unlike
+	///   the arithmetic here) telling pure ones from unsafe ones needs type information this rewriter
+	///   doesn't have (see the trust-level note on invocation purity in <see cref="ShouldConsider" />).
+	///   Used to let a short-circuit-only-conditional occurrence (see
+	///   <see cref="ContainsTernaryFreeOccurrence" />) count as safe to hoist anyway.
+	/// </summary>
+	private static bool IsProvablyPureArithmetic(ExpressionSyntax expr)
+	{
+		expr = Unparenthesize(expr);
+
+		switch (expr)
+		{
+			case LiteralExpressionSyntax:
+			case IdentifierNameSyntax:
+				return true;
+
+			case BinaryExpressionSyntax binary when IsPureArithmeticOperator(binary.Kind()):
+				return IsProvablyPureArithmetic(binary.Left) && IsProvablyPureArithmetic(binary.Right);
+
+			case CastExpressionSyntax cast when cast.Type is PredefinedTypeSyntax predefined && IsNumericKeyword(predefined.Keyword.Kind()):
+				return IsProvablyPureArithmetic(cast.Expression);
+
+			case PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.UnaryMinusExpression) || prefix.IsKind(SyntaxKind.UnaryPlusExpression) || prefix.IsKind(SyntaxKind.BitwiseNotExpression):
+				return IsProvablyPureArithmetic(prefix.Operand);
+
+			default:
+				return false;
+		}
+	}
+
+	private static bool IsPureArithmeticOperator(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.AddExpression or SyntaxKind.SubtractExpression or SyntaxKind.MultiplyExpression
+				or SyntaxKind.LeftShiftExpression or SyntaxKind.RightShiftExpression
+				or SyntaxKind.BitwiseAndExpression or SyntaxKind.BitwiseOrExpression or SyntaxKind.ExclusiveOrExpression
+				or SyntaxKind.LessThanExpression or SyntaxKind.LessThanOrEqualExpression
+				or SyntaxKind.GreaterThanExpression or SyntaxKind.GreaterThanOrEqualExpression
+				or SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression => true,
+			_ => false
+		};
+	}
+
+	private static bool IsNumericKeyword(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.IntKeyword or SyntaxKind.LongKeyword or SyntaxKind.ShortKeyword or SyntaxKind.ByteKeyword
+				or SyntaxKind.UIntKeyword or SyntaxKind.ULongKeyword or SyntaxKind.UShortKeyword or SyntaxKind.SByteKeyword
+				or SyntaxKind.FloatKeyword or SyntaxKind.DoubleKeyword or SyntaxKind.DecimalKeyword or SyntaxKind.CharKeyword => true,
+			_ => false
+		};
+	}
+
+	/// <summary>
+	///   Whether every occurrence of <paramref name="candidate" /> in <paramref name="block" /> sits
+	///   inside an occurrence of some other candidate in <paramref name="candidateKeys" />. Such a
+	///   candidate gains nothing from its own declaration: whichever containing candidate gets hoisted
+	///   matches the whole enclosing expression first and (per <see cref="ExpressionReplacementRewriter" />'s
+	///   outer-match-wins, no-recurse rule) never even looks at the nested occurrence, so a separate
+	///   declaration for it would just be dead code. Kept candidates are exactly the ones with at least
+	///   one occurrence that stands on its own — those need their own local so a containing candidate's
+	///   initializer can reference it instead of re-evaluating the raw subexpression.
+	/// </summary>
+	private static bool IsFullyContainedInAnotherCandidate(ExpressionSyntax candidate, BlockSyntax block, HashSet<ExpressionSyntax> candidateKeys)
+	{
+		return GetOccurrences(candidate, block)
+			.All(occurrence => GetScopedAncestors(occurrence).Any(a => candidateKeys.Contains(a)));
+	}
+
+	/// <summary>
+	///   Every occurrence of <paramref name="expr" /> in <paramref name="block" />, matched the same
+	///   way <see cref="ExpressionCollector" /> counts them (structural equality via <see cref="_comparer" />).
+	/// </summary>
+	private static IEnumerable<ExpressionSyntax> GetOccurrences(ExpressionSyntax expr, BlockSyntax block)
+	{
+		return block.Statements
+			.SelectMany(statement => statement.DescendantNodesAndSelf(n => n is not BlockSyntax && n is not AnonymousFunctionExpressionSyntax))
 			.OfType<ExpressionSyntax>()
-			.Any(e => _comparer.Equals(e, expression));
+			.Where(e => _comparer.Equals(Unparenthesize(e), expr));
+	}
+
+	/// <summary>
+	///   Ancestor expressions of <paramref name="node" /> up to (not including) the nearest enclosing
+	///   block/lambda — the same scoping boundary <see cref="ExpressionCollector" /> and <see cref="GetOccurrences" />
+	///   use, so an ancestor found here is guaranteed to be a candidate the collector could also have counted.
+	/// </summary>
+	private static IEnumerable<ExpressionSyntax> GetScopedAncestors(SyntaxNode node)
+	{
+		return node.Ancestors()
+			.TakeWhile(a => a is not BlockSyntax && a is not AnonymousFunctionExpressionSyntax)
+			.OfType<ExpressionSyntax>();
+	}
+
+	/// <summary>
+	///   Orders surviving candidates so that whenever one candidate (e.g. <c>x.Length</c>) occurs
+	///   nested inside another (e.g. <c>x.Length + 2</c>), the nested one comes first — otherwise the
+	///   containing candidate's own initializer is built before the nested one has a replacement name
+	///   to substitute, and it re-reads the raw subexpression instead of reusing the hoisted local
+	///   (see the initializer-substitution step below). Candidates with no such relationship (e.g. two
+	///   unrelated calls) keep their original source order — sorting those by size as well would
+	///   reorder independent declarations for no reason, contrary to the source's evaluation order.
+	/// </summary>
+	private static List<ExpressionSyntax> OrderByContainment(List<ExpressionSyntax> candidates, BlockSyntax block)
+	{
+		var mustPrecede = candidates.ToDictionary(c => c, _ => new List<ExpressionSyntax>());
+		var unsatisfiedPredecessors = candidates.ToDictionary(c => c, _ => 0);
+
+		foreach (var inner in candidates)
+		{
+			foreach (var outer in candidates)
+			{
+				if (ReferenceEquals(inner, outer))
+				{
+					continue;
+				}
+
+				if (GetOccurrences(inner, block).Any(occ => GetScopedAncestors(occ).Any(a => _comparer.Equals(a, outer))))
+				{
+					mustPrecede[inner].Add(outer);
+					unsatisfiedPredecessors[outer]++;
+				}
+			}
+		}
+
+		var remaining = new List<ExpressionSyntax>(candidates);
+		var ordered = new List<ExpressionSyntax>();
+
+		while (remaining.Count > 0)
+		{
+			// Among candidates with no unsatisfied predecessor (i.e. not required by a containment
+			// edge to come later), prefer the larger expression, same as this pass always has for
+			// unrelated candidates — nesting edges are what actually need ordering; this only breaks
+			// ties between candidates that don't nest inside one another at all.
+			var next = remaining
+				.Where(c => unsatisfiedPredecessors[c] == 0)
+				.OrderByDescending(c => c.DescendantNodes().Count())
+				.First();
+
+			ordered.Add(next);
+			remaining.Remove(next);
+
+			foreach (var successor in mustPrecede[next])
+			{
+				unsatisfiedPredecessors[successor]--;
+			}
+		}
+
+		return ordered;
 	}
 
 	private static bool ShouldConsider(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames)
@@ -527,13 +772,45 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			// Calls that appear as expression statements are called for their side effects —
 			// extracting them to a variable would elide the side effect on subsequent uses.
 			InvocationExpressionSyntax invocation when sideEffectCalls.Contains(invocation) => false,
-			// Avoid CSE for expressions containing lambdas, as 'var' might fail to infer the delegate type
+			// Avoid CSE for expressions containing lambdas, as 'var' might fail to infer the delegate type.
+			// (No purity check on the callee: by the time CSE runs, earlier passes have already rebuilt
+			// the tree, so nodes here are no longer part of the tree any SemanticModel was built for —
+			// a live symbol lookup never resolves. Same trust level this codebase already extends to
+			// invocations; a real purity gate would need type info threaded through some other way.)
 			InvocationExpressionSyntax invocation => !invocation.DescendantNodes().Any(n => n is LambdaExpressionSyntax or AnonymousFunctionExpressionSyntax),
-			MemberAccessExpressionSyntax ma => ShouldConsider(ma.Expression, lValues, sideEffectCalls, mutatedNames),
-			ElementAccessExpressionSyntax => true,
+			// `Unsafe.BitCast<bool, byte>` as the callee of `Unsafe.BitCast<bool, byte>(x)` is a method
+			// group, not a value — it has no runtime representation `var` can bind to (`var f =
+			// Unsafe.BitCast<bool, byte>;` doesn't compile). Two invocations of the same generic method
+			// with different arguments still share this identical callee sub-expression, so without this
+			// guard it looks like an ordinary repeated member access and gets hoisted into nonsense.
+			MemberAccessExpressionSyntax ma when ma.Parent is InvocationExpressionSyntax invocation && invocation.Expression == ma => false,
+			// A property getter is as legitimate a candidate as a method call — same reasoning, same
+			// trust level — and the receiver itself must be a safe shape to re-read.
+			MemberAccessExpressionSyntax ma => IsSafeReceiver(ma.Expression, lValues, sideEffectCalls, mutatedNames),
+			// Array indexing (and a custom indexer, at the same trust level as any other member access).
+			ElementAccessExpressionSyntax ea => IsSafeReceiver(ea.Expression, lValues, sideEffectCalls, mutatedNames),
 			CastExpressionSyntax cast => ShouldConsider(cast.Expression, lValues, sideEffectCalls, mutatedNames),
 			_ => false
 		};
+	}
+
+	/// <summary>
+	///   Whether an expression used as a member/element-access receiver is a safe shape to read twice.
+	///   A bare identifier is a local/parameter (mutation of those is already excluded above) or an
+	///   implicit-<c>this</c> member/type reference — either way there's nothing here that isn't
+	///   already covered by the mutation check. Anything else falls back to the general candidate
+	///   check (nested member/element access, invocation, cast, …).
+	/// </summary>
+	private static bool IsSafeReceiver(ExpressionSyntax expr, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames)
+	{
+		expr = Unparenthesize(expr);
+
+		if (expr is IdentifierNameSyntax or ThisExpressionSyntax or BaseExpressionSyntax)
+		{
+			return true;
+		}
+
+		return ShouldConsider(expr, lValues, sideEffectCalls, mutatedNames);
 	}
 
 	private static ExpressionSyntax Unparenthesize(ExpressionSyntax expr)
@@ -624,7 +901,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 	private sealed class CommutativeCanonicalizer : CSharpSyntaxRewriter
 	{
-		public override SyntaxNode? VisitBinaryExpression(BinaryExpressionSyntax node)
+		public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)
 		{
 			// base.Visit canonicalizes children first (bottom-up), so operand hashes below are stable.
 			var visited = (BinaryExpressionSyntax) base.VisitBinaryExpression(node)!;
@@ -645,9 +922,13 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		}
 	}
 
-	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames, HashSet<ExpressionSyntax> unconditionalOccurrences) : CSharpSyntaxWalker
+	private class ExpressionCollector(Dictionary<ExpressionSyntax, int> counts, HashSet<ExpressionSyntax> lValues, HashSet<ExpressionSyntax> sideEffectCalls, HashSet<string> mutatedNames, HashSet<ExpressionSyntax> unconditionalOccurrences, HashSet<ExpressionSyntax> ternaryFreeOccurrences) : CSharpSyntaxWalker
 	{
-		private int _conditionalBranchDepth;
+		// Tracked separately from _shortCircuitDepth: a ternary branch and a short-circuit right
+		// operand are both "conditional", but for different reasons (see IsProvablyPureArithmetic /
+		// ContainsTernaryFreeOccurrence) — only ternary depth blocks the pure-arithmetic escape hatch.
+		private int _ternaryDepth;
+		private int _shortCircuitDepth;
 
 		private void MarkMutated(ExpressionSyntax target)
 		{
@@ -664,10 +945,29 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		{
 			Visit(node.Condition);
 
-			_conditionalBranchDepth++;
+			_ternaryDepth++;
 			Visit(node.WhenTrue);
 			Visit(node.WhenFalse);
-			_conditionalBranchDepth--;
+			_ternaryDepth--;
+		}
+
+		// The right operand of `&&`/`||` only runs if the left operand doesn't already decide the
+		// result (short-circuit evaluation) — same "not guaranteed to run" hazard as a ternary
+		// branch, e.g. the `s.Length` in `IsNullOrEmpty(s) || s.Length < 5` never executes when `s`
+		// is null.
+		public override void VisitBinaryExpression(BinaryExpressionSyntax node)
+		{
+			if (!node.IsKind(SyntaxKind.LogicalAndExpression) && !node.IsKind(SyntaxKind.LogicalOrExpression))
+			{
+				base.VisitBinaryExpression(node);
+				return;
+			}
+
+			Visit(node.Left);
+
+			_shortCircuitDepth++;
+			Visit(node.Right);
+			_shortCircuitDepth--;
 		}
 
 		public override void VisitBlock(BlockSyntax node)
@@ -739,9 +1039,14 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				counts.TryGetValue(normalized, out var count);
 				counts[normalized] = count + 1;
 
-				if (_conditionalBranchDepth == 0)
+				if (_ternaryDepth == 0 && _shortCircuitDepth == 0)
 				{
 					unconditionalOccurrences.Add(normalized);
+				}
+
+				if (_ternaryDepth == 0)
+				{
+					ternaryFreeOccurrences.Add(normalized);
 				}
 			}
 

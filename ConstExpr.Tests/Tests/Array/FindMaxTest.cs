@@ -32,12 +32,14 @@ public class FindMaxTest : BaseTest<Func<int[], int>>
 		{
 			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
 
-			if (numbers.Length == 0)
+			var numbersLength = numbers.Length;
+
+			if (numbersLength == 0)
 				return 0;
 
 			var max = numbersRef;
 
-			for (var i = 1; i < numbers.Length; i++)
+			for (var i = 1; i < numbersLength; i++)
 			{
 				if (Unsafe.Add(ref numbersRef, i) > max)
 					max = Unsafe.Add(ref numbersRef, i);

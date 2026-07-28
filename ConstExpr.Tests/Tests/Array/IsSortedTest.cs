@@ -30,10 +30,12 @@ public class IsSortedTest : BaseTest<Func<int[], bool>>
 		{
 			ref var numbersRef = ref MemoryMarshal.GetArrayDataReference(numbers);
 
-			if (numbers.Length <= 1)
+			var numbersLength = numbers.Length;
+
+			if (numbersLength <= 1)
 				return true;
 
-			for (var i = 1; i < numbers.Length; i++)
+			for (var i = 1; i < numbersLength; i++)
 			{
 				if (Unsafe.Add(ref numbersRef, i) < Unsafe.Add(ref numbersRef, i - 1))
 					return false;

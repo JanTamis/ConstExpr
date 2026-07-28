@@ -46,7 +46,9 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 		{
 			ref var xRef = ref MemoryMarshal.GetArrayDataReference(x);
 
-			return (x.Length > 0 ? xRef << 1 : 0) + (x.Length > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (x.Length > 2 ? Unsafe.Add(ref xRef, 2) << 1 : 0) + (x.Length > 10 ? Unsafe.Add(ref xRef, 10) : 0) + (x.Length > 3 ? Unsafe.Add(ref xRef, 3) : 0);
+			var xLength = x.Length;
+
+			return (xLength > 0 ? xRef << 1 : 0) + (xLength > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (xLength > 2 ? Unsafe.Add(ref xRef, 2) << 1 : 0) + (xLength > 10 ? Unsafe.Add(ref xRef, 10) : 0) + (xLength > 3 ? Unsafe.Add(ref xRef, 3) : 0);
 		}),
 		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
 		Create(_ => 0, [ System.Array.Empty<int>() ]), // All return 0 (default)

@@ -35,9 +35,9 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var asSpanVal = CollectionsMarshal.AsSpan(x);
+			var collectionsMarshalAsSpan = CollectionsMarshal.AsSpan(x);
 
-			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(asSpanVal)) * 6 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(asSpanVal));
+			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(collectionsMarshalAsSpan)) * 6 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(collectionsMarshalAsSpan));
 			""", Unknown),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ]),
