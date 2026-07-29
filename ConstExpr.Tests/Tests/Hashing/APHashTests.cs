@@ -24,10 +24,15 @@ public class APHashTests : BaseTest<Func<string, uint>>
 		Create(str =>
 		{
 			ref var strRef = ref MemoryMarshal.GetReference(str.AsSpan());
+
 			var hash = 2863311530U;
 
 			for (var i = 0U; i < str.Length; i++)
-				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ (byte) Unsafe.Add(ref strRef, (int) i) * (hash >> 3) : ~((hash << 11) + ((byte) Unsafe.Add(ref strRef, (int) i) ^ hash >> 5));
+			{
+				var castVal = (byte) Unsafe.Add(ref strRef, (int) i);
+
+				hash ^= UInt32.IsEvenInteger(i) ? hash << 7 ^ castVal * (hash >> 3) : ~((hash << 11) + (castVal ^ hash >> 5));
+			}
 
 			return hash;
 		})

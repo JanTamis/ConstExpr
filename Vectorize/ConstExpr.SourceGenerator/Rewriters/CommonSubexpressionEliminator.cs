@@ -167,9 +167,16 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		// is just as safe to hoist as a fully unconditional one — unlike a ternary branch, where
 		// forcing both arms is never a no-op even for pure arithmetic (the arm may exist specifically
 		// to avoid the cost of the other).
+		//
+		// That last point is about a candidate in ONE arm. A candidate in EVERY arm of an exhaustive
+		// alternative is a third, separate case: it already ran whichever way the branch went, so
+		// hoisting forces nothing and is free even when it can throw. That's partial redundancy, and
+		// IsPartiallyRedundantIn decides it — anchored to a single statement, so this filter and the
+		// insertion-point search below can never disagree about a candidate.
 		var allCandidates = counts.Where(kvp => kvp.Value > 1
 		                                        && (unconditionalOccurrences.Contains(kvp.Key)
-		                                            || ternaryFreeOccurrences.Contains(kvp.Key) && IsProvablyPureArithmetic(kvp.Key))
+		                                            || ternaryFreeOccurrences.Contains(kvp.Key) && IsProvablyPureArithmetic(kvp.Key)
+		                                            || visitedNode.Statements.Any(s => IsPartiallyRedundantIn(s, kvp.Key)))
 		                                        && ShouldConsider(kvp.Key, lValues, sideEffectCalls, mutatedNames))
 			.Select(kvp => kvp.Key)
 			.ToList();
@@ -211,7 +218,8 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				}
 
 				if (ContainsUnconditionalOccurrence(statement, candidate)
-				    || IsProvablyPureArithmetic(candidate) && ContainsTernaryFreeOccurrence(statement, candidate))
+				    || IsProvablyPureArithmetic(candidate) && ContainsTernaryFreeOccurrence(statement, candidate)
+				    || IsPartiallyRedundantIn(statement, candidate))
 				{
 					var name = GenerateName(candidate);
 
@@ -583,6 +591,228 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 	}
 
 	/// <summary>
+	///   Whether <paramref name="candidate" /> is worth hoisting in front of <paramref name="statement" />
+	///   under the partial-redundancy rule: evaluated on every path through it (see
+	///   <see cref="IsEvaluatedOnEveryPath" />) and not invalidated by a mutation hiding in a nested
+	///   block (see <see cref="IsMutatedAnywhereWithin" />).
+	///   <para>
+	///     Both the candidate filter and the insertion-point search go through this one helper, and both
+	///     ask it about a <em>single statement</em>. They have to agree: a candidate selected because
+	///     some statement satisfies this must be one the insertion-point loop will also accept, or it
+	///     gets picked, never gets a declaration, and silently goes unreplaced. Asking the filter about
+	///     the whole block instead would break exactly that — a candidate could qualify on occurrences
+	///     spread across two different <c>if</c> statements while no single statement qualifies.
+	///   </para>
+	/// </summary>
+	private static bool IsPartiallyRedundantIn(SyntaxNode statement, ExpressionSyntax candidate)
+	{
+		return IsEvaluatedOnEveryPath(statement, candidate) && !IsMutatedAnywhereWithin(statement, candidate);
+	}
+
+	/// <summary>
+	///   Whether <paramref name="candidate" /> is evaluated on every path through <paramref name="node" />.
+	///   Unlike <see cref="ContainsUnconditionalOccurrence" />, which needs an occurrence that is
+	///   syntactically unconditional, this also accepts one that appears in <em>every</em> arm of an
+	///   exhaustive alternative — both arms of a ternary, or an <c>if</c>/<c>else</c> with both branches
+	///   present. Exactly one arm ever runs and all of them evaluate the candidate, so it is evaluated
+	///   exactly once either way: hoisting it in front of the construct changes neither the number of
+	///   evaluations nor which exceptions can escape, which makes it free even for an expression that
+	///   can throw.
+	///   <para>
+	///     Note this does not contradict the cost argument against forcing a ternary arm (see
+	///     <see cref="VisitBlock" />'s candidate filter): that is about a candidate in <em>one</em> arm,
+	///     where hoisting adds an evaluation the other arm deliberately avoided. In every arm, nothing
+	///     is forced — it already ran whichever way the branch went.
+	///   </para>
+	///   <para>
+	///     This is why it descends into <see cref="BlockSyntax" /> where <see cref="ContainsOccurrence" />
+	///     deliberately stops: a branch's occurrences live behind a block boundary, so refusing to look
+	///     there would make the whole rule dead. That widening is also what makes
+	///     <see cref="IsMutatedAnywhereWithin" /> mandatory — see its own doc.
+	///   </para>
+	/// </summary>
+	private static bool IsEvaluatedOnEveryPath(SyntaxNode? node, ExpressionSyntax candidate)
+	{
+		switch (node)
+		{
+			case null:
+				return false;
+
+			case ExpressionSyntax expr when _comparer.Equals(Unparenthesize(expr), candidate):
+				return true;
+
+			// Exactly one arm runs, so the candidate is guaranteed if the always-evaluated condition
+			// has it — or if EVERY arm does.
+			case ConditionalExpressionSyntax cond:
+				return IsEvaluatedOnEveryPath(cond.Condition, candidate)
+				       || IsEvaluatedOnEveryPath(cond.WhenTrue, candidate) && IsEvaluatedOnEveryPath(cond.WhenFalse, candidate);
+
+			// The same shape as the ternary above, one level up. Without an `else` the construct is not
+			// exhaustive: the fall-through path evaluates nothing, so a then-only occurrence proves nothing.
+			case IfStatementSyntax ifStatement:
+				return IsEvaluatedOnEveryPath(ifStatement.Condition, candidate)
+				       || ifStatement.Else is { } elseClause
+				       && IsEvaluatedOnEveryPath(ifStatement.Statement, candidate)
+				       && IsEvaluatedOnEveryPath(elseClause.Statement, candidate);
+
+			// Only the left operand is guaranteed; the right can be short-circuited away entirely.
+			case BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.LogicalAndExpression)
+			                                        || binary.IsKind(SyntaxKind.LogicalOrExpression)
+			                                        || binary.IsKind(SyntaxKind.CoalesceExpression):
+				return IsEvaluatedOnEveryPath(binary.Left, candidate);
+
+			// `a?.b` evaluates `a`, but reaches `.b` only when `a` is non-null.
+			case ConditionalAccessExpressionSyntax conditionalAccess:
+				return IsEvaluatedOnEveryPath(conditionalAccess.Expression, candidate);
+
+			case BlockSyntax block:
+				return IsEvaluatedOnEveryStatementPath(block, candidate);
+
+			case not null when IsNeverGuaranteedToRun(node):
+				return false;
+
+			default:
+				foreach (var child in node.ChildNodes())
+				{
+					if (IsEvaluatedOnEveryPath(child, candidate))
+					{
+						return true;
+					}
+				}
+
+				return false;
+		}
+	}
+
+	/// <summary>
+	///   Whether <paramref name="candidate" /> is evaluated on every path through
+	///   <paramref name="block" />. Statements run in order, but an early exit before an occurrence
+	///   creates a path that skips it — in <c>if (d) return 0; return a.Length;</c> the read is NOT on
+	///   every path, so hoisting it in front of the block would evaluate it where the original never
+	///   did (and throw where the original returned). Hence: walk forwards, and stop at the first
+	///   statement that can transfer control out.
+	/// </summary>
+	private static bool IsEvaluatedOnEveryStatementPath(BlockSyntax block, ExpressionSyntax candidate)
+	{
+		foreach (var statement in block.Statements)
+		{
+			if (IsEvaluatedOnEveryPath(statement, candidate))
+			{
+				return true;
+			}
+
+			if (CanExitEarly(statement))
+			{
+				return false;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Constructs nothing inside of which is guaranteed to run: a loop body may iterate zero times, a
+	///   lambda or local function may never be invoked, a <c>switch</c>'s exhaustiveness can't be proven
+	///   without the type information this rewriter no longer has, and a <c>try</c> body can be
+	///   abandoned part-way. None of these ever qualify under the every-path rule — the ordinary
+	///   unconditional rule still covers whatever it covered before.
+	/// </summary>
+	private static bool IsNeverGuaranteedToRun(SyntaxNode node)
+	{
+		return node is ForStatementSyntax or ForEachStatementSyntax or WhileStatementSyntax
+			or DoStatementSyntax or SwitchStatementSyntax or SwitchExpressionSyntax
+			or TryStatementSyntax or AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax;
+	}
+
+	/// <summary>
+	///   Whether <paramref name="statement" /> can transfer control out of the block it sits in, which
+	///   would let a later statement be skipped. Conservative: any jump anywhere in the subtree counts,
+	///   without checking whether it is actually reachable.
+	/// </summary>
+	private static bool CanExitEarly(StatementSyntax statement)
+	{
+		return statement.DescendantNodesAndSelf()
+			.Any(n => n is ReturnStatementSyntax or ThrowStatementSyntax or BreakStatementSyntax
+				or ContinueStatementSyntax or GotoStatementSyntax or ThrowExpressionSyntax
+				or YieldStatementSyntax);
+	}
+
+	/// <summary>
+	///   Whether any base identifier <paramref name="candidate" /> reads is mutated anywhere inside
+	///   <paramref name="statement" />, nested blocks included.
+	///   <para>
+	///     Needed only for candidates accepted by <see cref="IsEvaluatedOnEveryPath" />. The ordinary
+	///     <c>mutatedNames</c> guard in <see cref="ShouldConsider" /> is filled by
+	///     <see cref="ExpressionCollector" />, whose <c>VisitBlock</c> stops at nested blocks — so a
+	///     mutation inside a loop body inside an if-branch never reaches it:
+	///     <code>
+	///     if (c) { foreach (var x in xs) { i++; } use(arr[i]); }
+	///     else   { use(arr[i]); }
+	///     </code>
+	///     Both branches read <c>arr[i]</c>, but not the same <c>arr[i]</c>. Before the every-path rule
+	///     such a candidate had no unconditional occurrence and was unreachable, so the gap never
+	///     mattered; now it is reachable, so re-check the whole subtree with block boundaries ignored.
+	///   </para>
+	///   <para>
+	///     An arm that merely rebinds the base at statement level (<c>a = GetArray();</c>) is already
+	///     caught by <c>mutatedNames</c>: <see cref="ExpressionCollector.MarkMutated" /> works on the
+	///     syntactic base identifier with no symbol distinction, so a parameter counts the same as a
+	///     local, and branch statements have been visited since if-condition/branch hoisting landed.
+	///   </para>
+	/// </summary>
+	private static bool IsMutatedAnywhereWithin(SyntaxNode statement, ExpressionSyntax candidate)
+	{
+		var mutated = new HashSet<string>();
+
+		// Deliberately the same four mutation channels ExpressionCollector.MarkMutated covers — plain
+		// assignment, inc/dec, indexer write (via the target's base identifier) and `ref`/`out` args —
+		// just without the block scoping. A second, divergent definition of "mutated" is how these two
+		// guards would drift apart.
+		foreach (var node in statement.DescendantNodesAndSelf())
+		{
+			switch (node)
+			{
+				case AssignmentExpressionSyntax assignment:
+					Mark(assignment.Left);
+					break;
+
+				case PrefixUnaryExpressionSyntax prefix when IsIncrementOrDecrement(prefix.Kind()):
+					Mark(prefix.Operand);
+					break;
+
+				case PostfixUnaryExpressionSyntax postfix when IsIncrementOrDecrement(postfix.Kind()):
+					Mark(postfix.Operand);
+					break;
+
+				case ArgumentSyntax argument when argument.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+				                                  || argument.RefKindKeyword.IsKind(SyntaxKind.OutKeyword):
+					Mark(argument.Expression);
+					break;
+			}
+		}
+
+		return mutated.Count > 0
+		       && Unparenthesize(candidate)
+			       .DescendantNodesAndSelf()
+			       .OfType<IdentifierNameSyntax>()
+			       .Any(id => mutated.Contains(id.Identifier.Text));
+
+		void Mark(ExpressionSyntax target)
+		{
+			if (GetBaseIdentifier(Unparenthesize(target)) is { } name)
+			{
+				mutated.Add(name);
+			}
+		}
+	}
+
+	private static bool IsIncrementOrDecrement(SyntaxKind kind)
+	{
+		return kind is SyntaxKind.PreIncrementExpression or SyntaxKind.PostIncrementExpression
+			or SyntaxKind.PreDecrementExpression or SyntaxKind.PostDecrementExpression;
+	}
+
+	/// <summary>
 	///   Whether <paramref name="expr" /> is built entirely from operations that can never throw or
 	///   have a side effect: literals, identifiers, the non-throwing arithmetic/bitwise/comparison
 	///   binary operators (division and modulo are excluded — they can throw
@@ -655,8 +885,16 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 	/// </summary>
 	private static bool IsFullyContainedInAnotherCandidate(ExpressionSyntax candidate, BlockSyntax block, HashSet<ExpressionSyntax> candidateKeys)
 	{
-		return GetOccurrences(candidate, block)
-			.All(occurrence => GetScopedAncestors(occurrence).Any(a => candidateKeys.Contains(a)));
+		var occurrences = GetOccurrences(candidate, block).ToList();
+
+		// No occurrence visible at this scope means nothing to be contained by, so the candidate must be
+		// kept — `All` over an empty sequence is vacuously true and would silently drop it instead. That
+		// is reachable only via the partial-redundancy rule: GetOccurrences stops at nested blocks, so a
+		// candidate that lives purely inside two if/else branch blocks has none here, while every
+		// candidate the older rules admit has at least one (an if-condition occurrence, say, sits outside
+		// any block).
+		return occurrences.Count > 0
+		       && occurrences.All(occurrence => GetScopedAncestors(occurrence).Any(a => candidateKeys.Contains(a)));
 	}
 
 	/// <summary>
