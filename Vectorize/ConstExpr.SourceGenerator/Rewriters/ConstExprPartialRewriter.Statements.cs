@@ -1668,7 +1668,7 @@ public partial class ConstExprPartialRewriter
 	///     initializer untouched rather than risk producing an unassigned-use compile error.
 	///   </para>
 	/// </summary>
-	private static SyntaxList<StatementSyntax> ElideDeadLocalInitializers(SyntaxList<StatementSyntax> statements)
+	private SyntaxList<StatementSyntax> ElideDeadLocalInitializers(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
 		{
@@ -1686,6 +1686,7 @@ public partial class ConstExprPartialRewriter
 
 			List<VariableDeclaratorSyntax>? newVariables = null;
 			var variableList = declarationStatement.Declaration.Variables;
+			var declarationType = declarationStatement.Declaration.Type;
 
 			for (var v = 0; v < variableList.Count; v++)
 			{
@@ -1715,6 +1716,26 @@ public partial class ConstExprPartialRewriter
 					continue;
 				}
 
+				// A single-declarator local has already been normalized to `var` upstream (its
+				// initializer was the only thing that told the compiler the type), so `var name;`
+				// with the initializer gone is CS0818. Resolve the real type from the interpreter's
+				// VariableItem before dropping it — the same semantic fallback BoundsCheckRewriter
+				// uses for a `var` local. Restricted to a predefined-keyword type (int, double,
+				// bool, ...): those never need a `using`, whereas a named/generic type's namespace
+				// isn't guaranteed to be among the ones this method's usings were seeded with (that
+				// only scans the return type and parameters, not locals) — emitting its bare name
+				// then risks an unresolvable-type error instead of the unassigned-use one this
+				// avoids. Skip eliding rather than guess if a safe type isn't available.
+				if (declarationType is IdentifierNameSyntax { Identifier.Text: "var" })
+				{
+					if (!variables.TryGetValue(name, out var variable) || variable.Type.AsTypeSyntax() is not PredefinedTypeSyntax resolvedType)
+					{
+						continue;
+					}
+
+					declarationType = resolvedType;
+				}
+
 				(newVariables ??= variableList.ToList())[v] = declarator.WithInitializer(null);
 			}
 
@@ -1723,7 +1744,10 @@ public partial class ConstExprPartialRewriter
 				continue;
 			}
 
-			result[i] = declarationStatement.WithDeclaration(declarationStatement.Declaration.WithVariables(SeparatedList(newVariables)));
+			result[i] = declarationStatement.WithDeclaration(
+				declarationStatement.Declaration
+					.WithType(declarationType)
+					.WithVariables(SeparatedList(newVariables)));
 		}
 
 		return List(result);
