@@ -41,8 +41,10 @@ public class FindMaxTest : BaseTest<Func<int[], int>>
 
 			for (var i = 1; i < numbersLength; i++)
 			{
-				if (Unsafe.Add(ref numbersRef, i) > max)
-					max = Unsafe.Add(ref numbersRef, i);
+				var item = Unsafe.Add(ref numbersRef, i);
+
+				if (item > max)
+					max = item;
 			}
 
 			return max;

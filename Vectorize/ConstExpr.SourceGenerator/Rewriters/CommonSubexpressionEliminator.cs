@@ -975,6 +975,47 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			/* Don't recurse into nested blocks */
 		}
 
+		// An if/else branch runs exactly when its own Condition (just visited, at the current depth)
+		// implies it, and only one of Statement/Else ever runs -- the same "exactly one of several
+		// alternatives" hazard a ternary's branches have (see VisitConditionalExpression above). So,
+		// unlike VisitBlock's blanket stop (used for loop/lambda bodies, where a repeat can't be tied
+		// to anything unconditional the way an if-condition can), branch content is still visited here
+		// -- just always under the same _ternaryDepth bump a ternary branch gets, so an occurrence
+		// found here can only ever ride along on a candidate that's already unconditional elsewhere
+		// (typically the Condition itself), never originate one on its own. This is what lets
+		// `if (numbers.Length < 2) { return numbers.Length == 1 ? ... : ...; }` hoist `numbers.Length`:
+		// the Condition's occurrence carries the candidate, and the raw text still inside the branch
+		// is reached and replaced by ExpressionReplacementRewriter's ordinary (block-unaware) walk.
+		public override void VisitIfStatement(IfStatementSyntax node)
+		{
+			Visit(node.Condition);
+			VisitBranch(node.Statement);
+
+			if (node.Else is { } elseClause)
+			{
+				VisitBranch(elseClause.Statement);
+			}
+		}
+
+		private void VisitBranch(StatementSyntax statement)
+		{
+			_ternaryDepth++;
+
+			if (statement is BlockSyntax block)
+			{
+				foreach (var inner in block.Statements)
+				{
+					Visit(inner);
+				}
+			}
+			else
+			{
+				Visit(statement);
+			}
+
+			_ternaryDepth--;
+		}
+
 		public override void VisitExpressionStatement(ExpressionStatementSyntax node)
 		{
 			// Invocations used as expression statements are called for side effects — mark them
