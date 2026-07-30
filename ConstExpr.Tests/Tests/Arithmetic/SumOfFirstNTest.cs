@@ -7,7 +7,7 @@ public class SumOfFirstNTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(n => n * (n + 1) >> 1),
 		Create(_ => 55, [ 10 ]),
 		Create(_ => 0, [ 0 ]),
 		Create(_ => 5050, [ 100 ])

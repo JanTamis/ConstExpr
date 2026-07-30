@@ -224,6 +224,11 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 
 	protected bool IsPositive(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node)
 	{
+		if (IsConsecutiveIntegerProduct(context, node))
+		{
+			return true;
+		}
+
 		return context.BinaryExpressions.Any(a =>
 		{
 			return LeftEqualsRight(a.Left, node, context.Variables)
@@ -233,6 +238,29 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			       && a.OperatorToken.IsKind(SyntaxKind.LessThanToken, SyntaxKind.LessThanEqualsToken)
 			       && IsNegative(a.Left, context.Variables);
 		});
+	}
+
+	/// <summary>
+	///   A product of two consecutive integers (<c>x * (x + 1)</c>, <c>(x - 1) * x</c>, ...) is never
+	///   negative for any integer <c>x</c>: its real roots are 0 and &#8723;1, and no integer lies
+	///   strictly between them.
+	/// </summary>
+	private bool IsConsecutiveIntegerProduct(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node)
+	{
+		return Unparenthesize(node) is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } multiply
+		       && (IsSuccessor(context, multiply.Left, multiply.Right) || IsSuccessor(context, multiply.Right, multiply.Left));
+	}
+
+	private bool IsSuccessor(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax @base, ExpressionSyntax candidate)
+	{
+		return Unparenthesize(candidate) is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression or (int) SyntaxKind.SubtractExpression } step
+		       && step.Right is LiteralExpressionSyntax { Token.Value: 1 }
+		       && LeftEqualsRight(Unparenthesize(step.Left), Unparenthesize(@base), context.Variables);
+	}
+
+	private static ExpressionSyntax Unparenthesize(ExpressionSyntax expr)
+	{
+		return expr is ParenthesizedExpressionSyntax paren ? Unparenthesize(paren.Expression) : expr;
 	}
 
 	/// <summary>
