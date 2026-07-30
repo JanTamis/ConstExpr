@@ -537,7 +537,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			// This ensures every invocation site can still be intercepted safely, including
 			// mixed/non-constant calls where partial evaluation yields a passthrough body.
 
-			GetUsings(methodSymbol, usings);
+			GetUsings(model, methodDecl, methodSymbol, usings);
 
 			if (attribute.MathOptimizations != FastMathFlags.Strict || attribute.Optimizations != OptimizationFlags.None)
 			{
@@ -740,7 +740,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			.FirstOrDefault();
 	}
 
-	private static void GetUsings(IMethodSymbol methodSymbol, ISet<string?> usings)
+	private static void GetUsings(SemanticModel model, MethodDeclarationSyntax methodDecl, IMethodSymbol methodSymbol, ISet<string?> usings)
 	{
 		SetUsings(methodSymbol.ReturnType, usings);
 
@@ -752,6 +752,19 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		foreach (var type in methodSymbol.TypeParameters.SelectMany(s => s.ConstraintTypes))
 		{
 			SetUsings(type, usings);
+		}
+
+		// Types referenced only inside the body (local variable types, casts, default/typeof,
+		// pattern types, ...) never show up in the signature above, but AsTypeSyntax() emits
+		// them by bare name regardless - so scan every type reference in the original,
+		// still-bound body too. Extra usings for types the rewriter later folds away are
+		// harmless; a missing one is a CS0246 in the generated file.
+		foreach (var typeSyntax in methodDecl.DescendantNodes().OfType<TypeSyntax>())
+		{
+			if (model.GetSymbolInfo(typeSyntax).Symbol is ITypeSymbol typeSymbol)
+			{
+				SetUsings(typeSymbol, usings);
+			}
 		}
 	}
 
