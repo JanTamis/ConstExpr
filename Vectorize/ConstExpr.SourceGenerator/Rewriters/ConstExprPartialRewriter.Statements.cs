@@ -1103,7 +1103,7 @@ public partial class ConstExprPartialRewriter
 			    {
 				    Modifiers.Count: 0,
 				    Declaration.Variables: [ { Identifier.Text: var varName, Initializer.Value: ExpressionSyntax initExpr } ]
-			    })
+			    } declarationStatement)
 			{
 				continue;
 			}
@@ -1115,6 +1115,45 @@ public partial class ConstExprPartialRewriter
 			if (initExpr is CastExpressionSyntax { Type: var castType, Expression: var castOperand } && IsRedundantWideningCast(castType, castOperand))
 			{
 				initExpr = castOperand;
+			}
+
+			// Fold a run of immediately-following simple self-reassignments (`varName = expr;`) forward
+			// into the declaration's initializer. Always safe: every link in the chain only ever writes
+			// varName itself, so nothing else a link reads can have been mutated by an earlier link.
+			// Turns an accumulator pattern like
+			//   var max = a; max = Int32.Max(b, max); max = Int32.Max(c, max);
+			// into a single
+			//   var max = Int32.Max(c, Int32.Max(b, a));
+			// so the single-use inlining below can see and fold away the whole chain at once.
+			var chainLength = 0;
+
+			while (i + 1 + chainLength < result.Count
+			       && result[i + 1 + chainLength] is ExpressionStatementSyntax
+			       {
+				       Expression: AssignmentExpressionSyntax
+				       {
+					       RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					       Left: IdentifierNameSyntax { Identifier.Text: var reassignedName },
+					       Right: var reassignRhs
+				       }
+			       }
+			       && reassignedName == varName
+			       // Duplicating the accumulated expression is only free when it's trivially
+			       // duplicable (identifier/literal); otherwise only fold a link that reads the
+			       // accumulator at most once, so nothing gets evaluated twice.
+			       && (IsTriviallyDuplicableExpression(initExpr)
+			           || reassignRhs.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>().Count(id => id.Identifier.Text == varName) <= 1))
+			{
+				initExpr = (ExpressionSyntax) (new MultiVariableInliner(varName, initExpr).Visit(reassignRhs) ?? reassignRhs);
+				chainLength++;
+			}
+
+			if (chainLength > 0)
+			{
+				result.RemoveRange(i + 1, chainLength);
+				result[i] = declarationStatement.WithDeclaration(
+					declarationStatement.Declaration.WithVariables(
+						SingletonSeparatedList(declarationStatement.Declaration.Variables[0].WithInitializer(EqualsValueClause(initExpr)))));
 			}
 
 			// Only inline pure arithmetic/logical expressions (plus method calls, which are only
