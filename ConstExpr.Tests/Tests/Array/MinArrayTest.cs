@@ -33,10 +33,7 @@ public class MinArrayTest : BaseTest<Func<int[], int>>
 			var min = Int32.MaxValue;
 
 			foreach (var v in values)
-			{
-				if (v < min)
-					min = v;
-			}
+				min = Int32.Min(v, min);
 
 			return min;
 		}),

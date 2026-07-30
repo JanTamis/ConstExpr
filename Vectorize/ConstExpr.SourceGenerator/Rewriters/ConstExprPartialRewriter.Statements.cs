@@ -123,6 +123,39 @@ public partial class ConstExprPartialRewriter
 						elseReturn)) as ExpressionSyntax);
 			}
 		}
+		// An if without an else that assigns a single identifier is equivalent to assigning it the
+		// conditional expression `cond ? expr : x` (the implicit else is "keep x"). Unlike the
+		// two-sided collapse above, only rewrite when a recognized pattern (e.g. the abs/min/max
+		// shapes in ConditionalExpressionOptimizer) actually fires: an unmatched one-sided if is more
+		// readable left alone, and one-sided ifs are far more common than two-sided ones, so falling
+		// back to an always-emitted `x = cond ? expr : x` here would be a much bigger, noisier change
+		// than the two-sided fallback is. Restricted to variables tracked in `variables` (locals/
+		// parameters) so an implicit-`this` property never gets its getter+setter invoked on the
+		// false path where the original left it untouched.
+		else if (@else is null
+		         && TryGetSingleAssignmentToIdentifier(statement, out var soleAssignment, out var soleTarget)
+		         && variables.TryGetValue(soleTarget, out var soleVariable))
+		{
+			// Resolve the type from the tracked variable rather than the assignment's right-hand
+			// side: unlike the two-sided collapse (whose branches are lifted from source almost
+			// untouched), `statement` here has already been through a full `Visit`, so an operand
+			// like `-n` is frequently a freshly-reconstructed node with no semantic-model entry.
+			var soleOptimizer = new ConditionalExpressionOptimizer
+			{
+				Condition = condition as ExpressionSyntax ?? node.Condition,
+				WhenTrue = soleAssignment.Right,
+				WhenFalse = soleAssignment.Left,
+				Type = soleVariable.Type,
+				Usings = usings,
+				AdditionalMethods = additionalMethods
+			};
+
+			if (soleOptimizer.TryOptimize(loader, variables, out var soleOptimizedRhs)
+			    && (Visit(soleOptimizedRhs) as ExpressionSyntax ?? soleOptimizedRhs as ExpressionSyntax) is { } soleVisitedRhs)
+			{
+				return ExpressionStatement(soleAssignment.WithRight(soleVisitedRhs));
+			}
+		}
 
 		return result;
 	}

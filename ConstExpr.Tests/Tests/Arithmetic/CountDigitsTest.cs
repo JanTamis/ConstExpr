@@ -28,16 +28,11 @@ public class CountDigitsTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n =>
-		{
-			switch (n)
-			{
-				case 0:
-					return 1;
-				case < 0:
-					n = -n;
-					break;
-			}
+		Create("""
+			if (n == 0)
+				return 1;
+
+			n = FastAbs(n);
 
 			var count = 0;
 
@@ -48,7 +43,7 @@ public class CountDigitsTest : BaseTest<Func<int, int>>
 			}
 
 			return count;
-		}),
+			"""),
 		Create(_ => 3, [ 123 ]),
 		Create(_ => 1, [ 0 ]),
 		Create(_ => 4, [ -4567 ])

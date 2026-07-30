@@ -23,10 +23,8 @@ public class DigitSumTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n =>
-		{
-			if (n < 0)
-				n = -n;
+		Create("""
+			n = FastAbs(n);
 
 			var sum = 0;
 
@@ -37,7 +35,7 @@ public class DigitSumTest : BaseTest<Func<int, int>>
 			}
 
 			return sum;
-		}),
+			"""),
 		Create(_ => 6, [ 123 ]),
 		Create(_ => 10, [ 1234 ]),
 		Create(_ => 0, [ 0 ])

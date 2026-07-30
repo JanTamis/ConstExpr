@@ -25,16 +25,8 @@ public class MaxOfThreeTest : BaseTest<Func<int, int, int, int>>
 		Create((a, b, c) =>
 		{
 			var max = a;
-
-			if (b > max)
-			{
-				max = b;
-			}
-
-			if (c > max)
-			{
-				max = c;
-			}
+			max = Int32.Max(b, max);
+			max = Int32.Max(c, max);
 
 			return max;
 		}),
