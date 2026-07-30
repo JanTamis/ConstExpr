@@ -79,10 +79,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
 			.WriteLine("private static T FastAbs<T>(T x) where T : IBinaryInteger<T>")
 			.StartBlock()
-			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
-			.WriteLine("var mask = x >> bits;")
-			.WriteWhitespace()
-			.WriteLine("return (x + mask) ^ mask;")
+			.WriteLine("return T.IsNegative(x) ? -x : x;")
 			.EndBlock();
 
 		return builder.ToString();
