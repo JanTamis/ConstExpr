@@ -142,11 +142,24 @@ public enum OptimizationFlags
 	DefaultBranchHoisting = 1 << 11,
 
 	/// <summary>
+	///   Enable additive reassociation.
+	///   Flattens a chain of <c>+</c>/<c>-</c> operators, collapses repeated integer terms into a
+	///   single scaled term, and sums the chain's literal operands into one trailing constant:
+	///   <code>
+	///   x + 10 + x - 5  =>  (x &lt;&lt; 1) + 5
+	///   </code>
+	///   Limited to terms that resolve to an integer type and can have no side effect — reordering
+	///   those is always exact, unlike floating-point, where it can shift rounding (see
+	///   <see cref="FastMathFlags.AssociativeMath" />).
+	/// </summary>
+	Reassociation = 1 << 12,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
 	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>,
-	///   <see cref="ValueRangePropagation" /> and <see cref="DefaultBranchHoisting" />.
+	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" /> and <see cref="Reassociation" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation
 }

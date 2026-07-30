@@ -39,6 +39,13 @@ public static class OptimizationPipeline
 			body = Prune(CopyPropagationRewriter.Apply(body));
 		}
 
+		// After copy propagation, so a chain built from a copied local reassociates under its one
+		// canonical name. Introduces no dead code (it only reshapes expressions), so no prune.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.Reassociation))
+		{
+			body = ReassociationRewriter.Apply(body, semanticModel, symbolStore);
+		}
+
 		// Before CSE: collapsing a settled branch lifts its statements into the enclosing block, which
 		// is the only scope the eliminator hoists within. After copy propagation, so a comparison on a
 		// copied local is analysed under the one canonical name.
