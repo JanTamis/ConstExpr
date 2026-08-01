@@ -48,8 +48,8 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 	{
 		return paramType.SpecialType switch
 		{
-			SpecialType.System_Single => $"{GenerateFastAbsMethodFloating(context)}<float, uint>",
-			SpecialType.System_Double => $"{GenerateFastAbsMethodFloating(context)}<double, ulong>",
+			SpecialType.System_Single => $"{GenerateFastAbsMethodFloating(context)}<float, int>",
+			SpecialType.System_Double => $"{GenerateFastAbsMethodFloating(context)}<double, long>",
 			_ when paramType.IsInteger() => GenerateFastAbsMethodInteger(context),
 			_ => base.GenerateCustomImplementation(context, paramType)
 		};
