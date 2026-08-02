@@ -93,7 +93,7 @@ public class CopySignFunctionOptimizer() : BaseMathFunctionOptimizer("CopySign",
 		var builder = new CodeWriter();
 
 		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
-			.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>")
+			.WriteLine("private static T FastCopySign<T>(T x, T y) where T : IBinaryInteger<T>, ISignedNumber<T>")
 			.StartBlock()
 			.WriteLine("var bits = Unsafe.SizeOf<T>() * 8 - 1;")
 			.WriteLine("var mask = (x >> bits) ^ (y >> bits);")

@@ -77,7 +77,7 @@ public class AbsFunctionOptimizer() : BaseMathFunctionOptimizer("Abs", n => n is
 		var builder = new CodeWriter();
 
 		builder.WriteLine("[MethodImpl(MethodImplOptions.AggressiveInlining)]")
-			.WriteLine("private static T FastAbs<T>(T x) where T : IBinaryInteger<T>")
+			.WriteLine("private static T FastAbs<T>(T x) where T : IBinaryInteger<T>, ISignedNumber<T>")
 			.StartBlock()
 			.WriteLine("return T.IsNegative(x) ? -x : x;")
 			.EndBlock();

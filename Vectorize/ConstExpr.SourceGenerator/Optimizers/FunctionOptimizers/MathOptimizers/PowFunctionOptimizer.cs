@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,7 +11,7 @@ using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is 2), IBaseMathCustomImplementation
+public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is 2)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -59,7 +58,7 @@ public class PowFunctionOptimizer() : BaseMathFunctionOptimizer("Pow", n => n is
 			// x^0 => 1
 			if (IsApproximately(exp, 0.0))
 			{
-				result = CreateLiteral(1.0);
+				result = CreateLiteral(1.0.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
 

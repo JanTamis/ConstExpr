@@ -48,8 +48,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 				}
 				case -1:
 				{
-					var div = DivideExpression(
-						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)), x);
+					var div = DivideExpression(CreateLiteral(1.ToSpecialType(paramType.SpecialType)), x);
 
 					result = ParenthesizedExpression(div);
 					return true;
@@ -57,8 +56,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 				// For negative n: RootN(x, -n) => Reciprocal(RootN(x, n)) if available and fast-math, otherwise 1 / RootN(x, n)
 				case < 0:
 				{
-					var positiveN = LiteralExpression(SyntaxKind.NumericLiteralExpression,
-						Literal(-nValue));
+					var positiveN = CreateLiteral(-nValue);
 
 					var rootInvocation = CreateInvocation(paramType, "RootN", x, positiveN);
 
@@ -68,9 +66,7 @@ public class RootNFunctionOptimizer() : BaseMathFunctionOptimizer("RootN", n => 
 						return true;
 					}
 
-					var div = DivideExpression(
-						LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(1.0)),
-						rootInvocation);
+					var div = DivideExpression(CreateLiteral(1.ToSpecialType(paramType.SpecialType)), rootInvocation);
 
 					result = ParenthesizedExpression(div);
 					return true;
