@@ -314,9 +314,28 @@ internal static class ValueRangeAnalysis
 					break;
 
 				// A declaration is where the name comes from, so its initializer has the last word and
-				// the walk ends — same as a `for` counter reaching its header.
-				case BlockSyntax block when Preceding(block, child, name, ref killed) is { } definition:
-					return killed ? null : Narrow(result, For(definition, scope, depth - 1));
+				// the walk ends — same as a `for` counter reaching its header. The early-exit guards the
+				// same scan collects apply either way, so they are folded in before that decision.
+				case BlockSyntax block:
+				{
+					var definition = Preceding(block, child, name, ref killed, out var guards);
+
+					// Subject to `killed` for the same reason the initializer below is, and it is an outer
+					// block where that matters: a use inside a loop whose body writes the name is reached
+					// again on an iteration the guard no longer describes. The loop-leaving check further
+					// down has already set the flag by the time the walk gets out here.
+					if (!killed)
+					{
+						result = Narrow(result, guards);
+					}
+
+					if (definition is not null)
+					{
+						return killed ? null : Narrow(result, For(definition, scope, depth - 1));
+					}
+
+					break;
+				}
 			}
 
 			// Leaving a loop invalidates every fact about a name the loop writes: the fact held on
@@ -343,10 +362,28 @@ internal static class ValueRangeAnalysis
 	///   returning the initializer of the declaration that introduced <paramref name="name" /> if one
 	///   is among them. Sets <paramref name="killed" /> when any of them can write to the name: that
 	///   write replaced the value every outer fact — and any earlier declaration — was about.
+	///   <para>
+	///     <paramref name="guards" /> is what the early-exit guards among those statements leave behind:
+	///     <c>if (c) return …;</c> means the fall-through only reaches <paramref name="child" /> once
+	///     <c>c</c> did <em>not</em> hold, so the negated condition narrows the name exactly like an
+	///     enclosing <c>if</c> would. Without this, the shape the generator emits itself goes unfolded —
+	///     an early-exit range check followed by a second test of the same range, which is what
+	///     <c>BinomialCoefficient</c> shows in the Sample output.
+	///   </para>
 	/// </summary>
-	private static ExpressionSyntax? Preceding(BlockSyntax block, SyntaxNode child, string name, ref bool killed)
+	/// <remarks>
+	///   ponytail: only <c>return</c>/<c>throw</c> count as exits, and only an <c>if</c> — not a
+	///   <c>switch</c>. <c>break</c>/<c>continue</c>/<c>goto</c> leave the innermost loop or jump to a
+	///   label, which is a dominance question this syntactic outward walk cannot answer; and a
+	///   <c>switch</c> whose sections happen to return (see <c>BinomialCoefficient</c>'s other overload)
+	///   looks like an early exit but leaves "no section matched", which is no single interval. Widen
+	///   only if the emitted code starts asking for it.
+	/// </remarks>
+	private static ExpressionSyntax? Preceding(BlockSyntax block, SyntaxNode child, string name, ref bool killed, out ValueRange? guards)
 	{
 		ExpressionSyntax? definition = null;
+
+		guards = null;
 
 		foreach (var statement in block.Statements)
 		{
@@ -359,13 +396,44 @@ internal static class ValueRangeAnalysis
 			    && declarator.Identifier.Text == name)
 			{
 				definition = value;
+
+				// A redeclaration is a different variable; nothing an earlier guard said still applies.
+				guards = null;
 				continue;
 			}
 
-			killed |= Writes(statement, name);
+			if (statement is IfStatementSyntax { Else: null } guard
+			    && Exits(guard.Statement)
+			    && LoopInvariance.IsPureExpression(guard.Condition))
+			{
+				guards = Narrow(guards, Refine(guard.Condition, name, false, block, MaxDepth));
+			}
+
+			// `killed` is one bit for the whole walk and has no per-statement granularity, but `guards`
+			// needs it: a guard established before a write describes the value that write replaced. Hence
+			// the reset here rather than a single check at the end.
+			if (Writes(statement, name))
+			{
+				killed = true;
+				guards = null;
+			}
 		}
 
 		return definition;
+	}
+
+	/// <summary>
+	///   Whether the branch of a guarding <c>if</c> leaves the enclosing block outright, so that anything
+	///   after it is only reached when the condition did not hold.
+	/// </summary>
+	private static bool Exits(StatementSyntax statement)
+	{
+		return statement switch
+		{
+			ReturnStatementSyntax or ThrowStatementSyntax => true,
+			BlockSyntax { Statements: [ ReturnStatementSyntax or ThrowStatementSyntax ] } => true,
+			_ => false
+		};
 	}
 
 	/// <summary>
