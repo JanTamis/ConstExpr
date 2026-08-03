@@ -19,6 +19,13 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 ///     (<c>FindMax</c> alongside <c>Range</c>) silently missed every other pass. Adding a pass here
 ///     now reaches all three.
 ///   </para>
+///   <para>
+///     Still three call sites, but one of them covers a fourth kind of body: the helper the LINQ
+///     unroller synthesizes for an unrolled chain reaches the inlined-body call site through
+///     <c>TryUnrollLinqChain</c>'s optimize callback. It used to be emitted exactly as the unrollers
+///     assembled it, which is how <c>Average(x =&gt; (x - mean) * (x - mean))</c> kept a duplicate
+///     subexpression no pass had ever looked at.
+///   </para>
 /// </summary>
 public static class OptimizationPipeline
 {

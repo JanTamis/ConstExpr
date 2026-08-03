@@ -7,7 +7,7 @@ namespace ConstExpr.Core.Enumerators;
 ///   Individual flags correspond to GCC/Clang fast-math sub-options and can be combined freely.
 /// </summary>
 /// <remarks>
-///   Use <see cref="FastMath" /> to enable all optimisations at once (equivalent to C++ <c>-ffast-math</c>),
+///   Use <see cref="All" /> to enable all optimisations at once (equivalent to C++ <c>-ffast-math</c>),
 ///   or compose individual flags for fine-grained control over which IEEE-754 rules may be relaxed.
 /// </remarks>
 [Flags]
@@ -79,7 +79,9 @@ public enum FastMathFlags
 	/// <summary>
 	///   Enable all fast-math optimisations — equivalent to C++ <c>-ffast-math</c>.
 	///   Combines <see cref="AssociativeMath" />, <see cref="NoNaN" />, <see cref="NoInfinity" />,
-	///   <see cref="NoSignedZero" />, <see cref="ReciprocalMath" />, <see cref="RoundToNearest" />.
+	///   <see cref="NoSignedZero" />, <see cref="ReciprocalMath" />, <see cref="RoundToNearest" /> and
+	///   <see cref="FusedMultiplyAdd" /> — every flag except <see cref="MagicNumberDivision" />, which
+	///   stays opt-in for the reason given on it.
 	/// </summary>
 	All = AssociativeMath | NoNaN | NoInfinity | NoSignedZero
 	      | ReciprocalMath | RoundToNearest | FusedMultiplyAdd

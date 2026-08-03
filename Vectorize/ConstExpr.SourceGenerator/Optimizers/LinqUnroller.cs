@@ -189,7 +189,15 @@ public static class LinqUnroller
 			.FirstOrDefault(m => m.Parameters.Length == parameterCount);
 	}
 
-	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result, IDictionary<string, VariableItem>? variables = null)
+	/// <summary>
+	///   <paramref name="optimize" /> runs the caller's optimization pipeline over the helper body this
+	///   builds. Without it the helper is emitted exactly as the unrollers assembled it — the one body
+	///   reaching the output that no pass ever sees, so e.g. <c>Average(x =&gt; (x - mean) * (x - mean))</c>
+	///   keeps its duplicate subexpression and its indexing keeps its bounds checks. It takes the
+	///   helper's own parameter list and name because the passes are about the helper, not the method
+	///   that happened to call it.
+	/// </summary>
+	public static bool TryUnrollLinqChain(SyntaxNode node, Func<SyntaxNode?, SyntaxNode?> visit, SemanticModel model, IDictionary<SyntaxNode, bool> additionalMethods, ConcurrentDictionary<ulong, ISymbol> symbolStore, [NotNullWhen(true)] out SyntaxNode? result, IDictionary<string, VariableItem>? variables = null, Func<BlockSyntax, ParameterListSyntax, SyntaxToken, BlockSyntax>? optimize = null)
 	{
 		var chain = ParseLinqChain(model, visit, node, symbolStore);
 
@@ -271,11 +279,18 @@ public static class LinqUnroller
 			methodParameters.Add(Parameter(Identifier(varName)).WithType(varType));
 		}
 
-		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}"))
-			.WithParameterList(ParameterList(SeparatedList(methodParameters)))
+		// Hashed from the pre-optimization body on purpose: the name is already baked into the call
+		// expression built below, and optimizing must not move it. Two chains with the same `body`
+		// optimize to the same result, so identical helpers still share one name and one entry.
+		var methodName = Identifier($"{chain[^1].Method}_{body.GetDeterministicHashString()}");
+		var parameterList = ParameterList(SeparatedList(methodParameters));
+		var optimizedBody = optimize?.Invoke(visitedBody, parameterList, methodName) ?? visitedBody;
+
+		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), methodName)
+			.WithParameterList(parameterList)
 			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
 			.AddModifiers(Token(SyntaxKind.StaticKeyword))
-			.WithBody(visitedBody);
+			.WithBody(optimizedBody);
 
 		additionalMethods.TryAdd(localMethod, true);
 

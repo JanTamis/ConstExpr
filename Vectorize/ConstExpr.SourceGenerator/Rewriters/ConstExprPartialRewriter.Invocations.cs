@@ -115,7 +115,7 @@ public partial class ConstExprPartialRewriter
 			if (TryOptimizeLinqMethod(semanticModel, targetMethod, node, argumentExpressions, originalArguments) is { } optimizedLinq)
 			{
 				if (attribute.LinqOptimization == LinqOptimizationMode.Unroll
-				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled, variables))
+				    && LinqUnroller.TryUnrollLinqChain(optimizedLinq, Visit, semanticModel, additionalMethods, symbolStore, out var unrolled, variables, OptimizeUnrolledHelperBody))
 				{
 					return unrolled;
 				}
@@ -124,7 +124,7 @@ public partial class ConstExprPartialRewriter
 			}
 
 			if (attribute.LinqOptimization == LinqOptimizationMode.Unroll
-			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode, variables))
+			    && LinqUnroller.TryUnrollLinqChain(node, Visit, semanticModel, additionalMethods, symbolStore, out var unrolledNode, variables, OptimizeUnrolledHelperBody))
 			{
 				return unrolledNode;
 			}
@@ -791,6 +791,23 @@ public partial class ConstExprPartialRewriter
 		return body is null
 			? body
 			: OptimizationPipeline.Apply(body, parameterList, methodName, attribute, parameters, semanticModel, symbolStore, additionalMethods, usings) as BlockSyntax ?? body;
+	}
+
+	/// <summary>
+	///   The same treatment for a helper the LINQ unroller synthesized, which reaches
+	///   <see cref="OptimizeInlinedBody" /> through <see cref="LinqUnroller.TryUnrollLinqChain" />'s
+	///   optimize callback rather than from an inlined source method.
+	///   <para>
+	///     Passed an empty variable map rather than the enclosing method's: the pipeline reads it to
+	///     recover the type of a <c>var</c> local the semantic model can no longer resolve, and the
+	///     names in there belong to the caller, not to this body — a <c>result</c> in both would hand
+	///     bounds-check elimination the wrong type. Everything the passes legitimately need about this
+	///     helper is in <paramref name="parameterList" />, whose declared types are still intact.
+	///   </para>
+	/// </summary>
+	private BlockSyntax OptimizeUnrolledHelperBody(BlockSyntax body, ParameterListSyntax parameterList, SyntaxToken methodName)
+	{
+		return OptimizeInlinedBody(body, new Dictionary<string, VariableItem>(), parameterList, methodName) ?? body;
 	}
 
 	/// <summary>
