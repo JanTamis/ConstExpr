@@ -49,20 +49,24 @@ public class MinFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		    && TryGetLambda(context.VisitedParameters[0], out var lambda)
 		    && IsIdentityLambda(lambda))
 		{
-			if (hasTensorPrimitivesMin && IsInvokedOnArray(context, source))
+			if (hasTensorPrimitivesMin)
 			{
-				context.Usings.Add("System.Numerics.Tensors");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", source);
-				return true;
+				if (IsInvokedOnArray(context, source))
+				{
+					context.Usings.Add("System.Numerics.Tensors");
+					result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", source);
+					return true;
+				}
+
+				if (IsInvokedOnList(context, source))
+				{
+					context.Usings.Add("System.Numerics.Tensors");
+					context.Usings.Add("System.Runtime.InteropServices");
+					result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", CreateInvocation(ParseTypeName("CollectionsMarshal"), "AsSpan", source));
+					return true;
+				}
 			}
 
-			if (hasTensorPrimitivesMin && IsInvokedOnList(context, source))
-			{
-				context.Usings.Add("System.Numerics.Tensors");
-				context.Usings.Add("System.Runtime.InteropServices");
-				result = CreateInvocation(ParseTypeName("TensorPrimitives"), "Min", CreateInvocation(ParseTypeName("CollectionsMarshal"), "AsSpan", source));
-				return true;
-			}
 
 			result = UpdateInvocation(context, source, [ ]);
 			return true;

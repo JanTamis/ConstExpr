@@ -2,6 +2,7 @@ using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Extensions;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalOrStrategies;
 
@@ -25,16 +26,14 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 					IdentifierName("String"),
 					IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(GetExpressionSyntax(context.Left.Syntax)))));
+				ArgumentList(GetExpressionSyntax(context.Left.Syntax)));
 		return true;
 	}
 
 	private static bool IsNullCheck(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
-		       || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
+		return expr.Left.IsKind(SyntaxKind.NullLiteralExpression)
+		       || expr.Right.IsKind(SyntaxKind.NullLiteralExpression);
 	}
 
 	private static bool IsEmptyStringCheck(BinaryExpressionSyntax expr)
@@ -47,7 +46,7 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 
 	private static ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)
 	{
-		return expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression }
+		return expr.Left.IsKind(SyntaxKind.NullLiteralExpression)
 			? expr.Right
 			: expr.Left;
 	}

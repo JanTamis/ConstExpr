@@ -20,7 +20,7 @@ public class EqualsToUpperStrategy : SymmetricStrategy<InvocationExpressionSynta
 			return false;
 		}
 
-		optimized = InvocationExpression(MemberAccessExpression(context.Left.Syntax.ArgumentList.Arguments[0].Expression, IdentifierName("Equals")), ArgumentList([ context.Right.Syntax.ArgumentList.Arguments[0], Argument(MemberAccessExpression(ParseTypeName(nameof(StringComparison)), IdentifierName("CurrentCultureIgnoreCase"))) ]));
+		optimized = InvocationExpression(MemberAccessExpression(context.Left.Syntax.ArgumentList.Arguments[0].Expression, IdentifierName("Equals")), ArgumentList(context.Right.Syntax.ArgumentList.Arguments[0], Argument(MemberAccessExpression(ParseTypeName(nameof(StringComparison)), IdentifierName("CurrentCultureIgnoreCase")))));
 		return true;
 	}
 }

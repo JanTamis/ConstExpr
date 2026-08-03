@@ -1393,7 +1393,7 @@ public partial class ConstExprPartialRewriter
 			var expression = isUnsigedType
 				? pattern.Expression
 				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					unsignedType.AsTypeSyntax(),
 					pattern.Expression);
 
 			// Use cluster.Start as the per-cluster minimum for the subtraction, not the global min (constants[0]).
@@ -1406,7 +1406,7 @@ public partial class ConstExprPartialRewriter
 				expression = isUnsigedType && type.SpecialType != SpecialType.System_Char
 					? SubtractExpression(pattern.Expression, minLit)
 					: CastExpression(
-						ParseTypeName(semanticModel.Compilation.GetMinimalString(rangeCheckUnsignedType)),
+						rangeCheckUnsignedType.AsTypeSyntax(),
 						ParenthesizedExpression(SubtractExpression(pattern.Expression, minLit)));
 			}
 
@@ -1453,8 +1453,7 @@ public partial class ConstExprPartialRewriter
 				case ObjectExtensions.ClusterType.Odd or ObjectExtensions.ClusterType.Even:
 				{
 					var memberAccess = MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
-						ParseTypeName(type.Name),
+						type.AsTypeSyntax(),
 						IdentifierName(cluster.Type == ObjectExtensions.ClusterType.Even ? "IsEvenInteger" : "IsOddInteger"));
 
 					// Generate optimized expression: int.IsEvenInteger(x) or int.IsOddInteger(x)

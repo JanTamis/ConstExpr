@@ -29,7 +29,7 @@ public class DivideOneToReciprocalStrategy : BaseBinaryStrategy<LiteralExpressio
 
 		optimized = InvocationExpression(
 			MemberAccessExpression(context.Type.AsTypeSyntax(), IdentifierName("ReciprocalEstimate")),
-			ArgumentList(SingletonSeparatedList(Argument(context.Right.Syntax))));
+			ArgumentList(context.Right.Syntax));
 
 		return true;
 	}

@@ -6,7 +6,6 @@ using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -81,11 +80,11 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 
 			if (method.IsStatic)
 			{
-				lookupResult = method.Invoke(null, [ values, ..parameters ]);
+				lookupResult = method.Invoke(null, [ values, .. parameters ]);
 			}
 			else
 			{
-				lookupResult = method.Invoke(values, [ ..parameters ]);
+				lookupResult = method.Invoke(values, [ .. parameters ]);
 			}
 
 			if (lookupResult is null)
@@ -131,22 +130,20 @@ public class GroupByFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				// Generate an collection expression of Grouping<TKey, TElement> instances for each group
 				var groupExpressions = groups.Select(g =>
 				{
-					var args = new List<SyntaxNodeOrToken>
+					var args = new List<ExpressionSyntax>
 					{
-						Argument(CreateLiteral(g.Key))
+						CreateLiteral(g.Key)
 					};
 
 					foreach (var element in g.Elements)
 					{
-						args.Add(Token(SyntaxKind.CommaToken));
-						args.Add(Argument(CreateLiteral(element)));
+						args.Add(CreateLiteral(element));
 					}
 
 					return ObjectCreationExpression(
 							ParseTypeName($"Grouping<{keyTypeName}, {elementTypeName}>"))
 						.WithArgumentList(
-							ArgumentList(
-								SeparatedList<ArgumentSyntax>(args)));
+							ArgumentList(args));
 				});
 
 				result = CreateCollection(groupExpressions);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -35,8 +36,8 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Select) // Projection: doesn't change count for non-nullable types
 	];
 
@@ -101,7 +102,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 
-					result = CreateLiteral((long)count);
+					result = CreateLiteral((long) count);
 					return true;
 				}
 			}
@@ -113,6 +114,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			for (var i = wherePredicates.Count - 2; i >= 0; i--)
 			{
 				var currentPredicate = context.Visit(wherePredicates[i]) as LambdaExpressionSyntax ?? wherePredicates[i];
+
 				combinedPredicate = CombinePredicates(currentPredicate, combinedPredicate, context);
 			}
 
@@ -145,7 +147,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
 
 				result = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.LongCount), combinedPredicate));
-				result = CreateInvocation(ParseTypeName("Int64"), "Max", result as ExpressionSyntax, CreateLiteral(1L));
+				result = CreateInvocation(ParseTypeName(nameof(Int64)), "Max", result as ExpressionSyntax, CreateLiteral(1L));
 				return true;
 			}
 
@@ -177,11 +179,10 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 						else
 						{
 							var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int64);
-							var newChunkSource = methodSource;
 
-							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
+							if (!TryOptimizeCollection(context, methodSource, out var countInvocation))
 							{
-								countInvocation = CreateSimpleInvocation(newChunkSource, nameof(Enumerable.LongCount));
+								countInvocation = CreateSimpleInvocation(methodSource, nameof(Enumerable.LongCount));
 							}
 
 							var chunkMinus1 = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, chunkSize, CreateLiteral(1L), intType);
@@ -202,7 +203,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 							resultInvocation = TryOptimizeByOptimizer<LongCountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.LongCount)));
 						}
 
-						result = CreateInvocation(ParseTypeName("Int64"), "Max", resultInvocation as ExpressionSyntax, CreateLiteral(1L));
+						result = CreateInvocation(ParseTypeName(nameof(Int64)), "Max", resultInvocation as ExpressionSyntax, CreateLiteral(1L));
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
@@ -233,7 +234,7 @@ public class LongCountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 
 			if (TryGetSyntaxes(currentSource, out var syntaxes))
 			{
-				result = CreateLiteral((long)syntaxes.Count);
+				result = CreateLiteral((long) syntaxes.Count);
 				return true;
 			}
 

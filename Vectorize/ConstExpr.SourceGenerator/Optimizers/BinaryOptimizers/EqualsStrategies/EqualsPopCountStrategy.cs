@@ -44,7 +44,7 @@ public class EqualsPopCountStrategy : SymmetricStrategy<NumericBinaryStrategy, I
 		{
 			optimized = CreatePow2Result(
 				InvocationExpression(member.WithName(IdentifierName("IsPow2")))
-					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(argument)))));
+					.WithArgumentList(ArgumentList(argument)));
 			return true;
 		}
 

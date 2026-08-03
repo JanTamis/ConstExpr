@@ -248,7 +248,7 @@ public static class LinqUnroller
 
 		// create localmethod with statements
 		var parameterType = model.TryGetTypeSymbol(chain[0].Parameters[0], symbolStore, out var returnType)
-			? returnType.GetTypeSyntax(false)
+			? returnType.AsTypeSyntax()
 			: PredefinedType(Token(SyntaxKind.ObjectKeyword));
 
 		var body = Block(statements);
@@ -286,7 +286,7 @@ public static class LinqUnroller
 		var parameterList = ParameterList(SeparatedList(methodParameters));
 		var optimizedBody = optimize?.Invoke(visitedBody, parameterList, methodName) ?? visitedBody;
 
-		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.GetTypeSyntax(false), methodName)
+		var localMethod = MethodDeclaration(chain[^1].MethodSymbol.ReturnType.AsTypeSyntax(), methodName)
 			.WithParameterList(parameterList)
 			.AddModifiers(Token(SyntaxKind.PrivateKeyword))
 			.AddModifiers(Token(SyntaxKind.StaticKeyword))
@@ -511,7 +511,7 @@ public static class LinqUnroller
 
 					if (typeInfo.Type is ITypeSymbol typeSymbol)
 					{
-						typeSyntax = typeSymbol.GetTypeSyntax(false);
+						typeSyntax = typeSymbol.AsTypeSyntax();
 						break;
 					}
 				}

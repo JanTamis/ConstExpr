@@ -29,12 +29,7 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 			? UnaryMinusExpression(ParenthesizedExpression(context.Right.Syntax))
 			: UnaryMinusExpression(context.Right.Syntax);
 
-		var arguments = ArgumentList(SeparatedList(
-		[
-			Argument(context.Left.Syntax.Left),
-			Argument(context.Left.Syntax.Right),
-			Argument(negatedRightOperand)
-		]));
+		var arguments = ArgumentList(context.Left.Syntax.Left, context.Left.Syntax.Right, negatedRightOperand);
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{

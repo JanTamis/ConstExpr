@@ -50,7 +50,7 @@ public class GreaterThanCountZeroStrategy : BaseBinaryStrategy
 	{
 		var memberAccess = MemberAccessExpression(source, IdentifierName("Any"));
 		return predicate != null
-			? InvocationExpression(memberAccess, ArgumentList(SingletonSeparatedList(Argument(predicate))))
+			? InvocationExpression(memberAccess, ArgumentList(predicate))
 			: InvocationExpression(memberAccess);
 	}
 }

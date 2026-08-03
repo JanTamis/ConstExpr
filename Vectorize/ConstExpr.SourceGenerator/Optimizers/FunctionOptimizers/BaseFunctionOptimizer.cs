@@ -36,7 +36,7 @@ public abstract class BaseFunctionOptimizer
 			SpecialType.System_UInt16 => PredefinedType(Token(SyntaxKind.UShortKeyword)),
 			SpecialType.System_UInt32 => PredefinedType(Token(SyntaxKind.UIntKeyword)),
 			SpecialType.System_UInt64 => PredefinedType(Token(SyntaxKind.ULongKeyword)),
-			_ => ParseTypeName(type.Name)
+			_ => type.AsTypeSyntax()
 		};
 
 		return InvocationExpression(MemberAccessExpression(typeResult, IdentifierName(name)))

@@ -238,7 +238,7 @@ public class LastFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerab
 				CreateMemberAccess(collection, propertyName),
 				CreateLiteral(0), intType),
 			CreateElementAccess(collection,
-				BinaryExpression(SyntaxKind.SubtractExpression, CreateMemberAccess(collection, propertyName), CreateLiteral(1))),
+				SubtractExpression(CreateMemberAccess(collection, propertyName), CreateLiteral(1))),
 			defaultItem);
 	}
 }

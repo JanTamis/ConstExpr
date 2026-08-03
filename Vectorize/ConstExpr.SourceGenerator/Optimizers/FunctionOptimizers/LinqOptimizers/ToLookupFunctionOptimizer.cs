@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
 
@@ -41,8 +41,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	// removing Distinct would change the number of elements within each group.
 	private static readonly HashSet<string> OperationsThatDontAffectLookup =
 	[
-		..MaterializingMethods,
-		..OrderingOperations
+		.. MaterializingMethods,
+		.. OrderingOperations
 	];
 
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
@@ -157,11 +157,11 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (method.IsStatic)
 			{
-				lookupResult = method.Invoke(null, [ values, ..parameters ]);
+				lookupResult = method.Invoke(null, [ values, .. parameters ]);
 			}
 			else
 			{
-				lookupResult = method.Invoke(values, [ ..parameters ]);
+				lookupResult = method.Invoke(values, [ .. parameters ]);
 			}
 
 			if (lookupResult is null)
@@ -310,66 +310,62 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 	/// </summary>
 	private static string BuildLookupStructSource(string structName, string keyTypeName, string elementTypeName, List<(object? Key, List<object?> Elements)> groups, string containsExpression)
 	{
-		var sb = new StringBuilder();
+		var sb = new CodeWriter();
 
-		sb.AppendLine($"file struct {structName} : ILookup<{keyTypeName}, {elementTypeName}>");
-		sb.AppendLine("{");
-
-		// Count property
-		sb.AppendLine($"\tpublic int Count => {groups.Count};");
-		sb.AppendLine();
+		sb.WriteLine($"file struct {structName} : ILookup<{keyTypeName}, {elementTypeName}>")
+			.StartBlock()
+			.WriteLine($"public int Count => {groups.Count};")
+			.WriteWhitespace();
 
 		if (groups.Count == 0)
 		{
 			// Indexer
-			sb.AppendLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => [];");
+			sb.WriteLine($"public IEnumerable<{elementTypeName}> this[{keyTypeName} key] => [];");
 		}
 		else
 		{
 			// Indexer
-			sb.AppendLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => key switch");
-			sb.AppendLine("\t{");
+			sb.WriteLine($"\tpublic IEnumerable<{elementTypeName}> this[{keyTypeName} key] => key switch")
+				.StartBlock();
 
 			foreach (var (key, elements) in groups)
 			{
 				var elementsStr = String.Join(", ", elements.Select(FormatLiteral));
-				sb.AppendLine($"\t\t{FormatLiteral(key)} => [{elementsStr}],");
+				sb.WriteLine($"{FormatLiteral(key)} => [{elementsStr}],");
 			}
 
-			sb.AppendLine("\t\t_ => []");
-			sb.AppendLine("\t};");
+			sb.WriteLine("_ => []")
+				.EndBlock();
 		}
 
-		sb.AppendLine();
+		sb.WriteWhitespace();
 
 		// Contains method – body is the (possibly further-optimised) pattern expression
-		sb.AppendLine($"\tpublic bool Contains({keyTypeName} key) => {containsExpression};");
-		sb.AppendLine();
+		sb.WriteLine($"public bool Contains({keyTypeName} key) => {containsExpression};")
+			.WriteWhitespace();
 
 		// GetEnumerator
-		sb.AppendLine($"\tpublic IEnumerator<IGrouping<{keyTypeName}, {elementTypeName}>> GetEnumerator()");
-		sb.AppendLine("\t{");
+		sb.WriteLine($"public IEnumerator<IGrouping<{keyTypeName}, {elementTypeName}>> GetEnumerator()")
+			.StartBlock();
 
 		if (groups.Count == 0)
 		{
-			sb.AppendLine($"\t\treturn Enumerable.Empty<IGrouping<{keyTypeName}, {elementTypeName}>>().GetEnumerator();");
+			sb.WriteLine($"return Enumerable.Empty<IGrouping<{keyTypeName}, {elementTypeName}>>().GetEnumerator();");
 		}
 		else
 		{
 			foreach (var (key, elements) in groups)
 			{
 				var elementsStr = String.Join(", ", elements.Select(FormatLiteral));
-				sb.AppendLine($"\t\tyield return new Grouping<{keyTypeName}, {elementTypeName}>({FormatLiteral(key)}, {elementsStr});");
+
+				sb.WriteLine($"yield return new Grouping<{keyTypeName}, {elementTypeName}>({FormatLiteral(key)}, {elementsStr});");
 			}
 		}
 
-		sb.AppendLine("\t}");
-		sb.AppendLine();
-
-		// Explicit IEnumerable.GetEnumerator
-		sb.AppendLine("\tIEnumerator IEnumerable.GetEnumerator() => GetEnumerator();");
-
-		sb.AppendLine("}");
+		sb.EndBlock()
+			.WriteWhitespace()
+			.WriteLine("IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();")
+			.EndBlock();
 
 		return sb.ToString();
 	}

@@ -1322,14 +1322,6 @@ public static class CompilationExtensions
 		return compilation.GetTypeByMetadataName($"{fullyQualifiedMetadataName}`{typeArguments.Length}")?.Construct(typeArguments.ToArray());
 	}
 
-	public static TypeSyntax GetTypeSyntax(this ITypeSymbol typeSymbol, bool fullyQualified = true)
-	{
-		var format = fullyQualified ? SymbolDisplayFormat.FullyQualifiedFormat : SymbolDisplayFormat.MinimallyQualifiedFormat;
-		var typeText = typeSymbol.ToDisplayString(format);
-
-		return ParseTypeName(typeText);
-	}
-
 	public static bool TryGetParentOfType<T>(this SyntaxNode node, [NotNullWhen(true)] out T? parent) where T : SyntaxNode
 	{
 		var tempParent = node.Parent;

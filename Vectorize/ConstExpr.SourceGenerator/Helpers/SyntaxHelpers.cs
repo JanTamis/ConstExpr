@@ -76,6 +76,26 @@ public static class SyntaxHelpers
 		};
 	}
 
+	public static ArgumentListSyntax ArgumentList(ExpressionSyntax argument)
+	{
+		return SyntaxFactory.ArgumentList(SingletonSeparatedList(Argument(argument)));
+	}
+
+	public static ArgumentListSyntax ArgumentList(ArgumentSyntax argument)
+	{
+		return SyntaxFactory.ArgumentList(SingletonSeparatedList(argument));
+	}
+
+	public static ArgumentListSyntax ArgumentList(params IEnumerable<ExpressionSyntax> arguments)
+	{
+		return SyntaxFactory.ArgumentList(SeparatedList(arguments.Select(Argument)));
+	}
+
+	public static ArgumentListSyntax ArgumentList(params IEnumerable<ArgumentSyntax> arguments)
+	{
+		return SyntaxFactory.ArgumentList(SeparatedList(arguments));
+	}
+
 	public static PredefinedTypeSyntax VarTypeSyntax()
 	{
 		return PredefinedType(Token(SyntaxKind.VarKeyword));

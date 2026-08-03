@@ -29,9 +29,7 @@ public class NotEqualsModuloOddStrategy() : SymmetricStrategy<NumericBinaryStrat
 		optimized = InvocationExpression(
 				MemberAccessExpression(context.Left.Type.AsTypeSyntax(), IdentifierName("IsOddInteger")))
 			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(context.Left.Syntax.Left))));
+				ArgumentList(context.Left.Syntax.Left));
 
 		return true;
 	}

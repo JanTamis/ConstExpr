@@ -48,9 +48,7 @@ public class ConditionalAndCharOptimizer()
 
 			optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("Char"), IdentifierName(memberName)),
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(context.Left.Syntax.Left))));
+				ArgumentList(context.Left.Syntax.Left));
 
 			return true;
 		}
@@ -74,7 +72,7 @@ public class ConditionalAndCharOptimizer()
 
 			optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("Char"), IdentifierName("IsBetween")),
-				ArgumentList([ Argument(context.Left.Syntax.Left), Argument(context.Left.Syntax.Right), Argument(context.Right.Syntax.Right) ]));
+				ArgumentList(context.Left.Syntax.Left, context.Left.Syntax.Right, context.Right.Syntax.Right));
 
 			return true;
 		}

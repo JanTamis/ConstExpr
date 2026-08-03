@@ -19,9 +19,8 @@ public class VectorizerRewriter(
 
 	public override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
 	{
-		var typeSyntax = ParseTypeName(vectorType.ToDisplayString());
 		var vectorTyped = GenericName(Identifier("Vector"))
-			.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(typeSyntax)));
+			.WithTypeArgumentList(TypeArgumentList(SingletonSeparatedList(vectorType.AsTypeSyntax())));
 
 		var tokenValue = node.Token.Value;
 
@@ -223,12 +222,12 @@ public class VectorizerRewriter(
 				or SyntaxKind.UnsignedRightShiftExpression => node.WithLeft(rewrittenLeft),
 
 			// Comparisons — no operator overload exists; use the Vector API directly.
-			SyntaxKind.GreaterThanExpression => CreateInvocation("GreaterThan", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
-			SyntaxKind.GreaterThanOrEqualExpression => CreateInvocation("GreaterThanOrEqual", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
-			SyntaxKind.LessThanExpression => CreateInvocation("LessThan", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
-			SyntaxKind.LessThanOrEqualExpression => CreateInvocation("LessThanOrEqual", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
-			SyntaxKind.EqualsExpression => CreateInvocation("Equals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
-			SyntaxKind.NotEqualsExpression => CreateInvocation("NotEquals", [ ParseTypeName(vectorType.ToDisplayString()) ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.GreaterThanExpression => CreateInvocation("GreaterThan", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.GreaterThanOrEqualExpression => CreateInvocation("GreaterThanOrEqual", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.LessThanExpression => CreateInvocation("LessThan", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.LessThanOrEqualExpression => CreateInvocation("LessThanOrEqual", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.EqualsExpression => CreateInvocation("Equals", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
+			SyntaxKind.NotEqualsExpression => CreateInvocation("NotEquals", [ vectorType.AsTypeSyntax() ], rewrittenLeft, rewrittenRight),
 
 			_ => node.WithLeft(rewrittenLeft).WithRight(rewrittenRight)
 		};

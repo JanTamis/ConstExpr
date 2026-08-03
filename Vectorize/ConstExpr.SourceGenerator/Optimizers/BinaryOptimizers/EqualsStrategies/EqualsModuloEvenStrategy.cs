@@ -32,6 +32,7 @@ public class EqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrateg
 			BinaryExpressions = context.BinaryExpressions,
 			Parent = context.Parent
 		};
+
 		return base.TryOptimize(unwrappedContext, out optimized);
 	}
 
@@ -52,9 +53,7 @@ public class EqualsModuloEvenStrategy() : SymmetricStrategy<NumericBinaryStrateg
 		optimized = InvocationExpression(
 				MemberAccessExpression(context.Left.Type.AsTypeSyntax(), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(context.Left.Syntax.Left))));
+				ArgumentList(context.Left.Syntax.Left));
 
 		return true;
 	}

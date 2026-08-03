@@ -184,8 +184,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				// type. Keep the explicit `Span<T>` the StackAllocRewriter emitted. An uninitialized
 				// declarator (initializer already elided) must also keep its explicit type: `var x;`
 				// with no initializer is CS0818.
-				if (remainingVariables[0].Initializer?.Value is { } survivingInitializer
-				    && survivingInitializer is not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
+				if (remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
 				{
 					node = node.WithType(ParseTypeName("var"));
 				}

@@ -36,7 +36,6 @@ public class ElementAtFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
-		var type = context.Method.ReturnType;
 		var intType = context.Model.Compilation.CreateInt32();
 
 		while (IsLinqMethodChain(context.Visit(source) ?? source, nameof(Enumerable.Skip), out var skipInvocation)

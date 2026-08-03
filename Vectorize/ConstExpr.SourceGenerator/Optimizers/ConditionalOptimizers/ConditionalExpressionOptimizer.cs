@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
@@ -56,14 +55,14 @@ public class ConditionalExpressionOptimizer
 		// condition ? x : false => condition && x (both branches short-circuit identically)
 		if (WhenFalse.TryGetLiteralValue(loader, variables, out var whenFalseValue) && whenFalseValue is false)
 		{
-			result = BinaryExpression(SyntaxKind.LogicalAndExpression, Condition, WhenTrue);
+			result = LogicalAndExpression(Condition, WhenTrue);
 			return true;
 		}
 
 		// condition ? true : x => condition || x (both branches short-circuit identically)
 		if (WhenTrue.TryGetLiteralValue(loader, variables, out var whenTrueValue) && whenTrueValue is true)
 		{
-			result = BinaryExpression(SyntaxKind.LogicalOrExpression, Condition, WhenFalse);
+			result = LogicalOrExpression(Condition, WhenFalse);
 			return true;
 		}
 
@@ -121,15 +120,13 @@ public class ConditionalExpressionOptimizer
 				var methodName = AbsFunctionOptimizer.GenerateFastAbsMethodInteger(Usings, AdditionalMethods);
 
 				result = InvocationExpression(IdentifierName(methodName))
-					.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(absoluteValueInput))));
+					.WithArgumentList(ArgumentList(absoluteValueInput));
 				return true;
 			}
 
-			var mathType = ParseTypeName(Type.Name);
-
 			result = InvocationExpression(
-					MemberAccessExpression(mathType, IdentifierName("Abs")))
-				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(absoluteValueInput))));
+					MemberAccessExpression(Type.AsTypeSyntax(), IdentifierName("Abs")))
+				.WithArgumentList(ArgumentList(absoluteValueInput));
 			return true;
 		}
 
@@ -157,7 +154,7 @@ public class ConditionalExpressionOptimizer
 										PredefinedType(Token(SyntaxKind.BoolKeyword)),
 										PredefinedType(Token(SyntaxKind.ByteKeyword))
 									])))))
-				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(Condition))));
+				.WithArgumentList(ArgumentList(Condition));
 
 			result = Type.SpecialType == SpecialType.System_Byte ? bitCast : CastExpression(Type.AsTypeSyntax(), bitCast);
 			return true;
@@ -178,7 +175,7 @@ public class ConditionalExpressionOptimizer
 										PredefinedType(Token(SyntaxKind.BoolKeyword)),
 										PredefinedType(Token(SyntaxKind.ByteKeyword))
 									])))))
-				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(NegateExpressionRefactoring.Negate(Condition, false)))));
+				.WithArgumentList(ArgumentList(NegateExpressionRefactoring.Negate(Condition, false)));
 
 			result = Type.SpecialType == SpecialType.System_Byte ? bitCast : CastExpression(Type.AsTypeSyntax(), bitCast);
 			return true;
@@ -203,8 +200,8 @@ public class ConditionalExpressionOptimizer
 
 	private InvocationExpressionSyntax MathInvocation(string name, params ExpressionSyntax[] arguments)
 	{
-		return InvocationExpression(MemberAccessExpression(ParseTypeName(Type!.Name), IdentifierName(name)))
-			.WithArgumentList(ArgumentList(SeparatedList(arguments.Select(Argument))));
+		return InvocationExpression(MemberAccessExpression(Type!.AsTypeSyntax(), IdentifierName(name)))
+			.WithArgumentList(ArgumentList(arguments));
 	}
 
 	private bool TryGetMinMaxPattern(out bool isMin)
@@ -518,53 +515,61 @@ public class ConditionalExpressionOptimizer
 
 		var unwrappedCondition = UnwrapParentheses(condition);
 
-		if (unwrappedCondition is BinaryExpressionSyntax binary)
+		switch (unwrappedCondition)
 		{
-			var kind = (SyntaxKind) binary.RawKind;
-
-			if (kind is SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression)
+			case BinaryExpressionSyntax binary:
 			{
-				if (IsNullLiteral(binary.Right))
-				{
-					expression = UnwrapParentheses(binary.Left);
-					isNullWhenConditionIsTrue = kind == SyntaxKind.EqualsExpression;
-					return true;
-				}
+				var kind = (SyntaxKind) binary.RawKind;
 
-				if (IsNullLiteral(binary.Left))
+				if (kind is SyntaxKind.EqualsExpression or SyntaxKind.NotEqualsExpression)
 				{
-					expression = UnwrapParentheses(binary.Right);
-					isNullWhenConditionIsTrue = kind == SyntaxKind.EqualsExpression;
-					return true;
+					if (IsNullLiteral(binary.Right))
+					{
+						expression = UnwrapParentheses(binary.Left);
+						isNullWhenConditionIsTrue = kind == SyntaxKind.EqualsExpression;
+						return true;
+					}
+
+					if (IsNullLiteral(binary.Left))
+					{
+						expression = UnwrapParentheses(binary.Right);
+						isNullWhenConditionIsTrue = kind == SyntaxKind.EqualsExpression;
+						return true;
+					}
 				}
+				break;
 			}
-		}
-
-		if (unwrappedCondition is IsPatternExpressionSyntax isPattern)
-		{
-			var unwrappedPattern = UnwrapParenthesizedPattern(isPattern.Pattern);
-
-			if (unwrappedPattern is ConstantPatternSyntax { Expression: var constantExpression } && IsNullLiteral(constantExpression))
+			case IsPatternExpressionSyntax isPattern:
 			{
-				expression = UnwrapParentheses(isPattern.Expression);
-				isNullWhenConditionIsTrue = true;
-				return true;
-			}
+				var unwrappedPattern = UnwrapParenthesizedPattern(isPattern.Pattern);
 
-			if (unwrappedPattern is UnaryPatternSyntax
-			    {
-				    RawKind: (int) SyntaxKind.NotPattern,
-				    Pattern: var notPattern
-			    })
-			{
-				var nestedPattern = UnwrapParenthesizedPattern(notPattern);
-
-				if (nestedPattern is ConstantPatternSyntax { Expression: var nestedConstantExpression } && IsNullLiteral(nestedConstantExpression))
+				switch (unwrappedPattern)
 				{
-					expression = UnwrapParentheses(isPattern.Expression);
-					isNullWhenConditionIsTrue = false;
-					return true;
+					case ConstantPatternSyntax { Expression: var constantExpression } when IsNullLiteral(constantExpression):
+					{
+						expression = UnwrapParentheses(isPattern.Expression);
+						isNullWhenConditionIsTrue = true;
+						return true;
+					}
+					case UnaryPatternSyntax
+					{
+						RawKind: (int) SyntaxKind.NotPattern,
+						Pattern: var notPattern
+					}:
+					{
+						var nestedPattern = UnwrapParenthesizedPattern(notPattern);
+
+						if (nestedPattern is ConstantPatternSyntax { Expression: var nestedConstantExpression } && IsNullLiteral(nestedConstantExpression))
+						{
+							expression = UnwrapParentheses(isPattern.Expression);
+							isNullWhenConditionIsTrue = false;
+							return true;
+						}
+						break;
+					}
 				}
+
+				break;
 			}
 		}
 
@@ -573,7 +578,7 @@ public class ConditionalExpressionOptimizer
 
 	private static bool IsNullLiteral(ExpressionSyntax expression)
 	{
-		return UnwrapParentheses(expression) is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression };
+		return UnwrapParentheses(expression).IsKind(SyntaxKind.NullLiteralExpression);
 	}
 
 	private static ExpressionSyntax UnwrapParentheses(ExpressionSyntax expression)

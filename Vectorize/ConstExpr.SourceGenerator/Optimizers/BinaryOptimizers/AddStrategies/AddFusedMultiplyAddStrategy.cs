@@ -21,8 +21,7 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		var host = context.Type.AsTypeSyntax();
-
-		var arguments = ArgumentList(SeparatedList([ Argument(RemoveParentheses(context.Left.Syntax.Left)), Argument(RemoveParentheses(context.Left.Syntax.Right)), Argument(RemoveParentheses(context.Right.Syntax)) ]));
+		var arguments = ArgumentList(RemoveParentheses(context.Left.Syntax.Left), RemoveParentheses(context.Left.Syntax.Right), RemoveParentheses(context.Right.Syntax));
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{

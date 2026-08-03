@@ -45,20 +45,21 @@ public class TakeLastFunctionOptimizer() : BaseLinqFunctionOptimizer("TakeLast",
 			.Where(w => w is not LiteralExpressionSyntax);
 
 		var amount = noValues
-			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(ParseTypeName("Int32"), "Min", acc, next));
+			.Aggregate<ExpressionSyntax, ExpressionSyntax>(minAmount, (acc, next) => CreateInvocation(ParseTypeName(nameof(Int32)), "Min", acc, next));
 
-		if (amount is LiteralExpressionSyntax { Token.Value: <= 0 })
+		switch (amount)
 		{
-			result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
-			return true;
-		}
-
-		if (amount is LiteralExpressionSyntax amountLit
-		    && amountLit.Token.Value is IConvertible amountConv
-		    && amountConv.ToInt64(null) >= Int32.MaxValue)
-		{
-			result = source;
-			return true;
+			case LiteralExpressionSyntax { Token.Value: <= 0 }:
+			{
+				result = CreateEmptyEnumerableCall(context.Method.TypeArguments[0]);
+				return true;
+			}
+			case LiteralExpressionSyntax { Token.Value: IConvertible amountConv }
+				when amountConv.ToInt64(null) >= Int32.MaxValue:
+			{
+				result = source;
+				return true;
+			}
 		}
 
 		if (isNewSource)

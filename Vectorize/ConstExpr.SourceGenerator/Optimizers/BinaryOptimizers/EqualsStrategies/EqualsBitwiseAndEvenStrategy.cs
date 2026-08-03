@@ -40,6 +40,7 @@ public class EqualsBitwiseAndEvenStrategy()
 			BinaryExpressions = context.BinaryExpressions,
 			Parent = context.Parent
 		};
+
 		return base.TryOptimize(unwrappedContext, out optimized);
 	}
 
@@ -59,9 +60,7 @@ public class EqualsBitwiseAndEvenStrategy()
 		optimized = InvocationExpression(
 				MemberAccessExpression(context.Left.Type.AsTypeSyntax(), IdentifierName("IsEvenInteger")))
 			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(context.Left.Syntax.Left))));
+				ArgumentList(context.Left.Syntax.Left));
 
 		return true;
 	}

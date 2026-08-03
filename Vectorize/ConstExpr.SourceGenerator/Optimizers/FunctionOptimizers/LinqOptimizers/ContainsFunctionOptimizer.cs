@@ -74,7 +74,7 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 						{
 							case false:
 							{
-								result = LiteralExpression(SyntaxKind.FalseLiteralExpression);
+								result = CreateLiteral(false);
 								return true;
 							}
 							case true:

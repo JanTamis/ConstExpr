@@ -275,7 +275,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				return true;
 			}
 
-			result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), source, anyLambda);
+			result = CreateInvocation(ParseTypeName("Array"), nameof(Array.Exists), source, anyLambda);
 			return true;
 		}
 

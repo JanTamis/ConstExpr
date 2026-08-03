@@ -22,7 +22,7 @@ public class ConditionalAndIsFiniteStrategy() : SymmetricStrategy<BooleanBinaryS
 
 		optimized = InvocationExpression(
 			MemberAccessExpression(leftContainingType.AsTypeSyntax(), IdentifierName("IsFinite")),
-			ArgumentList(SingletonSeparatedList(leftArgument)));
+			ArgumentList(leftArgument));
 
 		return true;
 	}

@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.LinqOptimizers;
@@ -97,7 +96,6 @@ public class WhereFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 				result = InvocationExpression(
 					MemberAccessExpression(
-						SyntaxKind.SimpleMemberAccessExpression,
 						visitedSource,
 						GenericName(Identifier("OfType"))
 							.WithTypeArgumentList(

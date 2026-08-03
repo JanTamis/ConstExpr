@@ -33,6 +33,7 @@ public class NotEqualsModuloPowerOfTwoZeroStrategy() : SymmetricStrategy<Integer
 			BinaryExpressions = context.BinaryExpressions,
 			Parent = context.Parent
 		};
+
 		return base.TryOptimize(unwrappedContext, out optimized);
 	}
 

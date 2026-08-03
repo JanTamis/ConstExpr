@@ -55,7 +55,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			// Atan2(y, 0) where y < 0 => -π/2
 			if (IsApproximately(xValue, 0.0) && yValue < 0.0)
 			{
-				var negPiOver2 = -Math.PI / 2.0;
+				const double negPiOver2 = -Math.PI / 2.0;
 				result = CreateLiteral(negPiOver2.ToSpecialType(paramType.SpecialType));
 				return true;
 			}
@@ -63,7 +63,7 @@ public class Atan2FunctionOptimizer() : BaseMathFunctionOptimizer("Atan2", n => 
 			// Atan2(y, x) where y == x => π/4 or -3π/4
 			if (IsApproximately(yValue, xValue) && xValue > 0.0)
 			{
-				var piOver4 = Math.PI / 4.0;
+				const double piOver4 = Math.PI / 4.0;
 				result = CreateLiteral(piOver4.ToSpecialType(paramType.SpecialType));
 				return true;
 			}

@@ -61,12 +61,12 @@ public class MultiplySubtractFMAStrategy : SymmetricStrategy<NumericBinaryStrate
 		if (context.TryGetValue(a, out var aValue) && IsOne(aValue))
 		{
 			// (1 - b) * c == -b*c + c => FMA(-b, c, c)
-			arguments = ArgumentList(SeparatedList([ Argument(Negate(b)), Argument(c), Argument(c) ]));
+			arguments = ArgumentList(Negate(b), c, c);
 		}
 		else if (context.TryGetValue(b, out var bValue) && IsOne(bValue))
 		{
 			// (a - 1) * c == a*c - c => FMA(a, c, -c)
-			arguments = ArgumentList(SeparatedList([ Argument(a), Argument(c), Argument(UnaryMinusExpression(c)) ]));
+			arguments = ArgumentList(a, c, UnaryMinusExpression(c));
 		}
 		else
 		{

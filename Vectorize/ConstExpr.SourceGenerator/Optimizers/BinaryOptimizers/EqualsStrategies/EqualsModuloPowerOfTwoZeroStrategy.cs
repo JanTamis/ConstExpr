@@ -33,6 +33,7 @@ public class EqualsModuloPowerOfTwoZeroStrategy() : SymmetricStrategy<IntegerBin
 			BinaryExpressions = context.BinaryExpressions,
 			Parent = context.Parent
 		};
+
 		return base.TryOptimize(unwrappedContext, out optimized);
 	}
 

@@ -143,9 +143,7 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 					IdentifierName("Char"),
 					IdentifierName(method)))
 			.WithArgumentList(
-				ArgumentList(
-					SingletonSeparatedList(
-						Argument(charExpr))));
+				ArgumentList(charExpr));
 
 		return true;
 	}
@@ -157,7 +155,7 @@ public class ConditionalOrAsciiCharRangeStrategy : BaseBinaryStrategy
 	{
 		switch (expr)
 		{
-			case BinaryExpressionSyntax { RawKind: (int)SyntaxKind.LogicalOrExpression } binary:
+			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } binary:
 			{
 				FlattenOrChain(binary.Left, parts);
 				FlattenOrChain(binary.Right, parts);

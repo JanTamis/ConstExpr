@@ -37,8 +37,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 	// - ToList/ToArray: materialization could fail/filter
 	private static readonly HashSet<string> OperationsThatDontAffectCount =
 	[
-		..MaterializingMethods,
-		..OrderingOperations,
+		.. MaterializingMethods,
+		.. OrderingOperations,
 		nameof(Enumerable.Select),
 		"Index"
 	];
@@ -115,7 +115,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				{
 					var count = values.Count(value => lambdas.All(lambda => lambda?.DynamicInvoke(value) is true));
 
-					result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(count));
+					result = CreateLiteral(count);
 					return true;
 				}
 			}
@@ -165,7 +165,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				TryGetOptimizedChainExpression(currentSource, OperationsThatDontAffectCount.Union([ nameof(Enumerable.DefaultIfEmpty) ]).ToSet(), out currentSource);
 
 				result = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateInvocation(currentSource, nameof(Enumerable.Count), combinedPredicate));
-				result = CreateInvocation(ParseTypeName("Int32"), "Max", result as ExpressionSyntax, CreateLiteral(1));
+				result = CreateInvocation(ParseTypeName(nameof(Int32)), "Max", result as ExpressionSyntax, CreateLiteral(1));
 				return true;
 			}
 
@@ -191,6 +191,8 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 			if (IsLinqMethodChain(currentSource, out var methodName, out var invocation)
 			    && TryGetLinqSource(invocation, out var methodSource))
 			{
+				var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
+
 				switch (methodName)
 				{
 					case "Chunk" when invocation.ArgumentList.Arguments is [ var chunkSizeArg ]:
@@ -203,7 +205,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						}
 						else
 						{
-							var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
 							var newChunkSource = methodSource;
 
 							if (!TryOptimizeCollection(context, newChunkSource, out var countInvocation))
@@ -229,7 +230,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							resultInvocation = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, CreateSimpleInvocation(currentSource, nameof(Enumerable.Count)));
 						}
 
-						result = CreateInvocation(ParseTypeName("Int32"), "Max", context.Visit(resultInvocation), CreateLiteral(1));
+						result = CreateInvocation(ParseTypeName(nameof(Int32)), "Max", context.Visit(resultInvocation), CreateLiteral(1));
 						return true;
 					}
 					case nameof(Enumerable.Distinct):
@@ -239,7 +240,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						// When the source is a literal collection, evaluate Distinct().Count() directly.
 						if (TryGetValues(currentSource, out var distinctValues))
 						{
-							result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(distinctValues.Distinct().Count()));
+							result = CreateLiteral(distinctValues.Distinct().Count());
 							return true;
 						}
 
@@ -305,8 +306,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 
 							if (TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, currentSource), context.Method), out result))
 							{
-								var intType2 = context.Model.Compilation.CreateInt32();
-								result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, CreateLiteral(count), intType2);
+								result = OptimizeArithmetic(context, SyntaxKind.AddExpression, result as ExpressionSyntax, CreateLiteral(count), intType);
 								return true;
 							}
 						}
@@ -320,8 +320,6 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							var left = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, leftInvocation) ?? leftInvocation;
 							var right = TryOptimizeByOptimizer<CountFunctionOptimizer>(context, rightInvocation) ?? rightInvocation;
 
-							var intType = context.Model.Compilation.CreateInt32();
-
 							result = OptimizeArithmetic(context, SyntaxKind.AddExpression, context.Visit(left) ?? leftInvocation, context.Visit(right) ?? rightInvocation, intType);
 							return true;
 						}
@@ -333,7 +331,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						var left = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var leftResult) ? leftResult as ExpressionSyntax : null;
 						var right = TryOptimize(context.WithInvocationAndMethod(CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters), context.Method), out var rightResult) ? rightResult as ExpressionSyntax : null;
 
-						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min",
+						result = CreateInvocation(intType, "Min",
 							context.Visit(left) ?? CreateInvocation(currentSource, Name, context.VisitedParameters),
 							context.Visit(right) ?? CreateInvocation(invocation.ArgumentList.Arguments[0].Expression, Name, context.VisitedParameters));
 						return true;
@@ -347,13 +345,12 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 							? countResult as ExpressionSyntax ?? CreateSimpleInvocation(methodSource, nameof(Enumerable.Count))
 							: CreateSimpleInvocation(methodSource, nameof(Enumerable.Count));
 
-						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Min", takeAmount, sourceCount);
+						result = CreateInvocation(intType, "Min", takeAmount, sourceCount);
 						return true;
 					}
 					case nameof(Enumerable.Skip) when invocation.ArgumentList.Arguments is [ var skipArg ]:
 					{
 						var skipAmount = skipArg.Expression;
-						var intType = context.Model.Compilation.GetSpecialType(SpecialType.System_Int32);
 
 						// Resolve source.Count() as optimally as possible
 						var sourceCount = TryOptimize(context.WithInvocationAndMethod(UpdateInvocation(context, methodSource), context.Method), out var countResult)
@@ -363,7 +360,7 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 						// source.Count() - skipAmount  (fold to literal when both are constant)
 						var subtracted = OptimizeArithmetic(context, SyntaxKind.SubtractExpression, sourceCount, skipAmount, intType);
 
-						result = CreateInvocation(context.Model.Compilation.CreateInt32(), "Max", CreateLiteral(0), subtracted);
+						result = CreateInvocation(intType, "Max", CreateLiteral(0), subtracted);
 						return true;
 					}
 					case nameof(Enumerable.Range) when invocation.ArgumentList.Arguments is [ var startArg, var countArg ]:

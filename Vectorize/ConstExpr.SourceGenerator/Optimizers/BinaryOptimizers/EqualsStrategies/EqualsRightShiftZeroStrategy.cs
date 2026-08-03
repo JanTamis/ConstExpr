@@ -45,6 +45,7 @@ public class EqualsRightShiftZeroStrategy()
 			Model = context.Model,
 			SymbolStore = context.SymbolStore
 		};
+
 		return base.TryOptimize(unwrappedContext, out optimized);
 	}
 

@@ -48,6 +48,7 @@ public class ToListFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumer
 				{
 					var fusedLambda = CombineLambdas(wherePredicate, selector);
 					var visitedFused = context.Visit(fusedLambda) as LambdaExpressionSyntax ?? fusedLambda;
+
 					result = CreateInvocation(
 						context.Visit(selectSource) ?? selectSource,
 						"FindAll",

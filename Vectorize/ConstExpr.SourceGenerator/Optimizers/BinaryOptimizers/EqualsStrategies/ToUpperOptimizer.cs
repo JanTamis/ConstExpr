@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -22,16 +21,7 @@ public class ToUpperOptimizer() : SymmetricStrategy<InvocationExpressionSyntax, 
 		optimized = InvocationExpression(
 				MemberAccessExpression(ParseTypeName("String"), IdentifierName("Equals")))
 			.WithArgumentList(
-				ArgumentList(
-					SeparatedList<ArgumentSyntax>(
-						new SyntaxNodeOrToken[]
-						{
-							Argument(memberAccess.Expression),
-							Token(SyntaxKind.CommaToken),
-							Argument(context.Right.Syntax),
-							Token(SyntaxKind.CommaToken),
-							Argument(MemberAccessExpression(IdentifierName("StringComparison"), IdentifierName("CurrentCultureIgnoreCase")))
-						})));
+				ArgumentList(memberAccess.Expression, context.Right.Syntax, MemberAccessExpression(IdentifierName("StringComparison"), IdentifierName("CurrentCultureIgnoreCase"))));
 		return true;
 	}
 }

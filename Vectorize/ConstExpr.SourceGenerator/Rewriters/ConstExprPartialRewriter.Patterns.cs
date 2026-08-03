@@ -802,7 +802,7 @@ public partial class ConstExprPartialRewriter
 			optimizedExpr = isUnsignedType
 				? expression
 				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					unsignedType.AsTypeSyntax(),
 					expression);
 		}
 		else
@@ -820,7 +820,7 @@ public partial class ConstExprPartialRewriter
 			optimizedExpr = isUnsignedType
 				? subtraction
 				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					unsignedType.AsTypeSyntax(),
 					ParenthesizedExpression(subtraction));
 		}
 
@@ -885,7 +885,7 @@ public partial class ConstExprPartialRewriter
 			optimizedExpr = isUnsignedType
 				? expression
 				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					unsignedType.AsTypeSyntax(),
 					expression);
 		}
 		else
@@ -902,7 +902,7 @@ public partial class ConstExprPartialRewriter
 			optimizedExpr = isUnsignedType
 				? subtraction
 				: CastExpression(
-					ParseTypeName(semanticModel.Compilation.GetMinimalString(unsignedType)),
+					unsignedType.AsTypeSyntax(),
 					ParenthesizedExpression(subtraction));
 		}
 

@@ -20,8 +20,7 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 		}
 
 		var host = context.Type.AsTypeSyntax();
-
-		var arguments = ArgumentList(SeparatedList([ Argument(UnaryMinusExpression(context.Right.Syntax.Left)), Argument(context.Right.Syntax.Right), Argument(context.Left.Syntax) ]));
+		var arguments = ArgumentList(UnaryMinusExpression(context.Right.Syntax.Left), context.Right.Syntax.Right, context.Left.Syntax);
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{

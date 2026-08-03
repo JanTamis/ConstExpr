@@ -49,7 +49,7 @@ public class GreaterThanOrEqualCountOneStrategy : BaseBinaryStrategy
 	{
 		var memberAccess = MemberAccessExpression(source, IdentifierName("Any"));
 		return predicate != null
-			? InvocationExpression(memberAccess).WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(predicate))))
+			? InvocationExpression(memberAccess).WithArgumentList(ArgumentList(predicate))
 			: InvocationExpression(memberAccess);
 	}
 }

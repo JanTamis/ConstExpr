@@ -189,15 +189,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		return InvocationExpression(
 			CreateMemberAccess(source, methodName),
-			ArgumentList(
-				SeparatedList(arguments.Select(Argument))));
+			ArgumentList(arguments));
 	}
 
 	protected InvocationExpressionSyntax CreateInvocation(string methodName, params IEnumerable<ExpressionSyntax> arguments)
 	{
 		return InvocationExpression(IdentifierName(methodName),
-			ArgumentList(
-				SeparatedList(arguments.Select(Argument))));
+			ArgumentList(arguments));
 	}
 
 	/// <summary>
@@ -207,8 +205,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		return InvocationExpression(
 			CreateMemberAccess(source, method),
-			ArgumentList(
-				SeparatedList(arguments.Select(Argument))));
+			ArgumentList(arguments));
 	}
 
 	/// <summary>
@@ -218,8 +215,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		return InvocationExpression(
 			CreateMemberAccess(source, method.Method.Name),
-			ArgumentList(
-				SeparatedList(arguments.Select(Argument))));
+			ArgumentList(arguments));
 	}
 
 	/// <summary>
@@ -229,8 +225,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		return InvocationExpression(
 			CreateMemberAccess(ParseTypeName(method.Method.DeclaringType?.ToString() ?? throw new InvalidOperationException("Method must have a declaring type")), method.Method.Name),
-			ArgumentList(
-				SeparatedList(arguments.Select(Argument))));
+			ArgumentList(arguments));
 	}
 
 	/// <summary>
@@ -251,6 +246,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		var argList = arguments as ICollection<ExpressionSyntax> ?? arguments.ToArray();
 		var invocation = CreateInvocation(source, methodName, argList);
+
 		return AnnotateLinqInvocation(context, invocation, methodName, argList.Count);
 	}
 
@@ -261,12 +257,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	protected InvocationExpressionSyntax CreateAnnotatedSimpleInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName)
 	{
 		var invocation = CreateSimpleInvocation(source, methodName);
+
 		return AnnotateLinqInvocation(context, invocation, methodName, 0);
 	}
 
 	protected InvocationExpressionSyntax CreateAnnotatedSimpleInvocation(FunctionOptimizerContext context, ExpressionSyntax source, string methodName, ITypeSymbol[] typeArguments)
 	{
 		var invocation = CreateSimpleInvocation(source, methodName);
+
 		return AnnotateLinqInvocation(context, invocation, methodName, 0, typeArguments);
 	}
 
@@ -325,7 +323,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		if (context.Invocation.Expression is MemberAccessExpressionSyntax memberAccess)
 		{
 			return context.Invocation
-				.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(SeparatedList(arguments.Select(Argument))))
+				.Update(memberAccess.WithExpression(context.Visit(source) ?? source), ArgumentList(arguments))
 				.WithMethodSymbolAnnotation(context.Method, context.SymbolStore);
 		}
 
@@ -350,12 +348,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 				ObjectCreationExpression(
 						IdentifierName(typeof(TException).Name))
 					.WithArgumentList(
-						ArgumentList(
-							SingletonSeparatedList(
-								Argument(
-									LiteralExpression(
-										SyntaxKind.StringLiteralExpression,
-										Literal(message)))))))
+						ArgumentList(CreateLiteral(message))))
 			.WithAdditionalAnnotations(CreateThrowExpectedTypeAnnotation(context, expectedType));
 	}
 
@@ -364,9 +357,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		return ThrowExpression(
 				ObjectCreationExpression(IdentifierName(ex.GetType().Name))
 					.WithArgumentList(
-						ArgumentList(
-							SingletonSeparatedList(
-								Argument(CreateLiteral(ex.Message))))))
+						ArgumentList(CreateLiteral(ex.Message))))
 			.WithAdditionalAnnotations(CreateThrowExpectedTypeAnnotation(context, null));
 	}
 
@@ -426,7 +417,8 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	protected bool TryGetLambdaParameterName(SimpleLambdaExpressionSyntax lambda, out string? parameterName)
 	{
 		parameterName = lambda.Parameter.Identifier.Text;
-		return !String.IsNullOrEmpty(parameterName);
+
+		return !String.IsNullOrEmpty(lambda.Parameter.Identifier.Text);
 	}
 
 	/// <summary>
@@ -703,7 +695,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 					.WithTypeArgumentList(
 						TypeArgumentList(
 							SingletonSeparatedList(
-								ParseTypeName(elementType.ToString()))))));
+								elementType.AsTypeSyntax())))));
 	}
 
 	protected bool TryGetOptimizedChainExpression(ExpressionSyntax source, ISet<string> methodsToSkip, [NotNullWhen(true), NotNullIfNotNull(nameof(source))] out ExpressionSyntax? optimizedSource)

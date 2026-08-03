@@ -52,7 +52,7 @@ public class DivideBySqrtToReciprocalSqrtStrategy : FloatNumberBinaryStrategy<Ex
 			context.Left.Syntax,
 			InvocationExpression(
 				MemberAccessExpression(context.Type.AsTypeSyntax(), IdentifierName("ReciprocalSqrtEstimate")),
-				ArgumentList(SingletonSeparatedList(Argument(radicand)))));
+				ArgumentList(radicand)));
 
 		return true;
 	}
