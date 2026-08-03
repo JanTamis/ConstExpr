@@ -24,6 +24,7 @@ public class BinaryDivideOptimizer : BaseBinaryOptimizer
 		yield return new DivideDoubleNegationStrategy();
 		yield return new DivideLeftNegationStrategy();
 		yield return new DivideRightNegationStrategy();
+		yield return new DivideBySqrtToReciprocalSqrtStrategy();
 		yield return new DivideOneToReciprocalStrategy();
 	}
 
