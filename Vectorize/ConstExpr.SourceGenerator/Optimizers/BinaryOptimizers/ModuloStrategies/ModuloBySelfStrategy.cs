@@ -1,7 +1,6 @@
 using System;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ModuloStrategies;
@@ -26,7 +25,7 @@ public class ModuloBySelfStrategy : IntegerBinaryStrategy
 		}
 
 		optimized = ConditionalExpression(
-			BinaryExpression(SyntaxKind.EqualsExpression, context.Left.Syntax, zero!),
+			EqualsExpression(context.Left.Syntax, zero),
 			ThrowExpression(ObjectCreationExpression(ParseTypeName(nameof(DivideByZeroException))).WithArgumentList(ArgumentList())),
 			zero!);
 

@@ -23,7 +23,7 @@ public class SubtractFMALeftMultiplyStrategy() : NumericBinaryStrategy<BinaryExp
 			return false;
 		}
 
-		var host = ParseName(context.Type.Name);
+		var host = context.Type.AsTypeSyntax();
 
 		var negatedRightOperand = context.Right.Syntax is BinaryExpressionSyntax or PrefixUnaryExpressionSyntax
 			? UnaryMinusExpression(ParenthesizedExpression(context.Right.Syntax))

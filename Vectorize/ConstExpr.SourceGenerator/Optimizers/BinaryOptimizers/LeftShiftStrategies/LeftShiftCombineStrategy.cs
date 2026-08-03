@@ -7,8 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrategies;
 
 /// <summary>
-///   Strategy for combining shifts: ((x << a) << b) =>
-///     x << (a + b)
+///   Strategy for combining shifts: ((x &lt;&lt; a) &lt;&lt; b) =>
+///     x &lt;&lt; (a + b)
 ///          Safe under Strict ( integer shift arithmetic).
 /// </summary>
 public class LeftShiftCombineStrategy() : IntegerBinaryStrategy<BinaryExpressionSyntax, LiteralExpressionSyntax>(leftKind: SyntaxKind.LeftShiftExpression)

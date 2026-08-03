@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
@@ -16,13 +15,7 @@ public class EqualsCountZeroStrategy : BaseBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (TryGetCountSourceAndPredicate(context.Left.Syntax, out var source, out var predicate)
-		    && context.Right.Syntax.IsNumericZero())
-		{
-			optimized = LogicalNotExpression(ParenthesizedExpression(BuildAnyCall(source, predicate)));
-			return true;
-		}
-
-		if (TryGetCountSourceAndPredicate(context.Right.Syntax, out source, out predicate)
+		    && context.Right.Syntax.IsNumericZero() || TryGetCountSourceAndPredicate(context.Right.Syntax, out source, out predicate)
 		    && context.Left.Syntax.IsNumericZero())
 		{
 			optimized = LogicalNotExpression(ParenthesizedExpression(BuildAnyCall(source, predicate)));
@@ -54,7 +47,8 @@ public class EqualsCountZeroStrategy : BaseBinaryStrategy
 
 	private static InvocationExpressionSyntax BuildAnyCall(ExpressionSyntax source, ExpressionSyntax? predicate)
 	{
-		var memberAccess = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Any"));
+		var memberAccess = MemberAccessExpression(source, IdentifierName("Any"));
+
 		return predicate != null
 			? InvocationExpression(memberAccess).WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(predicate))))
 			: InvocationExpression(memberAccess);

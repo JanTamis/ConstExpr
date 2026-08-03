@@ -12,14 +12,6 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualS
 /// </summary>
 public class LessThanOrEqualUnsignedZeroStrategy : BaseBinaryStrategy
 {
-	private static readonly SpecialType[] UnsignedTypes =
-	[
-		SpecialType.System_Byte,
-		SpecialType.System_UInt16,
-		SpecialType.System_UInt32,
-		SpecialType.System_UInt64
-	];
-
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		// (uint)x <= 0 → (uint)x == 0
@@ -36,19 +28,9 @@ public class LessThanOrEqualUnsignedZeroStrategy : BaseBinaryStrategy
 
 	private static bool IsUnsignedType(ITypeSymbol? type)
 	{
-		if (type is null)
-		{
-			return false;
-		}
-
-		foreach (var unsignedType in UnsignedTypes)
-		{
-			if (type.SpecialType == unsignedType)
-			{
-				return true;
-			}
-		}
-
-		return false;
+		return type?.SpecialType is SpecialType.System_Byte
+			or SpecialType.System_UInt16
+			or SpecialType.System_UInt32
+			or SpecialType.System_UInt64;
 	}
 }

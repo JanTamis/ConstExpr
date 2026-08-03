@@ -51,7 +51,7 @@ public class DivideBySqrtToReciprocalSqrtStrategy : FloatNumberBinaryStrategy<Ex
 		optimized = MultiplyExpression(
 			context.Left.Syntax,
 			InvocationExpression(
-				MemberAccessExpression(ParseName(context.Type.Name), IdentifierName("ReciprocalSqrtEstimate")),
+				MemberAccessExpression(context.Type.AsTypeSyntax(), IdentifierName("ReciprocalSqrtEstimate")),
 				ArgumentList(SingletonSeparatedList(Argument(radicand)))));
 
 		return true;

@@ -19,7 +19,7 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 			return false;
 		}
 
-		var host = ParseName(context.Type.Name);
+		var host = context.Type.AsTypeSyntax();
 
 		var arguments = ArgumentList(SeparatedList([ Argument(UnaryMinusExpression(context.Right.Syntax.Left)), Argument(context.Right.Syntax.Right), Argument(context.Left.Syntax) ]));
 

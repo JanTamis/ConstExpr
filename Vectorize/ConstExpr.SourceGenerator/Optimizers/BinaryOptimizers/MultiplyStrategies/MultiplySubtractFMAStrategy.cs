@@ -73,7 +73,7 @@ public class MultiplySubtractFMAStrategy : SymmetricStrategy<NumericBinaryStrate
 			return false;
 		}
 
-		var host = ParseName(context.Type.Name);
+		var host = context.Type.AsTypeSyntax();
 
 		optimized = InvocationExpression(
 			MemberAccessExpression(host, IdentifierName(useEstimate ? "MultiplyAddEstimate" : "FusedMultiplyAdd")),

@@ -805,4 +805,55 @@ public abstract class BaseFunctionOptimizer
 		value = null;
 		return false;
 	}
+
+	public static SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation) where TOptimizer : BaseFunctionOptimizer, new()
+	{
+		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, context.Method.TypeArguments.ToArray());
+	}
+
+	public static SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, params ITypeSymbol[] typeArguments) where TOptimizer : BaseFunctionOptimizer, new()
+	{
+		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, typeArguments);
+	}
+
+	public static SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, Func<IMethodSymbol, bool> selector, params ITypeSymbol[] typeArguments) where TOptimizer : BaseFunctionOptimizer, new()
+	{
+		try
+		{
+			var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
+
+			var parameters = invocation.ArgumentList.Arguments
+				.Select(a => a.Expression)
+				.ToArray();
+
+			var visitedParameters = parameters
+				.Select(p => context.Visit(p) ?? p)
+				.ToArray();
+
+			var methodSymbol = context.Model.Compilation
+				.GetTypeByMetadataName(typeof(Enumerable).FullName)
+				.GetMembers(methodName)
+				.OfType<IMethodSymbol>()
+				.Where(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1) // +1 for the source parameter
+				.Select(s => s.TypeArguments.Length == 0 ? s : s.Construct(typeArguments))
+				.First(selector);
+
+			context = context.WithInvocationAndMethod(invocation, methodSymbol);
+			context.OriginalParameters = parameters;
+			context.VisitedParameters = visitedParameters;
+
+			var optimizer = new TOptimizer();
+
+			if (!optimizer.TryOptimize(context, out var result))
+			{
+				result = invocation.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
+			}
+
+			return result.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
+		}
+		catch (Exception e)
+		{
+			return invocation;
+		}
+	}
 }

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LeftShiftStrategies;
 
 /// <summary>
-///   Strategy for shifting zero: 0 << x =>
+///   Strategy for shifting zero: 0 &lt;&lt; x =>
 ///     0 (pure)
 ///     Safe under Strict (integer shift arithmetic).
 /// </summary>

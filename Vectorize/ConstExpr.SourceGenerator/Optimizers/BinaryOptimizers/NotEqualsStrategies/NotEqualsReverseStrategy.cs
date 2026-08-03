@@ -11,12 +11,6 @@ public class NotEqualsReverseStrategy : BaseBinaryStrategy<LiteralExpressionSynt
 {
 	public override bool TryOptimize(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		if (context.Right.Syntax is LiteralExpressionSyntax)
-		{
-			optimized = null;
-			return false;
-		}
-
 		optimized = NotEqualsExpression(context.Right.Syntax, context.Left.Syntax);
 		return true;
 	}

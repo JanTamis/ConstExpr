@@ -57,7 +57,7 @@ public class NotEqualsBitwiseAndOddStrategy() : SymmetricStrategy<NumericBinaryS
 		}
 
 		optimized = InvocationExpression(
-				MemberAccessExpression(ParseTypeName(context.Left.Type!.Name), IdentifierName("IsOddInteger")))
+				MemberAccessExpression(context.Left.Type.AsTypeSyntax(), IdentifierName("IsOddInteger")))
 			.WithArgumentList(
 				ArgumentList(
 					SingletonSeparatedList(

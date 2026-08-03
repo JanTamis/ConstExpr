@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
@@ -12,7 +13,7 @@ public class ConditionalAndIsFiniteStrategy() : SymmetricStrategy<BooleanBinaryS
 	{
 		if (!IsInfinityMethod(context, context.Left.Syntax, out var leftArgument, out var leftContainingType)
 		    || !IsNaNMethod(context, context.Right.Syntax, out var rightArgument, out var rightContainingType)
-		    || leftArgument.GetDeterministicHash() != rightArgument.GetDeterministicHash()
+		    || !SyntaxNodeComparer.Get().Equals(leftArgument, rightArgument)
 		    || !SymbolEqualityComparer.Default.Equals(leftContainingType, rightContainingType))
 		{
 			optimized = null;
@@ -20,7 +21,7 @@ public class ConditionalAndIsFiniteStrategy() : SymmetricStrategy<BooleanBinaryS
 		}
 
 		optimized = InvocationExpression(
-			MemberAccessExpression(IdentifierName(leftContainingType.Name), IdentifierName("IsFinite")),
+			MemberAccessExpression(leftContainingType.AsTypeSyntax(), IdentifierName("IsFinite")),
 			ArgumentList(SingletonSeparatedList(leftArgument)));
 
 		return true;

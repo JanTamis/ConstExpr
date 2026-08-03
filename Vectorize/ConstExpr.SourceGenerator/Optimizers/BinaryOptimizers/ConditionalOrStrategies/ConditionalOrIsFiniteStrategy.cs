@@ -19,7 +19,7 @@ public class ConditionalOrIsFiniteStrategy : SymmetricStrategy<BooleanBinaryStra
 		}
 
 		optimized = LogicalNotExpression(InvocationExpression(
-			MemberAccessExpression(IdentifierName(leftContainingType.Name), IdentifierName("IsFinite")),
+			MemberAccessExpression(leftContainingType.AsTypeSyntax(), IdentifierName("IsFinite")),
 			ArgumentList(SingletonSeparatedList(leftArgument))));
 
 		return true;

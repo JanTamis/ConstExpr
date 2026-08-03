@@ -70,7 +70,7 @@ public class ThenByLinqUnroller : BaseLinqUnroller
 
 		// foreach (var item in thenByBuffer) { <partialLoopBody> }
 		resultStatements.Add(ForEachStatement(
-			IdentifierName("var"),
+			VarTypeSyntax(),
 			"item",
 			IdentifierName(BufferName),
 			Block(partialLoopBody)));

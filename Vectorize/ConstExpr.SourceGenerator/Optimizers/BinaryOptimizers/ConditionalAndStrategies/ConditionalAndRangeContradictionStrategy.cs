@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.ConditionalAndStrategies;
 
 /// <summary>
-///   Strategy for range contradiction: x > 10 && x < 5 => false.
+///   Strategy for range contradiction: x > 10 && x &lt; 5 => false.
 ///   Sourced via BaseBinaryStrategy.GetChainSiblings (connective-aware, see
 ///   ConditionalAndBoundTighteningStrategy for why BinaryExpressions isn't safe here).
 /// </summary>

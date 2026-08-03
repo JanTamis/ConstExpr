@@ -1,6 +1,5 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.LessThanOrEqualStrategies;
@@ -48,9 +47,9 @@ public class LessThanOrEqualCountZeroStrategy : BaseBinaryStrategy
 
 	private static InvocationExpressionSyntax BuildAnyCall(ExpressionSyntax source, ExpressionSyntax? predicate)
 	{
-		var memberAccess = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, source, IdentifierName("Any"));
+		var memberAccess = MemberAccessExpression(source, IdentifierName("Any"));
 		return predicate != null
-			? InvocationExpression(memberAccess).WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(predicate))))
+			? InvocationExpression(memberAccess, ArgumentList(SingletonSeparatedList(Argument(predicate))))
 			: InvocationExpression(memberAccess);
 	}
 }

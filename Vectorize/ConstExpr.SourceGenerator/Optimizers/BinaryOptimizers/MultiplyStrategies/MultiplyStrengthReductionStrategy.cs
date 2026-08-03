@@ -106,6 +106,7 @@ public class MultiplyStrengthReductionStrategy : SymmetricStrategy<IntegerBinary
 			v >>= 1;
 			n++;
 		}
+
 		return n;
 	}
 }

@@ -1,7 +1,6 @@
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.GreaterThanOrEqualStrategies;
@@ -25,10 +24,7 @@ public class GreaterThanOrEqualTrailingZeroCountStrategy : BaseBinaryStrategy
 	{
 		optimized = null;
 
-		if (UnwrapParentheses(context.Left.Syntax) is not InvocationExpressionSyntax invocation
-		    || invocation.Expression is not MemberAccessExpressionSyntax member
-		    || member.Name.Identifier.Text != "TrailingZeroCount"
-		    || invocation.ArgumentList.Arguments.Count != 1
+		if (UnwrapParentheses(context.Left.Syntax) is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "TrailingZeroCount" }, ArgumentList.Arguments.Count: 1 } invocation
 		    || !context.TryGetValue(context.Right.Syntax, out var countValue)
 		    || countValue is not int count)
 		{
@@ -60,7 +56,7 @@ public class GreaterThanOrEqualTrailingZeroCountStrategy : BaseBinaryStrategy
 
 		optimized = EqualsExpression(
 			ParenthesizedExpression(BitwiseAndExpression(argument, maskLiteral)),
-			LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+			CreateLiteral(0));
 		return true;
 	}
 }

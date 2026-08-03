@@ -108,7 +108,7 @@ public class AverageFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enume
 				{
 					// Repeat(element, count).Average() => count > 0 ? (T)element : throw
 					var castExpr = CastExpression(
-						ParseName(context.Model.Compilation.GetMinimalString(context.Method.TypeArguments[0])),
+						context.Method.TypeArguments[0].AsTypeSyntax(),
 						repeatElementArg.Expression);
 
 					result = ConditionalExpression(

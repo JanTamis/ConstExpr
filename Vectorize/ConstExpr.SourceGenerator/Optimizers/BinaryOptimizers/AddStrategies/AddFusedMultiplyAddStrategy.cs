@@ -20,7 +20,7 @@ public class AddFusedMultiplyAddStrategy() : SymmetricStrategy<NumericBinaryStra
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<BinaryExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
-		var host = ParseName(context.Type.Name);
+		var host = context.Type.AsTypeSyntax();
 
 		var arguments = ArgumentList(SeparatedList([ Argument(RemoveParentheses(context.Left.Syntax.Left)), Argument(RemoveParentheses(context.Left.Syntax.Right)), Argument(RemoveParentheses(context.Right.Syntax)) ]));
 

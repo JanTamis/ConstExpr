@@ -25,25 +25,20 @@ public class CharCountTest : BaseTest<Func<string?, char, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((text, target) =>
-		{
-			if (System.String.IsNullOrEmpty(text))
-			{
+		Create("""
+			if (String.IsNullOrEmpty(text))
 				return 0;
-			}
 
 			var count = 0;
 
 			foreach (var c in text)
 			{
 				if (c == target)
-				{
 					count++;
-				}
 			}
 
 			return count;
-		}),
+			"""),
 		Create((_, _) => 3, [ "ababa", 'a' ]),
 		Create((_, _) => 2, [ "aaXXa", 'X' ]),
 		Create((_, _) => 0, [ System.String.Empty, 'a' ])

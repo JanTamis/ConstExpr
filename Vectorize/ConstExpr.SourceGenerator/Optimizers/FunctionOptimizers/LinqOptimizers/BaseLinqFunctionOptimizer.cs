@@ -1217,57 +1217,6 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		return false;
 	}
 
-	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation) where TOptimizer : BaseLinqFunctionOptimizer, new()
-	{
-		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, context.Method.TypeArguments.ToArray());
-	}
-
-	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
-	{
-		return TryOptimizeByOptimizer<TOptimizer>(context, invocation, _ => true, typeArguments);
-	}
-
-	protected SyntaxNode TryOptimizeByOptimizer<TOptimizer>(FunctionOptimizerContext context, InvocationExpressionSyntax invocation, Func<IMethodSymbol, bool> selector, params ITypeSymbol[] typeArguments) where TOptimizer : BaseLinqFunctionOptimizer, new()
-	{
-		try
-		{
-			var methodName = typeof(TOptimizer).Name.Substring(0, typeof(TOptimizer).Name.Length - "FunctionOptimizer".Length);
-
-			var parameters = invocation.ArgumentList.Arguments
-				.Select(a => a.Expression)
-				.ToArray();
-
-			var visitedParameters = parameters
-				.Select(p => context.Visit(p) ?? p)
-				.ToArray();
-
-			var methodSymbol = context.Model.Compilation
-				.GetTypeByMetadataName(typeof(Enumerable).FullName)
-				.GetMembers(methodName)
-				.OfType<IMethodSymbol>()
-				.Where(f => f.Parameters.Length == invocation.ArgumentList.Arguments.Count + 1) // +1 for the source parameter
-				.Select(s => s.TypeArguments.Length == 0 ? s : s.Construct(typeArguments))
-				.First(selector);
-
-			context = context.WithInvocationAndMethod(invocation, methodSymbol);
-			context.OriginalParameters = parameters;
-			context.VisitedParameters = visitedParameters;
-
-			var optimizer = new TOptimizer();
-
-			if (!optimizer.TryOptimize(context, out var result))
-			{
-				result = invocation.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
-			}
-
-			return result.WithMethodSymbolAnnotation(methodSymbol, context.SymbolStore);
-		}
-		catch (Exception e)
-		{
-			return invocation;
-		}
-	}
-
 	/// <summary>
 	///   Optimizes a pairwise Min/Max scalar comparison by delegating to the corresponding Math optimizer.
 	///   Used when a LINQ Min/Max over a Concat source is reduced to a two-argument scalar call so that

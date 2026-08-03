@@ -31,23 +31,14 @@ public class ConditionalAndUnsignedRangeCheckStrategy()
 
 		var operand = context.Left.Syntax.Left;
 
-		// ponytail: Int32/Int64 only; extend for the smaller/unsigned widths when needed.
-		// MinValue lower bounds are excluded: that side is a tautology and negating MinValue overflows.
-		if (operandType.SpecialType == SpecialType.System_Int32
-		    && lowerValue is int intLower && upperValue is int intUpper
-		    && intLower <= intUpper && intLower != Int32.MinValue)
+		return operandType.SpecialType switch
 		{
-			return TryBuildRangeCheck(operand, intLower, unchecked((uint) intUpper - (uint) intLower), SyntaxKind.UIntKeyword, out optimized);
-		}
+			// MinValue lower bounds are excluded: that side is a tautology and negating MinValue overflows.
+			SpecialType.System_Int32 when lowerValue is int intLower && upperValue is int intUpper && intLower <= intUpper && intLower != Int32.MinValue => TryBuildRangeCheck(operand, intLower, unchecked((uint) intUpper - (uint) intLower), SyntaxKind.UIntKeyword, out optimized),
+			SpecialType.System_Int64 when lowerValue is long longLower && upperValue is long longUpper && longLower <= longUpper && longLower != Int64.MinValue => TryBuildRangeCheck(operand, longLower, unchecked((ulong) longUpper - (ulong) longLower), SyntaxKind.ULongKeyword, out optimized),
+			_ => false
+		};
 
-		if (operandType.SpecialType == SpecialType.System_Int64
-		    && lowerValue is long longLower && upperValue is long longUpper
-		    && longLower <= longUpper && longLower != Int64.MinValue)
-		{
-			return TryBuildRangeCheck(operand, longLower, unchecked((ulong) longUpper - (ulong) longLower), SyntaxKind.ULongKeyword, out optimized);
-		}
-
-		return false;
 	}
 
 	private static bool TryBuildRangeCheck(ExpressionSyntax operand, long lower, object range, SyntaxKind castKeyword, out ExpressionSyntax? optimized)

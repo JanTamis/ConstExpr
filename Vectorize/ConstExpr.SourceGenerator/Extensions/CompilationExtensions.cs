@@ -191,7 +191,7 @@ public static class CompilationExtensions
 		}
 
 		// Fall back to a simple identifier for non-generic named types and type parameters.
-		return IdentifierName(typeSymbol.Name);
+		return ParseTypeName(typeSymbol.Name);
 	}
 
 	public static bool IsSpanLikeType(this Compilation compilation, ITypeSymbol typeSymbol, ITypeSymbol elementType)
@@ -318,7 +318,7 @@ public static class CompilationExtensions
 
 				// Use System.Runtime.InteropServices.Marshal.SizeOf
 				var method = typeof(Marshal).GetMethod("SizeOf", [ typeof(Type) ]);
-				return (int)method?.Invoke(null, [ runtimeType ]);
+				return (int) method?.Invoke(null, [ runtimeType ]);
 			}
 			catch
 			{
@@ -969,10 +969,10 @@ public static class CompilationExtensions
 
 		if (elementType.NeedsCast())
 		{
-			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
+			return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : $"({compilation.GetMinimalString(elementType)}){CreateLiteral(s)}")})";
 		}
 
-		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T)0.ToSpecialType(elementType.SpecialType), s => s is string ? s : CreateLiteral(s))})";
+		return $"{vectorType}.Create({items.JoinWithPadding<T, object?>(", ", elementCount, (T) 0.ToSpecialType(elementType.SpecialType), s => s is string ? s : CreateLiteral(s))})";
 	}
 
 	public static VectorTypes GetVector<T>(this Compilation compilation, ITypeSymbol elementType, MetadataLoader loader, ReadOnlySpan<T> items, bool isRepeating, out string vector, out int vectorSize)
@@ -1531,7 +1531,7 @@ public static class CompilationExtensions
 		var hash = node.GetDeterministicHash();
 
 		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
-		var folded = (uint)(hash ^ hash >> 32);
+		var folded = (uint) (hash ^ hash >> 32);
 
 		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
 			.Replace('+', '_')
@@ -1549,7 +1549,7 @@ public static class CompilationExtensions
 		}
 
 		// Fold to 32-bit to keep identifier suffix short (similar length as previous implementation).
-		var folded = (uint)(hash ^ hash >> 32);
+		var folded = (uint) (hash ^ hash >> 32);
 
 		return Convert.ToBase64String(BitConverter.GetBytes(folded)).TrimEnd('=')
 			.Replace('+', '_')
@@ -1628,7 +1628,7 @@ public static class CompilationExtensions
 		try
 		{
 			attribute = constructorArgs.Length > 0
-				? (TAttribute?)Activator.CreateInstance(type, constructorArgs)
+				? (TAttribute?) Activator.CreateInstance(type, constructorArgs)
 				: null;
 		}
 		catch (MissingMethodException)
@@ -1657,7 +1657,7 @@ public static class CompilationExtensions
 						: parameters[i].DefaultValue;
 				}
 
-				attribute = (TAttribute?)constructor.Invoke(fullArgs);
+				attribute = (TAttribute?) constructor.Invoke(fullArgs);
 			}
 		}
 
@@ -2135,7 +2135,7 @@ public static class CompilationExtensions
 	{
 		if (node.IsKind(kind))
 		{
-			result = (TNode)node;
+			result = (TNode) node;
 			return true;
 		}
 

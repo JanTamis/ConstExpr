@@ -1,3 +1,4 @@
+using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -21,7 +22,7 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 
 		optimized = InvocationExpression(
 				MemberAccessExpression(
-					MemberAccessExpression(IdentifierName("System"), IdentifierName("String")),
+					IdentifierName("String"),
 					IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
 				ArgumentList(
@@ -40,8 +41,8 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 	{
 		return (expr.Left is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" }
 		        || expr.Right is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" })
-		       && (expr.Left is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 }
-		           || expr.Right is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NumericLiteralExpression, Token.Value: 0 });
+		       && (expr.Left.IsNumericZero()
+		           || expr.Right.IsNumericZero());
 	}
 
 	private static ExpressionSyntax GetExpressionSyntax(BinaryExpressionSyntax expr)

@@ -76,6 +76,11 @@ public static class SyntaxHelpers
 		};
 	}
 
+	public static PredefinedTypeSyntax VarTypeSyntax()
+	{
+		return PredefinedType(Token(SyntaxKind.VarKeyword));
+	}
+
 	public static bool TryCreateLiteral<T>(T? value, [NotNullWhen(true)] out ExpressionSyntax? result)
 	{
 		return TryCreateLiteral(value, false, out result);

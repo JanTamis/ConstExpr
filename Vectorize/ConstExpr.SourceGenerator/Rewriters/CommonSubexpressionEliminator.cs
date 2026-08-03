@@ -50,7 +50,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			InvocationExpressionSyntax invocation => invocation.Expression switch
 			{
 				IdentifierNameSyntax id => $"{SanitizeIdentifierPart(id.Identifier.Text)}Val",
-				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(ma.Expression.TryGetInferredMemberName() ?? String.Empty)}{ma.Name.Identifier.Text}",
+				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(GetHostNameHint(ma.Expression))}{ma.Name.Identifier.Text}",
 				_ => "callVal"
 			},
 			MemberAccessExpressionSyntax ma => $"{ma.Expression}{ma.Name.Identifier.Text}",
@@ -82,6 +82,13 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 		_usedNames.Add(name);
 		return name;
+	}
+
+	private static string GetHostNameHint(ExpressionSyntax host)
+	{
+		return host is PredefinedTypeSyntax predefined
+			? predefined.Keyword.Text
+			: host.TryGetInferredMemberName() ?? String.Empty;
 	}
 
 	/// <summary>

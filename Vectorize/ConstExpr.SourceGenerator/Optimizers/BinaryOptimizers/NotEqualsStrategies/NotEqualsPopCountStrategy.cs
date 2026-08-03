@@ -1,5 +1,4 @@
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.EqualsStrategies;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.NotEqualsStrategies;
@@ -12,7 +11,7 @@ public class NotEqualsPopCountStrategy : EqualsPopCountStrategy
 {
 	protected override ExpressionSyntax CreateZeroComparison(ExpressionSyntax operand)
 	{
-		return NotEqualsExpression(operand, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+		return NotEqualsExpression(operand, CreateLiteral(0));
 	}
 
 	protected override ExpressionSyntax CreatePow2Result(ExpressionSyntax isPow2)
