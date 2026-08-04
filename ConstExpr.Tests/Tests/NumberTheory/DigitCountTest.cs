@@ -31,11 +31,12 @@ public class DigitCountTest : BaseTest<Func<int, int>>
 			var count = 0;
 			var num = FastAbs(n);
 
-			while (num > 0)
+			do
 			{
 				count++;
 				num /= 10;
 			}
+			while (num > 0);
 
 			return count;
 			"""),

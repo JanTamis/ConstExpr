@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -106,41 +108,138 @@ public sealed class WhileToDoWhileRewriter : CSharpSyntaxRewriter
 	{
 		if (operand is IdentifierNameSyntax identifier && written.Contains(identifier.Identifier.Text))
 		{
-			return PrecedingDefinition(block, loop, identifier.Identifier.Text) is { } definition
-				? ValueRangeAnalysis.For(definition, _root)
-				: null;
+			return RangeOfPrecedingDefinition(block, loop, identifier.Identifier.Text);
 		}
 
 		return ValueRangeAnalysis.For(operand, _root);
 	}
 
 	/// <summary>
-	///   The most recent expression assigned to <paramref name="name" /> among the statements of
-	///   <paramref name="block" /> that run before <paramref name="before" /> — via either a local
-	///   declaration's initializer or a plain top-level <c>name = expr;</c>. A statement that writes
-	///   <paramref name="name" /> some other way invalidates whatever was found so far: it may have
-	///   replaced the value that definition described.
+	///   The entry-time range of <paramref name="name" />, derived from the most recent expression
+	///   assigned to it — via either a local declaration's initializer or a plain top-level
+	///   <c>name = expr;</c> — among the statements of <paramref name="block" /> that run before
+	///   <paramref name="loop" />. A statement that writes <paramref name="name" /> some other way
+	///   invalidates whatever was found so far: it may have replaced the value that definition described.
+	///   <para>
+	///     A call to the generated <c>FastAbs</c> helper is trusted non-negative — <c>[1, MaxValue]</c> —
+	///     only when its argument has a dominating <c>if (arg == 0) return/throw;</c> guard earlier in
+	///     the same block: <c>FastAbs&lt;T&gt;</c> is <c>T.IsNegative(x) ? -x : x</c>, which <em>wraps</em>
+	///     rather than throws at <c>T.MinValue</c> (so it matches the ternary idiom it replaces there),
+	///     so a bare <c>FastAbs(x)</c> alone proves nothing about the sign of its result. <c>T.MinValue</c>
+	///     is deliberately treated as out of contract for this recognition, same as the idiom it replaces.
+	///     Every other definition shape goes through the ordinary <see cref="ValueRangeAnalysis.For" />.
+	///   </para>
 	/// </summary>
-	private static ExpressionSyntax? PrecedingDefinition(BlockSyntax block, StatementSyntax before, string name)
+	private ValueRange? RangeOfPrecedingDefinition(BlockSyntax block, WhileStatementSyntax loop, string name)
 	{
 		ExpressionSyntax? definition = null;
+		var definedFromNonZeroAbs = false;
+		var provenNonZero = new HashSet<string>();
 
 		foreach (var statement in block.Statements)
 		{
-			if (statement == before)
+			if (statement == loop)
 			{
 				break;
 			}
 
-			definition = statement switch
-			{
-				LocalDeclarationStatementSyntax { Declaration.Variables: [ { Initializer.Value: { } value } declarator ] } when declarator.Identifier.Text == name => value,
-				ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.SimpleAssignmentExpression, Left: IdentifierNameSyntax target, Right: { } rhs } } when target.Identifier.Text == name => rhs,
-				_ when LoopInvariance.CollectWrittenInLoop(statement).Contains(name) => null,
-				_ => definition
-			};
+			(definition, definedFromNonZeroAbs) = Advance(statement, name, definition, definedFromNonZeroAbs, provenNonZero);
 		}
 
-		return definition;
+		if (definedFromNonZeroAbs)
+		{
+			return new ValueRange(1, Int64.MaxValue);
+		}
+
+		return definition is { } expr ? ValueRangeAnalysis.For(expr, _root) : null;
+	}
+
+	/// <summary>
+	///   Folds <paramref name="statement" /> into the running <paramref name="definition" />/
+	///   <paramref name="definedFromNonZeroAbs" /> state <see cref="RangeOfPrecedingDefinition" /> tracks,
+	///   and records any zero-guard it establishes in <paramref name="provenNonZero" />. Order matters:
+	///   the guard set still reflects every guard strictly before this statement when
+	///   <see cref="IsNonZeroAbsCall" /> is checked, before this statement's own write (if any) retires
+	///   the fact it may itself depend on — which matters when it reassigns the very name a guard proved
+	///   nonzero (<c>n = FastAbs(n);</c> writes <c>n</c> in the same statement whose argument the guard
+	///   described).
+	/// </summary>
+	private static (ExpressionSyntax? definition, bool definedFromNonZeroAbs) Advance(
+		StatementSyntax statement, string name, ExpressionSyntax? definition, bool definedFromNonZeroAbs, HashSet<string> provenNonZero)
+	{
+		if (statement is IfStatementSyntax { Else: null } guard && Exits(guard.Statement) && ZeroCheckedName(guard.Condition) is { } guardedName)
+		{
+			provenNonZero.Add(guardedName);
+		}
+
+		var found = statement switch
+		{
+			LocalDeclarationStatementSyntax { Declaration.Variables: [ { Initializer.Value: { } value } declarator ] } when declarator.Identifier.Text == name => value,
+			ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.SimpleAssignmentExpression, Left: IdentifierNameSyntax target, Right: { } rhs } } when target.Identifier.Text == name => rhs,
+			_ => null
+		};
+
+		if (found is not null)
+		{
+			definition = found;
+			definedFromNonZeroAbs = IsNonZeroAbsCall(found, provenNonZero);
+		}
+		else if (LoopInvariance.CollectWrittenInLoop(statement).Contains(name))
+		{
+			definition = null;
+			definedFromNonZeroAbs = false;
+		}
+
+		provenNonZero.ExceptWith(LoopInvariance.CollectWrittenInLoop(statement));
+
+		return (definition, definedFromNonZeroAbs);
+	}
+
+	/// <summary>
+	///   Whether <paramref name="expression" /> is a call to the generated <c>FastAbs</c> helper whose
+	///   argument is a name <paramref name="provenNonZero" /> already covers.
+	/// </summary>
+	private static bool IsNonZeroAbsCall(ExpressionSyntax expression, HashSet<string> provenNonZero)
+	{
+		return expression is InvocationExpressionSyntax
+		{
+			Expression: IdentifierNameSyntax { Identifier.Text: "FastAbs" },
+			ArgumentList.Arguments: [ { Expression: IdentifierNameSyntax argument } ]
+		} && provenNonZero.Contains(argument.Identifier.Text);
+	}
+
+	/// <summary>
+	///   Whether the branch of a guarding <c>if</c> leaves the enclosing block outright, so that anything
+	///   after it is only reached when the condition did not hold.
+	/// </summary>
+	private static bool Exits(StatementSyntax statement)
+	{
+		return statement switch
+		{
+			ReturnStatementSyntax or ThrowStatementSyntax => true,
+			BlockSyntax { Statements: [ ReturnStatementSyntax or ThrowStatementSyntax ] } => true,
+			_ => false
+		};
+	}
+
+	/// <summary>The identifier a bare <c>name == 0</c> condition checks, or <see langword="null" /> for any other shape.</summary>
+	private static string? ZeroCheckedName(ExpressionSyntax condition)
+	{
+		if (condition is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.EqualsExpression } binary)
+		{
+			return null;
+		}
+
+		if (binary.Left is IdentifierNameSyntax left && binary.Right.IsNumericZero())
+		{
+			return left.Identifier.Text;
+		}
+
+		if (binary.Right is IdentifierNameSyntax right && binary.Left.IsNumericZero())
+		{
+			return right.Identifier.Text;
+		}
+
+		return null;
 	}
 }

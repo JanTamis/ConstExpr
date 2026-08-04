@@ -36,11 +36,11 @@ public class CountDigitsTest : BaseTest<Func<int, int>>
 
 			var count = 0;
 
-			while (n > 0)
+			do
 			{
 				count++;
 				n /= 10;
-			}
+			} while (n > 0);
 
 			return count;
 			"""),
