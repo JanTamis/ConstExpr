@@ -101,17 +101,20 @@ public sealed class WhileToDoWhileRewriter : CSharpSyntaxRewriter
 	///   The interval <paramref name="operand" /> is known to fall in immediately before
 	///   <paramref name="loop" /> runs. A name the loop writes cannot go through
 	///   <see cref="ValueRangeAnalysis.For" /> (see the class remarks), so its entry value is resolved
-	///   from a plain preceding declaration or assignment in <paramref name="block" /> instead; a name
-	///   the loop leaves alone is safe to hand straight to the general analysis.
+	///   from a plain preceding declaration or assignment in <paramref name="block" /> instead, falling
+	///   back to whatever an enclosing loop's own condition already proved about it; a name the loop
+	///   leaves alone is safe to hand straight to the general analysis.
 	/// </summary>
 	private ValueRange? RangeAtEntry(ExpressionSyntax operand, HashSet<string> written, BlockSyntax block, WhileStatementSyntax loop)
 	{
-		if (operand is IdentifierNameSyntax identifier && written.Contains(identifier.Identifier.Text))
+		if (operand is not IdentifierNameSyntax identifier || !written.Contains(identifier.Identifier.Text))
 		{
-			return RangeOfPrecedingDefinition(block, loop, identifier.Identifier.Text);
+			return ValueRangeAnalysis.For(operand, _root);
 		}
 
-		return ValueRangeAnalysis.For(operand, _root);
+		var name = identifier.Identifier.Text;
+
+		return RangeOfPrecedingDefinition(block, loop, name) ?? RangeFromEnclosingLoopCondition(block, loop, name);
 	}
 
 	/// <summary>
@@ -152,6 +155,116 @@ public sealed class WhileToDoWhileRewriter : CSharpSyntaxRewriter
 		}
 
 		return definition is { } expr ? ValueRangeAnalysis.For(expr, _root) : null;
+	}
+
+	/// <summary>
+	///   The entry-time range of <paramref name="name" /> when <paramref name="block" /> has no
+	///   preceding definition of its own, but <paramref name="block" /> is itself the body of an
+	///   enclosing <c>while</c> whose own condition already constrains the same name. That condition
+	///   held to enter the body at all, and — provided nothing between the top of the body and
+	///   <paramref name="loop" /> touches <paramref name="name" /> — it still describes the value right
+	///   here, on every iteration of the outer loop, not just the first.
+	///   <para>
+	///     Deliberately matches only <see cref="WhileStatementSyntax" />, never a <c>do</c>-<c>while</c>:
+	///     a <c>do</c>-<c>while</c>'s body runs once before its condition is ever checked, so entering it
+	///     proves nothing about what that condition tests.
+	///   </para>
+	/// </summary>
+	private ValueRange? RangeFromEnclosingLoopCondition(BlockSyntax block, WhileStatementSyntax loop, string name)
+	{
+		foreach (var statement in block.Statements)
+		{
+			if (statement == loop)
+			{
+				break;
+			}
+
+			if (Declares(statement, name) || LoopInvariance.CollectWrittenInLoop(statement).Contains(name))
+			{
+				return null;
+			}
+		}
+
+		return block.Parent is WhileStatementSyntax outer && outer.Statement == block
+			? RangeFromComparison(outer.Condition, name)
+			: null;
+	}
+
+	/// <summary>Whether <paramref name="statement" /> declares a local variable named <paramref name="name" />.</summary>
+	private static bool Declares(StatementSyntax statement, string name)
+	{
+		if (statement is not LocalDeclarationStatementSyntax { Declaration.Variables: { } variables })
+		{
+			return false;
+		}
+
+		foreach (var variable in variables)
+		{
+			if (variable.Identifier.Text == name)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   The range a comparison of shape <c>name &lt;op&gt; bound</c> (either operand order) proves for
+	///   <paramref name="name" /> when it holds, or <see langword="null" /> for any other shape. The bound
+	///   itself goes through the ordinary <see cref="ValueRangeAnalysis.For" />, so a non-literal bound
+	///   still resolves whenever the general analysis can already narrow it.
+	/// </summary>
+	private ValueRange? RangeFromComparison(ExpressionSyntax condition, string name)
+	{
+		if (condition is not BinaryExpressionSyntax comparison || !ValueRangeAnalysis.IsComparison(comparison.Kind()))
+		{
+			return null;
+		}
+
+		var kind = comparison.Kind();
+		ExpressionSyntax boundExpression;
+
+		if (comparison.Left is IdentifierNameSyntax left && left.Identifier.Text == name)
+		{
+			boundExpression = comparison.Right;
+		}
+		else if (comparison.Right is IdentifierNameSyntax right && right.Identifier.Text == name)
+		{
+			boundExpression = comparison.Left;
+			kind = Mirror(kind);
+		}
+		else
+		{
+			return null;
+		}
+
+		if (ValueRangeAnalysis.For(boundExpression, _root) is not { } bound)
+		{
+			return null;
+		}
+
+		return kind switch
+		{
+			SyntaxKind.GreaterThanExpression => new ValueRange(bound.Min + 1, Int64.MaxValue),
+			SyntaxKind.GreaterThanOrEqualExpression => new ValueRange(bound.Min, Int64.MaxValue),
+			SyntaxKind.LessThanExpression => new ValueRange(Int64.MinValue, bound.Max - 1),
+			SyntaxKind.LessThanOrEqualExpression => new ValueRange(Int64.MinValue, bound.Max),
+			_ => null
+		};
+	}
+
+	/// <summary>Flips a comparison's operator to match its operands being swapped.</summary>
+	private static SyntaxKind Mirror(SyntaxKind kind)
+	{
+		return kind switch
+		{
+			SyntaxKind.LessThanExpression => SyntaxKind.GreaterThanExpression,
+			SyntaxKind.LessThanOrEqualExpression => SyntaxKind.GreaterThanOrEqualExpression,
+			SyntaxKind.GreaterThanExpression => SyntaxKind.LessThanExpression,
+			SyntaxKind.GreaterThanOrEqualExpression => SyntaxKind.LessThanOrEqualExpression,
+			_ => kind
+		};
 	}
 
 	/// <summary>

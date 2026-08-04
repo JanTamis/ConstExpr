@@ -32,11 +32,12 @@ public class DigitalRootTest : BaseTest<Func<int, int>>
 			{
 				var sum = 0;
 
-				while (num > 0)
+				do
 				{
 					sum += num % 10;
 					num /= 10;
 				}
+				while (num > 0);
 
 				num = sum;
 			}
