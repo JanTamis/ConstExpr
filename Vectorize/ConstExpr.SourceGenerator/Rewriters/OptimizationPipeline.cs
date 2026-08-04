@@ -68,6 +68,16 @@ public static class OptimizationPipeline
 			body = Prune(DefaultBranchHoistingRewriter.Apply(body, variables));
 		}
 
+		// Before LoopUnswitching: unswitching moves a duplicated loop into a single-statement block per
+		// arm, stranding the counter's declaration outside the block this pass inspects. Converting
+		// first keeps the counter's initial value visible, and LoopUnswitchingRewriter already treats a
+		// do-while exactly like a while (it overrides VisitDoStatement too), so nothing downstream loses
+		// coverage.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.WhileToDoWhileConversion))
+		{
+			body = WhileToDoWhileRewriter.Apply(body); // no Prune: converting while->do-while creates no dead code
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);

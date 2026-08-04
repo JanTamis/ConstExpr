@@ -10,6 +10,12 @@ namespace ConstExpr.Tests.Optimization;
 ///     a loop's own condition is refused outright. If either is ever loosened this test fails rather
 ///     than the build hanging.
 ///   </para>
+///   <para>
+///     The same entry fact — <c>x &lt; 10</c> holds for every value the mask can produce — is exactly
+///     what <c>OptimizationFlags.WhileToDoWhileConversion</c> is allowed to use: it only changes which
+///     loop keyword runs the first check, never the condition expression itself, so the while is
+///     expected to come out as a do-while below rather than unchanged.
+///   </para>
 /// </summary>
 [InheritsTests]
 public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
@@ -30,8 +36,21 @@ public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		// Unchanged: the condition stays exactly where it was.
-		CreateDefault(),
+		// The condition itself stays exactly where it was; only while becomes do-while, since x < 10
+		// is proven true on the very first check (x starts in [0, 3]).
+		Create(n =>
+		{
+			var x = n & 3;
+			var count = 0;
+
+			do
+			{
+				x += 1;
+				count++;
+			} while (x < 10);
+
+			return count;
+		}, [ Unknown ]),
 
 		// n = 5 masks to 1, so the loop runs from 1 up to 10: nine iterations.
 		Create(_ => 9, [ 5 ])

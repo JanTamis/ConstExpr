@@ -155,11 +155,28 @@ public enum OptimizationFlags
 	Reassociation = 1 << 12,
 
 	/// <summary>
+	///   Enable while-to-do-while conversion.
+	///   When a <c>while</c> loop's condition is proven true on the very first check — the same
+	///   interval analysis <see cref="ValueRangePropagation" /> uses, applied to the loop's entry state
+	///   rather than to a fixed point inside it — the loop is rewritten as a <c>do</c>-<c>while</c>,
+	///   dropping the now-redundant initial test:
+	///   <code>
+	///   var i = 1;                         var i = 1;
+	///   while (i &lt;= n) { ... i++; }   =>   do { ... i++; } while (i &lt;= n);
+	///   </code>
+	///   Only the loop keyword changes — the condition expression itself is left exactly as written and
+	///   is still evaluated on every iteration, so this never risks the infinite-loop hazard
+	///   <see cref="ValueRangePropagation" /> guards against when folding a loop condition outright.
+	/// </summary>
+	WhileToDoWhileConversion = 1 << 13,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
 	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>,
-	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" /> and <see cref="Reassociation" />.
+	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" />, <see cref="Reassociation" /> and
+	///   <see cref="WhileToDoWhileConversion" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion
 }

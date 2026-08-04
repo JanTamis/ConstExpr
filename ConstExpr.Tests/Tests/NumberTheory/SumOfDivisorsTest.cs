@@ -28,7 +28,28 @@ public class SumOfDivisorsTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(n =>
+		{
+			if (n <= 0)
+			{
+				return 0;
+			}
+
+			var sum = 0;
+			var i = 1;
+
+			do
+			{
+				if (n % i == 0)
+				{
+					sum += i;
+				}
+
+				i++;
+			} while (i <= n);
+
+			return sum;
+		}),
 		Create(_ => 28, [ 12 ]),
 		Create(_ => 1, [ 1 ]),
 		Create(_ => 0, [ 0 ])
