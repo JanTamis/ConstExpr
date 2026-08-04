@@ -7,7 +7,7 @@ public class AverageTest : BaseTest<Func<int[], double>>
 	{
 		if (numbers.Length == 0)
 		{
-			return 0.0;
+			return 0D;
 		}
 
 		var sum = 0;
