@@ -36,7 +36,10 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 		// Chained operations: Distinct().OrderBy().Reverse().Contains() => Contains()
 		var i = x.Distinct().OrderBy(v => v).Reverse().Contains(3) ? 1 : 0;
 
-		// Select(...).Contains() => Any(...)
+		// Select(...).Contains() => Any(...); v * 2 == 6 does NOT fold further to v == 3 (unlike
+		// EqualsIntegerAdditiveTest's +/- cases) — multiply-by-even-c isn't a bijection mod 2^32
+		// (v = int.MinValue + 3 also satisfies v * 2 == 6 via wraparound), so the equality-isolation
+		// strategy correctly declines and this stays a standalone Array.Exists predicate below.
 		var j = x.Select(v => v * 2).Contains(6) ? 1 : 0;
 
 		// Where(...).Contains() => Any(...)
@@ -50,7 +53,7 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Unsafe.BitCast<bool, byte>(Contains__KFndQ(x)) * 11 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x));"),
+		Create("return Unsafe.BitCast<bool, byte>(Contains__KFndQ(x)) * 10 + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x));"),
 		Create(_ => 11, [ new[] { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ System.Array.Empty<int>() ]),
 		Create(_ => 0, [ new[] { 1, 2, 4, 5, 6 } ]) // No 3, all tests fail

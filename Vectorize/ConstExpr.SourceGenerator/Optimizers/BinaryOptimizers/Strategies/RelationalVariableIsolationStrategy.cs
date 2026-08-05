@@ -9,11 +9,15 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 
 /// <summary>
 ///   Isolates a variable operand combined with a compile-time constant across a comparison:
-///   <c>v * c OP k</c> becomes <c>v OP k / c</c> (flipping <c>OP</c> when <c>c</c> is negative);
-///   <c>v + c OP k</c> becomes <c>v OP k - c</c>; <c>v - c OP k</c> becomes <c>v OP k + c</c>;
-///   <c>c - v OP k</c> becomes <c>v OP' c - k</c> (always flips: the coefficient of <c>v</c> is -1).
-///   <c>c * v</c>, <c>c + v</c>, <c>-(v * c)</c>, and (for <c>c = 2</c>) <c>v + v</c> are recognized
-///   too, matching what the upstream multiply/add strategies canonicalize each shape to. For
+///   <c>v * c OP k</c> becomes <c>v OP k / c</c>; <c>v / c OP k</c> becomes <c>v OP k * c</c> (both
+///   flipping <c>OP</c> when <c>c</c> is negative); <c>v + c OP k</c> becomes <c>v OP k - c</c>;
+///   <c>v - c OP k</c> becomes <c>v OP k + c</c>; <c>c - v OP k</c> becomes <c>v OP' c - k</c> (always
+///   flips: the coefficient of <c>v</c> is -1). <c>c * v</c>, <c>c + v</c>, <c>-(v * c)</c>,
+///   <c>-(v / c)</c>, and (for <c>c = 2</c>) <c>v + v</c> are recognized too, matching what the
+///   upstream multiply/add strategies canonicalize each shape to. <c>c / v</c> is deliberately NOT
+///   recognized — that's a reciprocal, not a linear term: whether the comparison needs to flip would
+///   depend on the sign of <c>v</c> itself, not just of <c>c</c>, so it can't be isolated the same way.
+///   For
 ///   <c>OP</c> in <c>{==, !=}</c> there is nothing to flip — <paramref name="unflippedKind" /> and
 ///   <paramref name="flippedKind" /> are simply passed the same value by those subclasses, so the
 ///   flip decision below becomes a no-op rather than needing a separate code path.
@@ -51,18 +55,19 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 			return false;
 		}
 
-		return TryIsolateViaMultiply(context, out optimized) || TryIsolateViaAddition(context, out optimized);
+		return TryIsolateViaMultiplicative(context, out optimized) || TryIsolateViaAddition(context, out optimized);
 	}
 
 	/// <summary>
-	///   Handles <c>v * c OP k</c>, <c>c * v OP k</c>, <c>-(v * c) OP k</c>, and (for <c>c = 2</c>)
-	///   <c>v + v OP k</c> via <see cref="TryGetMultiplyCoefficient" />.
+	///   Handles <c>v * c OP k</c>, <c>v / c OP k</c>, <c>c * v OP k</c>, <c>-(v * c) OP k</c>,
+	///   <c>-(v / c) OP k</c>, and (for <c>c = 2</c>) <c>v + v OP k</c> via
+	///   <see cref="TryGetMultiplicativeCoefficient" />.
 	/// </summary>
-	private bool TryIsolateViaMultiply(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
+	private bool TryIsolateViaMultiplicative(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		optimized = null;
 
-		if (!TryGetMultiplyCoefficient(context, out var variable, out var rawCoefficient, out var negatedByUnary))
+		if (!TryGetMultiplicativeCoefficient(context, out var variable, out var rawCoefficient, out var negatedByUnary, out var isDivide))
 		{
 			return false;
 		}
@@ -70,10 +75,10 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 		var specialType = context.Left.Type!.SpecialType;
 		var coefficient = rawCoefficient.ToSpecialType(specialType);
 
-		// Fold the wrapping -(v * c), if any, into the coefficient's own sign here, once, so the
-		// division and the flip decision both read off the same signed value — computing the
-		// quotient from the unsigned literal and flipping the operator separately would isolate the
-		// right threshold with the wrong sign (k / c, not k / -c).
+		// Fold the wrapping -(v * c)/-(v / c), if any, into the coefficient's own sign here, once, so
+		// the new threshold and the flip decision both read off the same signed value — computing the
+		// threshold from the unsigned literal and flipping the operator separately would isolate the
+		// right magnitude with the wrong sign.
 		if (negatedByUnary)
 		{
 			coefficient = coefficient.Negate();
@@ -81,35 +86,39 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 
 		if (coefficient is null || coefficient.IsNumericZero() || !(coefficient.IsPositive() || coefficient.IsNegative()))
 		{
-			// Zero (should already be folded upstream by MultiplyByZeroStrategy), NaN, or some other
-			// non-plain numeric literal value — nothing safe to isolate.
+			// Zero (should already be folded upstream by MultiplyByZeroStrategy, or is a v / 0 that
+			// isn't this strategy's business to touch), NaN, or some other non-plain numeric literal
+			// value — nothing safe to isolate.
 			return false;
 		}
 
 		var k = context.Right.Syntax.Token.Value.ToSpecialType(specialType);
-		var quotient = k.Divide(coefficient);
+		// v * c OP k  =>  v OP k / c        v / c OP k  =>  v OP k * c
+		var newThreshold = isDivide ? k.Multiply(coefficient) : k.Divide(coefficient);
 
-		if (quotient is null || !IsFinite(quotient))
+		if (newThreshold is null || !IsFinite(newThreshold))
 		{
 			return false;
 		}
 
-		optimized = BinaryExpression(coefficient.IsNegative() ? flippedKind : unflippedKind, variable, CreateLiteral(quotient));
+		optimized = BinaryExpression(coefficient.IsNegative() ? flippedKind : unflippedKind, variable, CreateLiteral(newThreshold));
 		return true;
 	}
 
 	/// <summary>
-	///   Peels the canonical <c>v * c</c>/<c>c * v</c> shape — or, for <c>c = 2</c>, the <c>v + v</c>
-	///   shape <see cref="MultiplyStrategies.MultiplyByTwoToAdditionStrategy" /> canonicalizes it to —
-	///   optionally wrapped in a negating <c>-(...)</c>, off <c>context.Left.Syntax</c>. Doesn't
-	///   interpret <paramref name="coefficient" />'s sign: the caller combines it with
-	///   <paramref name="negatedByUnary" /> in one place.
+	///   Peels the canonical <c>v * c</c>/<c>c * v</c>/<c>v / c</c> shape — or, for <c>c = 2</c>, the
+	///   <c>v + v</c> shape <see cref="MultiplyStrategies.MultiplyByTwoToAdditionStrategy" />
+	///   canonicalizes it to — optionally wrapped in a negating <c>-(...)</c>, off
+	///   <c>context.Left.Syntax</c>. Doesn't interpret <paramref name="coefficient" />'s sign: the
+	///   caller combines it with <paramref name="negatedByUnary" /> in one place. <c>c / v</c> (literal
+	///   numerator) is intentionally not matched — see the class-level remarks.
 	/// </summary>
-	private bool TryGetMultiplyCoefficient(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax variable, out object? coefficient, out bool negatedByUnary)
+	private bool TryGetMultiplicativeCoefficient(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax variable, out object? coefficient, out bool negatedByUnary, out bool isDivide)
 	{
 		variable = null!;
 		coefficient = null;
 		negatedByUnary = false;
+		isDivide = false;
 
 		var expr = RemoveParentheses(context.Left.Syntax);
 
@@ -138,6 +147,15 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 			return false;
 		}
 
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.DivideExpression } divide
+		    && divide.Right is LiteralExpressionSyntax divisorLiteral)
+		{
+			variable = divide.Left;
+			coefficient = divisorLiteral.Token.Value;
+			isDivide = true;
+			return true;
+		}
+
 		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } add
 		    && IsPure(add.Left)
 		    && LeftEqualsRight(add.Left, add.Right, context.Variables))
@@ -152,8 +170,9 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 
 	/// <summary>
 	///   Handles <c>v + c OP k</c>, <c>c + v OP k</c>, <c>v - c OP k</c>, and <c>c - v OP k</c>. Not
-	///   attempted under an outer unary minus — that shape belongs to <see cref="TryIsolateViaMultiply" />
-	///   (<c>-(v * c)</c>), and <c>-(v + c)</c>/<c>-(v - c)</c> are not canonical output of any
+	///   attempted under an outer unary minus — that shape belongs to
+	///   <see cref="TryIsolateViaMultiplicative" /> (<c>-(v * c)</c>/<c>-(v / c)</c>), and
+	///   <c>-(v + c)</c>/<c>-(v - c)</c> are not canonical output of any
 	///   upstream pass, so there is nothing to recognize for them here.
 	/// </summary>
 	private bool TryIsolateViaAddition(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
@@ -404,6 +406,58 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		}
 
 		return expr;
+	}
+
+	/// <summary>
+	///   Widens a boxed <c>int</c>/<c>uint</c>/<c>long</c>/<c>ulong</c> value to <see cref="BigInteger" />
+	///   for overflow-safe arithmetic — narrowing conversions like <c>Convert.ToInt32</c> throw
+	///   <see cref="System.OverflowException" /> on out-of-range values, which a strategy deciding
+	///   "can't safely optimize this" needs to treat as a normal decline, not an exception.
+	/// </summary>
+	protected static BigInteger? ToBigInteger(object? value)
+	{
+		return value switch
+		{
+			int i => i,
+			uint ui => ui,
+			long l => l,
+			ulong ul => ul,
+			_ => null
+		};
+	}
+
+	/// <summary>
+	///   Narrows a <see cref="BigInteger" /> back to the boxed CLR value for <paramref name="specialType" />
+	///   (one of <c>Int32</c>/<c>UInt32</c>/<c>Int64</c>/<c>UInt64</c>), range-checking first so an
+	///   out-of-range result declines rather than silently wrapping.
+	/// </summary>
+	protected static bool TryFromBigInteger(BigInteger value, SpecialType specialType, out object? result)
+	{
+		var (min, max) = specialType switch
+		{
+			SpecialType.System_Int32 => (Int32.MinValue, Int32.MaxValue),
+			SpecialType.System_UInt32 => (UInt32.MinValue, UInt32.MaxValue),
+			SpecialType.System_Int64 => (Int64.MinValue, Int64.MaxValue),
+			SpecialType.System_UInt64 => (UInt64.MinValue, UInt64.MaxValue),
+			_ => (BigInteger.Zero, BigInteger.Zero)
+		};
+
+		if (value < min || value > max)
+		{
+			result = null;
+			return false;
+		}
+
+		result = specialType switch
+		{
+			SpecialType.System_Int32 => (int) value,
+			SpecialType.System_UInt32 => (uint) value,
+			SpecialType.System_Int64 => (long) value,
+			SpecialType.System_UInt64 => (ulong) value,
+			_ => null
+		};
+
+		return result is not null;
 	}
 }
 

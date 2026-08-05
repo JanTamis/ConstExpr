@@ -20,7 +20,8 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 		// Reverse().Contains() => Contains()
 		var d = x.AsEnumerable().Reverse().Contains(3) ? 1 : 0;
 
-		// Select(...).Contains() => Exists(...)
+		// Select(...).Contains() => Exists(...); v * 2 == 6 does NOT fold further to v == 3 — see
+		// LinqContainsOptimizationTests for why multiply-by-even-c can't isolate safely.
 		var e = x.Select(v => v * 2).Contains(6) ? 1 : 0;
 
 		// Where(...).Contains() => Exists(...)
@@ -37,7 +38,7 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 		Create("""
 			var collectionsMarshalAsSpan = CollectionsMarshal.AsSpan(x);
 
-			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(collectionsMarshalAsSpan)) * 6 + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(collectionsMarshalAsSpan));
+			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(collectionsMarshalAsSpan)) * 5 + Unsafe.BitCast<bool, byte>(x.Exists(v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(collectionsMarshalAsSpan));
 			""", Unknown),
 		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]),
 		Create(_ => 0, [ new List<int>() ]),

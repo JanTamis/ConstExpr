@@ -16,5 +16,6 @@ public class BinaryLessThanOptimizer : BaseBinaryOptimizer
 		yield return new LessThanCountZeroStrategy();
 		yield return new LessThanReverseStrategy();
 		yield return new LessThanVariableIsolationStrategy();
+		yield return new LessThanRightShiftIsolationStrategy();
 	}
 }

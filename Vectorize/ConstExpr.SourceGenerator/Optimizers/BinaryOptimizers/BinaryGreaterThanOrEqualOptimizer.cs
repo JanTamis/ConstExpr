@@ -17,5 +17,6 @@ public class BinaryGreaterThanOrEqualOptimizer : BaseBinaryOptimizer
 		yield return new GreaterThanOrEqualTrailingZeroCountStrategy();
 		yield return new GreaterThanOrEqualReverseStrategy();
 		yield return new GreaterThanOrEqualVariableIsolationStrategy();
+		yield return new GreaterThanOrEqualRightShiftIsolationStrategy();
 	}
 }
