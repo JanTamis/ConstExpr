@@ -14,5 +14,6 @@ public class BinaryGreaterThanOptimizer : BaseBinaryOptimizer
 		yield return new GreaterThanReflexiveStrategy();
 		yield return new GreaterThanCountZeroStrategy();
 		yield return new GreaterThanReverseStrategy();
+		yield return new GreaterThanVariableIsolationStrategy();
 	}
 }

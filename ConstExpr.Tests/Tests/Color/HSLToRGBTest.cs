@@ -62,7 +62,7 @@ public class HSLToRGBTest : BaseTest<Func<float, float, float, (byte, byte, byte
 			}
 			else
 			{
-				var hue = h * 0.0027777778F;
+				var hue = h * 2.7777778E-3F;
 				var v2 = l < 0.5 ? l * (s + 1F) : Single.MultiplyAddEstimate(-l, s, l + s);
 				var v1 = (l + l) - v2;
 

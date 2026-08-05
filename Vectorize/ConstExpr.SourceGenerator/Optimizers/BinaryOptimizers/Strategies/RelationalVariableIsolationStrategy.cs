@@ -1,0 +1,249 @@
+using System;
+using ConstExpr.Core.Enumerators;
+using ConstExpr.SourceGenerator.Extensions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
+
+/// <summary>
+///   Isolates a variable operand combined with a compile-time constant across a comparison:
+///   <c>v * c OP k</c> becomes <c>v OP k / c</c> (flipping <c>OP</c> when <c>c</c> is negative);
+///   <c>v + c OP k</c> becomes <c>v OP k - c</c>; <c>v - c OP k</c> becomes <c>v OP k + c</c>;
+///   <c>c - v OP k</c> becomes <c>v OP' c - k</c> (always flips: the coefficient of <c>v</c> is -1).
+///   <c>c * v</c>, <c>c + v</c>, <c>-(v * c)</c>, and (for <c>c = 2</c>) <c>v + v</c> are recognized
+///   too, matching what the upstream multiply/add strategies canonicalize each shape to. For
+///   <c>OP</c> in <c>{==, !=}</c> there is nothing to flip — <paramref name="unflippedKind" /> and
+///   <paramref name="flippedKind" /> are simply passed the same value by those subclasses, so the
+///   flip decision below becomes a no-op rather than needing a separate code path.
+///   <para>
+///     A compound left side composes for free: isolating one layer can leave a
+///     <see cref="BinaryExpressionSyntax" /> result (e.g. <c>(v + 3) &lt; 5</c> from
+///     <c>(v + 3) * 2 &lt; 10</c>), and <c>TryOptimizeNode</c>'s existing re-optimization step already
+///     re-runs the same strategies on that result — so <c>(v + 3) * 2 &lt; 10</c> reaches <c>v &lt; 2</c>
+///     without this strategy needing to parse multi-term affine expressions itself.
+///   </para>
+///   <para>
+///     Requires <see cref="FastMathFlags.AssociativeMath" /> for all three operators alike: none of
+///     <c>k / c</c>, <c>k - c</c>, or <c>k + c</c> is a computation the source wrote, and for
+///     float/double none is guaranteed exact — e.g. <c>v * 6F &lt; 1F</c> and <c>v &lt; 1F / 6F</c> can
+///     disagree for values of <c>v</c> right at the boundary the comparison guards, and the same
+///     reassociation risk applies to moving an added/subtracted term across the comparison. Restricted
+///     to <see cref="SpecialType.System_Single" /> and <see cref="SpecialType.System_Double" />:
+///     integer division would change which values satisfy the comparison (not just round them) and
+///     integer add/subtract would need an overflow proof this strategy doesn't attempt, while decimal
+///     rounds in base 10 and can throw <see cref="OverflowException" /> — none of that is the "may
+///     differ from strict IEEE 754" tradeoff this flag is meant to cover.
+///   </para>
+/// </summary>
+public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKind, SyntaxKind flippedKind)
+	: BaseBinaryStrategy<ExpressionSyntax, LiteralExpressionSyntax>
+{
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
+
+	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{
+		optimized = null;
+
+		if (context.Left.Type?.SpecialType is not (SpecialType.System_Single or SpecialType.System_Double))
+		{
+			return false;
+		}
+
+		return TryIsolateViaMultiply(context, out optimized) || TryIsolateViaAddition(context, out optimized);
+	}
+
+	/// <summary>
+	///   Handles <c>v * c OP k</c>, <c>c * v OP k</c>, <c>-(v * c) OP k</c>, and (for <c>c = 2</c>)
+	///   <c>v + v OP k</c> via <see cref="TryGetMultiplyCoefficient" />.
+	/// </summary>
+	private bool TryIsolateViaMultiply(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{
+		optimized = null;
+
+		if (!TryGetMultiplyCoefficient(context, out var variable, out var rawCoefficient, out var negatedByUnary))
+		{
+			return false;
+		}
+
+		var specialType = context.Left.Type!.SpecialType;
+		var coefficient = rawCoefficient.ToSpecialType(specialType);
+
+		// Fold the wrapping -(v * c), if any, into the coefficient's own sign here, once, so the
+		// division and the flip decision both read off the same signed value — computing the
+		// quotient from the unsigned literal and flipping the operator separately would isolate the
+		// right threshold with the wrong sign (k / c, not k / -c).
+		if (negatedByUnary)
+		{
+			coefficient = coefficient.Negate();
+		}
+
+		if (coefficient is null || coefficient.IsNumericZero() || !(coefficient.IsPositive() || coefficient.IsNegative()))
+		{
+			// Zero (should already be folded upstream by MultiplyByZeroStrategy), NaN, or some other
+			// non-plain numeric literal value — nothing safe to isolate.
+			return false;
+		}
+
+		var k = context.Right.Syntax.Token.Value.ToSpecialType(specialType);
+		var quotient = k.Divide(coefficient);
+
+		if (quotient is null || !IsFinite(quotient))
+		{
+			return false;
+		}
+
+		optimized = BinaryExpression(coefficient.IsNegative() ? flippedKind : unflippedKind, variable, CreateLiteral(quotient));
+		return true;
+	}
+
+	/// <summary>
+	///   Peels the canonical <c>v * c</c>/<c>c * v</c> shape — or, for <c>c = 2</c>, the <c>v + v</c>
+	///   shape <see cref="MultiplyStrategies.MultiplyByTwoToAdditionStrategy" /> canonicalizes it to —
+	///   optionally wrapped in a negating <c>-(...)</c>, off <c>context.Left.Syntax</c>. Doesn't
+	///   interpret <paramref name="coefficient" />'s sign: the caller combines it with
+	///   <paramref name="negatedByUnary" /> in one place.
+	/// </summary>
+	private bool TryGetMultiplyCoefficient(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax variable, out object? coefficient, out bool negatedByUnary)
+	{
+		variable = null!;
+		coefficient = null;
+		negatedByUnary = false;
+
+		var expr = RemoveParentheses(context.Left.Syntax);
+
+		if (expr is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } unary)
+		{
+			negatedByUnary = true;
+			expr = RemoveParentheses(unary.Operand);
+		}
+
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } multiply)
+		{
+			if (multiply.Right is LiteralExpressionSyntax rightLiteral)
+			{
+				variable = multiply.Left;
+				coefficient = rightLiteral.Token.Value;
+				return true;
+			}
+
+			if (multiply.Left is LiteralExpressionSyntax leftLiteral)
+			{
+				variable = multiply.Right;
+				coefficient = leftLiteral.Token.Value;
+				return true;
+			}
+
+			return false;
+		}
+
+		if (expr is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } add
+		    && IsPure(add.Left)
+		    && LeftEqualsRight(add.Left, add.Right, context.Variables))
+		{
+			variable = add.Left;
+			coefficient = 2;
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Handles <c>v + c OP k</c>, <c>c + v OP k</c>, <c>v - c OP k</c>, and <c>c - v OP k</c>. Not
+	///   attempted under an outer unary minus — that shape belongs to <see cref="TryIsolateViaMultiply" />
+	///   (<c>-(v * c)</c>), and <c>-(v + c)</c>/<c>-(v - c)</c> are not canonical output of any
+	///   upstream pass, so there is nothing to recognize for them here.
+	/// </summary>
+	private bool TryIsolateViaAddition(BinaryOptimizeContext<ExpressionSyntax, LiteralExpressionSyntax> context, out ExpressionSyntax? optimized)
+	{
+		optimized = null;
+
+		if (RemoveParentheses(context.Left.Syntax) is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression or (int) SyntaxKind.SubtractExpression } additive)
+		{
+			return false;
+		}
+
+		var specialType = context.Left.Type!.SpecialType;
+		var k = context.Right.Syntax.Token.Value.ToSpecialType(specialType);
+		var isAdd = additive.IsKind(SyntaxKind.AddExpression);
+
+		ExpressionSyntax variable;
+		object? newThreshold;
+		var flip = false;
+
+		if (additive.Right is LiteralExpressionSyntax rightLiteral)
+		{
+			// v + c OP k  =>  v OP k - c
+			// v - c OP k  =>  v OP k + c
+			var offset = rightLiteral.Token.Value.ToSpecialType(specialType);
+			variable = additive.Left;
+			newThreshold = isAdd ? Subtract(k, offset, specialType) : Add(k, offset, specialType);
+		}
+		else if (isAdd && additive.Left is LiteralExpressionSyntax leftLiteral)
+		{
+			// c + v OP k  =>  v OP k - c
+			var offset = leftLiteral.Token.Value.ToSpecialType(specialType);
+			variable = additive.Right;
+			newThreshold = Subtract(k, offset, specialType);
+		}
+		else if (!isAdd && additive.Left is LiteralExpressionSyntax subLeftLiteral)
+		{
+			// c - v OP k  =>  v OP' c - k   (the coefficient of v is -1: always flips)
+			var c = subLeftLiteral.Token.Value.ToSpecialType(specialType);
+			variable = additive.Right;
+			newThreshold = Subtract(c, k, specialType);
+			flip = true;
+		}
+		else
+		{
+			return false;
+		}
+
+		if (newThreshold is null || !IsFinite(newThreshold))
+		{
+			return false;
+		}
+
+		optimized = BinaryExpression(flip ? flippedKind : unflippedKind, variable, CreateLiteral(newThreshold));
+		return true;
+	}
+
+	// Each arm is boxed to object explicitly: despite the object? return type, this switch expression
+	// still infers ONE common natural type across all arms rather than target-typing each one, and
+	// float widens implicitly to double — so an unboxed float arm here silently becomes a boxed
+	// double, corrupting every single-precision result (empirically confirmed: removing either cast
+	// makes ComparisonAdditionDivisionTest emit "-2D" instead of "-2F"). Not a redundant cast.
+	// ReSharper disable RedundantCast
+	private static object? Add(object? left, object? right, SpecialType specialType)
+	{
+		return specialType switch
+		{
+			SpecialType.System_Single => (object?) ((float?) left + (float?) right),
+			SpecialType.System_Double => (object?) ((double?) left + (double?) right),
+			_ => null
+		};
+	}
+
+	private static object? Subtract(object? left, object? right, SpecialType specialType)
+	{
+		return specialType switch
+		{
+			SpecialType.System_Single => (object?) ((float?) left - (float?) right),
+			SpecialType.System_Double => (object?) ((double?) left - (double?) right),
+			_ => null
+		};
+	}
+	// ReSharper restore RedundantCast
+
+	private static bool IsFinite(object value)
+	{
+		return value switch
+		{
+			float f => !Single.IsNaN(f) && !Single.IsInfinity(f),
+			double d => !Double.IsNaN(d) && !Double.IsInfinity(d),
+			_ => false
+		};
+	}
+}
