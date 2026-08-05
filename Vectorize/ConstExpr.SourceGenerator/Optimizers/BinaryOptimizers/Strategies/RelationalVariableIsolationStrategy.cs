@@ -50,7 +50,7 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 	{
 		optimized = null;
 
-		if (context.Left.Type?.SpecialType is not (SpecialType.System_Single or SpecialType.System_Double))
+		if (!context.Left.Type.IsFloatingNumeric())
 		{
 			return false;
 		}
@@ -198,27 +198,31 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 			// v - c OP k  =>  v OP k + c
 			var offset = rightLiteral.Token.Value.ToSpecialType(specialType);
 			variable = additive.Left;
-			newThreshold = isAdd ? Subtract(k, offset, specialType) : Add(k, offset, specialType);
-		}
-		else if (isAdd && additive.Left is LiteralExpressionSyntax leftLiteral)
-		{
-			// c + v OP k  =>  v OP k - c
-			var offset = leftLiteral.Token.Value.ToSpecialType(specialType);
-			variable = additive.Right;
-			newThreshold = Subtract(k, offset, specialType);
-		}
-		else if (!isAdd && additive.Left is LiteralExpressionSyntax subLeftLiteral)
-		{
-			// c - v OP k  =>  v OP' c - k   (the coefficient of v is -1: always flips)
-			var c = subLeftLiteral.Token.Value.ToSpecialType(specialType);
-			variable = additive.Right;
-			newThreshold = Subtract(c, k, specialType);
-			flip = true;
+			newThreshold = isAdd ? k.Subtract(offset) : k.Add(offset);
 		}
 		else
-		{
-			return false;
-		}
+			switch (isAdd)
+			{
+				case true when additive.Left is LiteralExpressionSyntax leftLiteral:
+				{
+					// c + v OP k  =>  v OP k - c
+					var offset = leftLiteral.Token.Value.ToSpecialType(specialType);
+					variable = additive.Right;
+					newThreshold = k.Subtract(offset);
+					break;
+				}
+				case false when additive.Left is LiteralExpressionSyntax subLeftLiteral:
+				{
+					// c - v OP k  =>  v OP' c - k   (the coefficient of v is -1: always flips)
+					var c = subLeftLiteral.Token.Value.ToSpecialType(specialType);
+					variable = additive.Right;
+					newThreshold = c.Subtract(k);
+					flip = true;
+					break;
+				}
+				default:
+					return false;
+			}
 
 		if (newThreshold is null || !IsFinite(newThreshold))
 		{
@@ -228,33 +232,6 @@ public abstract class RelationalVariableIsolationStrategy(SyntaxKind unflippedKi
 		optimized = BinaryExpression(flip ? flippedKind : unflippedKind, variable, CreateLiteral(newThreshold));
 		return true;
 	}
-
-	// Each arm is boxed to object explicitly: despite the object? return type, this switch expression
-	// still infers ONE common natural type across all arms rather than target-typing each one, and
-	// float widens implicitly to double — so an unboxed float arm here silently becomes a boxed
-	// double, corrupting every single-precision result (empirically confirmed: removing either cast
-	// makes ComparisonAdditionDivisionTest emit "-2D" instead of "-2F"). Not a redundant cast.
-	// ReSharper disable RedundantCast
-	private static object? Add(object? left, object? right, SpecialType specialType)
-	{
-		return specialType switch
-		{
-			SpecialType.System_Single => (object?) ((float?) left + (float?) right),
-			SpecialType.System_Double => (object?) ((double?) left + (double?) right),
-			_ => null
-		};
-	}
-
-	private static object? Subtract(object? left, object? right, SpecialType specialType)
-	{
-		return specialType switch
-		{
-			SpecialType.System_Single => (object?) ((float?) left - (float?) right),
-			SpecialType.System_Double => (object?) ((double?) left - (double?) right),
-			_ => null
-		};
-	}
-	// ReSharper restore RedundantCast
 
 	private static bool IsFinite(object value)
 	{
