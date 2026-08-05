@@ -1715,7 +1715,11 @@ public partial class ConstExprPartialRewriter
 			}
 			else
 			{
-				var newType = remainingVars.Count == 1 ? ParseTypeName("var") : declStmt.Declaration.Type;
+				// Same guard as SimplifiedTypeOf: a `ref var` declaration keeps its `ref` in the type,
+				// so normalizing to a bare `var` would delete it and produce CS8171.
+				var newType = remainingVars.Count == 1 && declStmt.Declaration.Type is not RefTypeSyntax
+					? ParseTypeName("var")
+					: declStmt.Declaration.Type;
 				result[i] = declStmt.WithDeclaration(
 					declStmt.Declaration
 						.WithType(newType)

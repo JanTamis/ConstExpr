@@ -102,8 +102,9 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 	/// <summary>
 	///   Determines if a variable declaration can be pruned. Unlike <see cref="CanBePruned(string)" />,
-	///   this overload also handles variables that are not in the tracking dictionary by checking
-	///   whether the initializer is a pure constant expression (no side effects).
+	///   this overload also handles variables that are not in the tracking dictionary — locals
+	///   introduced during rewriting (a CSE temp, a hoisted invariant) that the interpreter never
+	///   modelled — by checking that dropping the initializer cannot lose a side effect.
 	///   This covers block-local variables introduced inside if/else branches whose scope does not
 	///   extend beyond the branch.
 	/// </summary>
@@ -116,12 +117,62 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 		if (!variables.TryGetValue(variableName, out var variable))
 		{
-			return true;
+			// An untracked variable that is still written somewhere must keep its declaration:
+			// CanBePrunedAssignment refuses to prune a write to an untracked variable, so dropping
+			// the declaration here would strand `x = …;` with nothing declaring it (CS0103).
+			if (usageCollector.GetWriteCount(variableName) > 0)
+			{
+				return false;
+			}
+
+			// The doc contract for this overload: an untracked declaration only goes away when its
+			// initializer cannot have a side effect. Without this the pruner silently deletes the
+			// call in `var unused = Foo();`.
+			return HasNoSideEffects(initializer);
 		}
 
 		// IsAltered is intentionally not checked: if the variable is never read, the
 		// assignment (even after a re-assignment) is still dead code.
 		return variable.HasValue;
+	}
+
+	/// <summary>
+	///   Returns <see langword="true" /> when evaluating <paramref name="expr" /> cannot be observed —
+	///   so discarding it along with its declaration changes nothing. Deliberately broader than
+	///   <see cref="IsConstantExpression" />, which only admits literals: a synthesized temp's
+	///   initializer is usually plain arithmetic over locals, and refusing to prune those would leave
+	///   the dead CSE/hoist temps this pass exists to remove. Anything that can call code, allocate,
+	///   assign, or mutate is rejected.
+	/// </summary>
+	private static bool HasNoSideEffects(ExpressionSyntax? expr)
+	{
+		if (expr is null)
+		{
+			return true;
+		}
+
+		foreach (var node in expr.DescendantNodesAndSelf())
+		{
+			switch (node)
+			{
+				case InvocationExpressionSyntax:
+				case ObjectCreationExpressionSyntax:
+				case ImplicitObjectCreationExpressionSyntax:
+				case ArrayCreationExpressionSyntax:
+				case ImplicitArrayCreationExpressionSyntax:
+				case StackAllocArrayCreationExpressionSyntax:
+				case ImplicitStackAllocArrayCreationExpressionSyntax:
+				case AssignmentExpressionSyntax:
+				case AwaitExpressionSyntax:
+				case PostfixUnaryExpressionSyntax:
+					return false;
+				case PrefixUnaryExpressionSyntax prefix
+					when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+					return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -146,10 +197,9 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		{
 			return base.Visit(node);
 		}
-		catch (Exception e)
+		catch (Exception)
 		{
 			return null;
-			// return node;
 		}
 	}
 
@@ -184,7 +234,15 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				// type. Keep the explicit `Span<T>` the StackAllocRewriter emitted. An uninitialized
 				// declarator (initializer already elided) must also keep its explicit type: `var x;`
 				// with no initializer is CS0818.
-				if (remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
+				//
+				// A `ref` local is the same class of problem, and it is why pass 13 in
+				// OptimizationPipeline runs without a Prune: the `ref` lives in `node.Type` as a
+				// RefTypeSyntax (`ref var`), so replacing the type with a bare `var` deletes it and
+				// turns `ref var r = ref x;` into `var r = ref x;` — CS8172, with no diagnostic from
+				// this pass. BoundsCheckRewriter.ReferenceDeclaration emits exactly that shape, and so
+				// does any user source that declares a ref local inside a [ConstExpr] method.
+				if (node.Type is not RefTypeSyntax
+				    && remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
 				{
 					node = node.WithType(ParseTypeName("var"));
 				}

@@ -289,10 +289,18 @@ public partial class ConstExprPartialRewriter
 	///     silently turns a safe span into a pointer, which needs <c>AllowUnsafeBlocks</c> to compile
 	///     at all and drops the length along with the bounds check.
 	///   </para>
+	///   <para>
+	///     A <c>ref</c> local is the other one. The <c>ref</c> lives in <paramref name="node" />'s type
+	///     as a <c>RefTypeSyntax</c>, not on the declarator, so replacing the type with a bare
+	///     <c>var</c> deletes it: <c>ref var f = ref numbers[0];</c> came out as
+	///     <c>var f = ref numbers[0];</c>, which is CS8171. <c>DeadCodePruner</c> normalizes the same
+	///     way and needed the same guard.
+	///   </para>
 	/// </summary>
 	private static TypeSyntax SimplifiedTypeOf(VariableDeclarationSyntax node, VariableDeclaratorSyntax declarator)
 	{
-		return declarator.Initializer?.Value is StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax
+		return node.Type is RefTypeSyntax
+		       || declarator.Initializer?.Value is StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax
 			? node.Type
 			: ParseTypeName("var");
 	}
