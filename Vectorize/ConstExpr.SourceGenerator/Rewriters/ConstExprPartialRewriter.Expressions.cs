@@ -1251,6 +1251,15 @@ public partial class ConstExprPartialRewriter
 		var isProvablyNonNullReference = IsProvablyNonNull(node.Expression)
 		                                 && semanticModel.TryGetTypeSymbol(node, symbolStore, out var conditionalAccessType) && !conditionalAccessType.IsValueType;
 
+		// x?.Member where x is known null → null. This must be checked before the
+		// TryGetLiteralValue branch below: TryGetLiteralValue matches a null literal too
+		// (its Token.Value is just null), which would otherwise rewrite x?.Foo() into the
+		// invalid `null.Foo()` instead of folding the whole expression to null.
+		if (expression.IsKind(SyntaxKind.NullLiteralExpression))
+		{
+			return LiteralExpression(SyntaxKind.NullLiteralExpression);
+		}
+
 		if (TryGetLiteralValue(expression, out _) || isProvablyNonNullReference)
 		{
 			switch (node.WhenNotNull)
@@ -1277,12 +1286,6 @@ public partial class ConstExprPartialRewriter
 					return Visit(newInvocation);
 				}
 			}
-		}
-
-		// x?.Member where x is known null → null
-		if (expression is LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression })
-		{
-			return LiteralExpression(SyntaxKind.NullLiteralExpression);
 		}
 
 		var whenNotNull = Visit(node.WhenNotNull);
