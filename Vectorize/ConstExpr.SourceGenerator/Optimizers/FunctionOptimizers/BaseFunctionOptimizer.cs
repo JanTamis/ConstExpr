@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -859,6 +860,11 @@ public abstract class BaseFunctionOptimizer
 
 	protected bool CanBeNull(FunctionOptimizerContext context, ExpressionSyntax expressionSyntax)
 	{
+		if (!context.Optimizations.HasFlag(OptimizationFlags.UseNullableAnnotations))
+		{
+			return true;
+		}
+
 		return expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression)
 		       || expressionSyntax is IdentifierNameSyntax identifierNameSyntax
 		       && context.Variables.TryGetValue(identifierNameSyntax.Identifier.Text, out var variable)

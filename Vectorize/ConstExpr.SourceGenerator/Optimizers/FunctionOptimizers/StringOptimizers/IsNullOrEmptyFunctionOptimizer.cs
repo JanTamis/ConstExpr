@@ -5,7 +5,8 @@ using Microsoft.CodeAnalysis;
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
 /// <summary>
-///   Optimizes string.IsNullOrEmpty(literal) to true/false.
+///   Optimizes string.IsNullOrEmpty(literal) to true/false, and folds the call on a provably
+///   non-null argument into a length check that skips the redundant null check.
 /// </summary>
 public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOptimizer(instance, "IsNullOrEmpty", true, n => n is 1)
 {

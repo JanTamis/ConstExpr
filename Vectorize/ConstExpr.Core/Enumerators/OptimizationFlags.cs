@@ -170,7 +170,31 @@ public enum OptimizationFlags
 	/// </summary>
 	WhileToDoWhileConversion = 1 << 12,
 
-
+	/// <summary>
+	///   Enable nullable-annotation-driven simplification.
+	///   Treats an unannotated (non-<c>?</c>) reference-type expression as provably non-null, and lets
+	///   code whose only extra work is a null check collapse to what remains. Two places consume this:
+	///   the per-invocation string function optimizers —
+	///   <code>
+	///   string.IsNullOrEmpty(s)       =>  s.Length == 0
+	///   string.IsNullOrWhiteSpace(s)  =>  s.AsSpan().IsWhiteSpace()
+	///   </code>
+	///   — and the general expression rewriter, which folds:
+	///   <code>
+	///   x ?? y        =>  x
+	///   x?.Foo()      =>  x.Foo()
+	///   x == null     =>  false        x != null     =>  true
+	///   x is null     =>  false        x is not null =>  true
+	///   x ??= y       =>  x            (or drops the statement entirely when used standalone)
+	///   </code>
+	///   <para>
+	///     This only ever removes a null check the caller has already proven unnecessary — it never
+	///     narrows a type or changes what the method computes for any input that was reachable before.
+	///     The <c>string.IsNullOrWhiteSpace</c> rewrite additionally needs
+	///     <c>MemoryExtensions.IsWhiteSpace(ReadOnlySpan&lt;char&gt;)</c> (.NET 8+) and is skipped when
+	///     that API isn't available in the target compilation.
+	///   </para>
+	/// </summary>
 	UseNullableAnnotations = 1 << 13,
 
 	/// <summary>
@@ -178,8 +202,8 @@ public enum OptimizationFlags
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
 	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>,
-	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" />, <see cref="Reassociation" /> and
-	///   <see cref="WhileToDoWhileConversion" />.
+	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" />, <see cref="Reassociation" />,
+	///   <see cref="WhileToDoWhileConversion" /> and <see cref="UseNullableAnnotations" />.
 	/// </summary>
 	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion | UseNullableAnnotations
 }

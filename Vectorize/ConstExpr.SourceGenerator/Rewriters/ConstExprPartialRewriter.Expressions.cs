@@ -125,6 +125,33 @@ public partial class ConstExprPartialRewriter
 			return right;
 		}
 
+		// x == null / null == x → false, x != null / null != x → true, when the non-null-literal side
+		// is provably non-null. Placed early so it applies whether or not the semantic model resolves an
+		// IBinaryOperation for this node further down.
+		//
+		// Verified safe against the `x == null || x.Length == 0` → String.IsNullOrEmpty(x) rewrite
+		// (ConditionalOrIsNullOrEmptyStrategy, in Optimizers/BinaryOptimizers/ConditionalOrStrategies/):
+		// children are visited bottom-up, so if this fold turns the LEFT side of that `||` into `false`
+		// first, ConditionalOrLiteralStrategy — registered before ConditionalOrIsNullOrEmptyStrategy in
+		// BinaryConditionalOrOptimizer.GetStrategies(), and strategies are tried in that order, first
+		// match wins (TryOptimizeNode below) — already collapses `false || y` to `y`. Both paths land on
+		// the exact same `x.Length == 0`.
+		if ((node.IsKind(SyntaxKind.EqualsExpression) || node.IsKind(SyntaxKind.NotEqualsExpression))
+		    && left is ExpressionSyntax leftNullCheck && right is ExpressionSyntax rightNullCheck)
+		{
+			var resultWhenNonNull = node.IsKind(SyntaxKind.NotEqualsExpression);
+
+			if (rightNullCheck.IsKind(SyntaxKind.NullLiteralExpression) && IsProvablyNonNull(leftNullCheck))
+			{
+				return CreateLiteral(resultWhenNonNull);
+			}
+
+			if (leftNullCheck.IsKind(SyntaxKind.NullLiteralExpression) && IsProvablyNonNull(rightNullCheck))
+			{
+				return CreateLiteral(resultWhenNonNull);
+			}
+		}
+
 		// Distribute equality/inequality/arithmetic over an otherwise-unresolvable ternary operand,
 		// e.g. `(cond ? a : b) == x` -> `cond ? (a == x) : (b == x)`, or `(cond ? a : b) * x` ->
 		// `cond ? a * x : b * x`. If a ternary reaches here at all its condition must be unknown (a
@@ -284,6 +311,17 @@ public partial class ConstExprPartialRewriter
 					return CreateLiteral(false);
 				}
 			}
+		}
+
+		// x ?? y where x is provably non-null: fold to x. y is never evaluated in that case, so
+		// dropping it here can't remove a runtime side effect that would otherwise have run. Only
+		// fires when hasLeftValue was false (the literal-driven fold above already handles and
+		// returns for every hasLeftValue-true coalesce case).
+		if (node.IsKind(SyntaxKind.QuestionQuestionToken, SyntaxKind.CoalesceExpression)
+		    && left is ExpressionSyntax leftExpression
+		    && IsProvablyNonNull(leftExpression))
+		{
+			return leftExpression;
 		}
 
 		if (hasRightValue)
@@ -1176,12 +1214,44 @@ public partial class ConstExprPartialRewriter
 			.WithWhenFalse(whenFalse as ExpressionSyntax ?? node.WhenFalse);
 	}
 
+	/// <summary>
+	///   True only for a tracked identifier whose nullable annotation proves it can't be null right now
+	///   (gated by UseNullableAnnotations — flag off means "never provably non-null", the conservative
+	///   default). Any other expression shape (a call, an indexer, a member access) returns false: we
+	///   haven't proven anything about it, so it's treated as possibly null. This is deliberately NOT
+	///   `!CanBeNull(...)` — `BaseFunctionOptimizer.CanBeNull` treats "not a null literal and not a
+	///   tracked identifier" as *not* possibly-null, an existing, shipped asymmetry in the two string
+	///   optimizers that this leaves as-is. Negating it here would import that hole into these call
+	///   sites instead of leaving it where it already shipped.
+	/// </summary>
+	private bool IsProvablyNonNull(ExpressionSyntax expressionSyntax)
+	{
+		if (!attribute.Optimizations.HasFlag(OptimizationFlags.UseNullableAnnotations))
+		{
+			return false;
+		}
+
+		return !expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression)
+		       && expressionSyntax is IdentifierNameSyntax identifierNameSyntax
+		       && variables.TryGetValue(identifierNameSyntax.Identifier.Text, out var variable)
+		       && !variable.CanBeNull;
+	}
+
 	public override SyntaxNode? VisitConditionalAccessExpression(ConditionalAccessExpressionSyntax node)
 	{
 		var expression = Visit(node.Expression);
 
-		// x?.Member where x is known non-null → x.Member
-		if (TryGetLiteralValue(expression, out _))
+		// x?.Member where x is known non-null (a compile-time literal, or provably non-null via
+		// nullable annotations) → x.Member. The annotation-driven half is skipped when the accessed
+		// member returns a value type: x?.Length is int?, x.Length is int — folding away the `?` there
+		// is a real type change (not just an annotation change), and can break a caller relying on the
+		// nullable static type, e.g. `x?.Length ?? -1` (int ?? int doesn't compile) or `x?.Length == null`
+		// (int == null doesn't compile). Checking the conditional-access node's OWN inferred type catches
+		// this: it's a value type exactly when the access wraps a value-type member into T? (Nullable<T>).
+		var isProvablyNonNullReference = IsProvablyNonNull(node.Expression)
+		                                 && semanticModel.TryGetTypeSymbol(node, symbolStore, out var conditionalAccessType) && !conditionalAccessType.IsValueType;
+
+		if (TryGetLiteralValue(expression, out _) || isProvablyNonNullReference)
 		{
 			switch (node.WhenNotNull)
 			{

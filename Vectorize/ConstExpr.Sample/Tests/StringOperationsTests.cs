@@ -43,6 +43,13 @@ internal class StringOperationsTests
 		// ToTitleCase - mixed
 		Console.WriteLine($"[MIXED] ToTitleCase(varString): {StringOperations.ToTitleCase(varString)}");
 
+		// IsBlank - alleen constanten
+		Console.WriteLine($"[CONST] IsBlank(\"   \"): {StringOperations.IsBlank("   ")}");
+		Console.WriteLine($"[CONST] IsBlank(\"hello\"): {StringOperations.IsBlank("hello")}");
+
+		// IsBlank - mixed
+		Console.WriteLine($"[MIXED] IsBlank(varString): {StringOperations.IsBlank(varString)}");
+
 		// CountChar - alleen constanten
 		Console.WriteLine($"[CONST] CountChar(\"Mississippi\", 's'): {StringOperations.CountChar("Mississippi", 's')}");
 		Console.WriteLine($"[CONST] CountChar(\"Hello\", 'l'): {StringOperations.CountChar("Hello", 'l')}");

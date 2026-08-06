@@ -373,7 +373,7 @@ public partial class ConstExprPartialRewriter
 			var left = expression as ExpressionSyntax ?? node.Expression;
 			var right = Visit(constInner.Expression) as ExpressionSyntax ?? constInner.Expression;
 
-			return NotEqualsExpression(left, right);
+			return VisitBinaryExpression(NotEqualsExpression(left, right));
 		}
 
 		// Handle unary "not" around OR patterns: `x is not (1 or 2 or 3)` -> `(uint)(x - 1) > 2u`

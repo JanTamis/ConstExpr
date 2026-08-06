@@ -341,6 +341,15 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
+		// a ??= b where a is provably non-null: b is only evaluated/assigned when a is null, so the
+		// assignment never happens — the expression's value is just a's current value, and b (with any
+		// side effects it would have had) never appears in the generated code. Checked first, before
+		// the unconditional Visit(node.Right)/switch dispatch below, since none of that applies here.
+		if (node.IsKind(SyntaxKind.CoalesceAssignmentExpression) && IsProvablyNonNull(node.Left))
+		{
+			return Visit(node.Left);
+		}
+
 		var visitedRight = Visit(node.Right);
 		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
 		var kind = node.OperatorToken.Kind();

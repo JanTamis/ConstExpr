@@ -5,6 +5,7 @@ public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int
 {
 	public override string TestMethod => GetString(s =>
 	{
+		// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract — being always false is the point.
 		var a = s == null ? -1 : s.Length;
 		var b = null == s ? -2 : s.Length;
 		var c = s != null ? s.Length : -3;
@@ -17,7 +18,14 @@ public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(s => (s?.Length ?? -1, s?.Length ?? -2, s?.Length ?? -3, s?.Length ?? -4, s?.Length ?? -5, s?.Length ?? -6)),
+		// UseNullableAnnotations now folds each null-check condition (s is non-nullable) to a constant
+		// bool, so each ternary collapses straight to s.Length instead — which CSE then dedupes into
+		// one shared local, since all six variables compute the identical expression.
+		Create("""
+			var sLength = s.Length;
+
+			return (sLength, sLength, sLength, sLength, sLength, sLength);
+			"""),
 		Create(_ => (3, 3, 3, 3, 3, 3), [ "abc" ]),
 		Create(_ => (-1, -2, -3, -4, -5, -6), [ null ])
 	];

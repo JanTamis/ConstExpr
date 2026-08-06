@@ -571,6 +571,7 @@ public partial class ConstExprPartialRewriter
 			variables,
 			usings,
 			attribute.MathOptimizations,
+			attribute.Optimizations,
 			symbolStore);
 	}
 

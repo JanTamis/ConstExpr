@@ -166,6 +166,16 @@ public partial class ConstExprPartialRewriter(
 	{
 		var result = Visit(node.Expression);
 
+		// a ??= b; as a standalone statement, when a is provably non-null: VisitAssignmentExpression
+		// already folded the coalesce-assignment down to the bare target in that case (result stops
+		// being an AssignmentExpressionSyntax). A bare identifier expression statement (`a;`) isn't
+		// legal C# (CS0201: only assignment/call/increment/decrement/await/new-object expressions can
+		// be a statement), so the whole statement becomes a no-op instead.
+		if (node.Expression is AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.CoalesceAssignmentExpression } && result is not AssignmentExpressionSyntax)
+		{
+			return EmptyStatement();
+		}
+
 		return result switch
 		{
 			// For increment/decrement of a plain (possibly symbolic/unknown) variable that evaluate
