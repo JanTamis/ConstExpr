@@ -38,7 +38,8 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		TryGetValueDelegate tryGetValue,
 		SyntaxNode? parent,
 		SemanticModel model,
-		ConcurrentDictionary<ulong, ISymbol> symbolStore)
+		ConcurrentDictionary<ulong, ISymbol> symbolStore,
+		Func<SyntaxNode, ExpressionSyntax?> visit)
 	{
 		if (leftExpr is not TLeft typedLeft || rightExpr is not TRight typedRight)
 		{
@@ -63,7 +64,8 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 			BinaryExpressions = expressions,
 			Parent = parent,
 			Model = model,
-			SymbolStore = symbolStore
+			SymbolStore = symbolStore,
+			Visit = visit
 		};
 	}
 

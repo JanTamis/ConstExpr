@@ -73,7 +73,8 @@ public static class NegateExpressionRefactoring
 	{
 		return expression switch
 		{
-			BinaryExpressionSyntax or ConditionalExpressionSyntax or AssignmentExpressionSyntax
+			// `is`-pattern binds looser than unary `!`, so `!x is pattern` reparses as `(!x) is pattern`.
+			BinaryExpressionSyntax or ConditionalExpressionSyntax or AssignmentExpressionSyntax or IsPatternExpressionSyntax
 				=> ParenthesizedExpression(expression),
 			_ => expression
 		};

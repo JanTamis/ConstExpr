@@ -276,10 +276,11 @@ public partial class ConstExprPartialRewriter
 				rightExpr,
 				rightType,
 				variables,
-				(TryGetValueDelegate)TryGetLiteralValue,
+				(TryGetValueDelegate) TryGetLiteralValue,
 				parent,
 				semanticModel,
-				symbolStore
+				symbolStore,
+				(SyntaxNode x) => Visit(x) as ExpressionSyntax
 			]);
 
 			if (context is null)

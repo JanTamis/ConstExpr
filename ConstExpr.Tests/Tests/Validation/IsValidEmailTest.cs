@@ -41,15 +41,15 @@ public class IsValidEmailTest : BaseTest<Func<string, bool>>
 		Create(email =>
 		{
 			ref var emailRef = ref MemoryMarshal.GetReference(email.AsSpan());
+			var emailLength = email.Length;
 
-			if (System.String.IsNullOrEmpty(email) || email.Length < 5)
+			if (emailLength is 0 or < 5)
 				return false;
 
 			var atCount = 0;
 			var dotCount = 0;
 			var atIndex = -1;
 			var lastDotIndex = -1;
-			var emailLength = email.Length;
 
 			for (var i = 0; i < emailLength; i++)
 			{

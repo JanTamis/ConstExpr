@@ -599,11 +599,12 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (operation.Syntax is VariableDeclaratorSyntax variable)
 		{
-			var result = (EqualsValueClauseSyntax)Visit(operation.Initializer, argument);
+			var result = (EqualsValueClauseSyntax) Visit(operation.Initializer, argument);
 
 			if (!argument.TryGetValue(name, out var item))
 			{
-				item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, result?.Value);
+				var type = operation.Type ?? operation.Symbol.Type;
+				item = new VariableItem(type, true, result?.Value, type is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
 				argument.Add(name, item);
 			}
 
@@ -612,7 +613,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				item.Value = nameSyntax;
 				item.IsInitialized = true;
 			}
-			else if (operation.Initializer is null && operation.Symbol is ILocalSymbol local)
+			else if (operation.Initializer is null && operation.Symbol is { } local)
 			{
 				item.Value = local.Type.GetDefaultValue();
 				item.IsInitialized = false;
@@ -683,7 +684,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 		if (operation.Syntax is CastExpressionSyntax castExpressionSyntax)
 		{
-			return castExpressionSyntax.WithExpression((ExpressionSyntax)operand);
+			return castExpressionSyntax.WithExpression((ExpressionSyntax) operand);
 		}
 
 		return operand;
@@ -763,7 +764,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 
 			return invocation
 				.WithArgumentList(invocation.ArgumentList
-					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax)s)))));
+					.WithArguments(SeparatedList(arguments.Select(s => Argument((ExpressionSyntax) s)))));
 		}
 
 		return operation.Syntax;
@@ -791,9 +792,9 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 			}
 
 			return conditional
-				.WithCondition((ExpressionSyntax)condition!)
-				.WithWhenTrue((ExpressionSyntax)Visit(operation.WhenTrue, argument)!)
-				.WithWhenFalse((ExpressionSyntax)Visit(operation.WhenFalse, argument)!);
+				.WithCondition((ExpressionSyntax) condition!)
+				.WithWhenTrue((ExpressionSyntax) Visit(operation.WhenTrue, argument)!)
+				.WithWhenFalse((ExpressionSyntax) Visit(operation.WhenFalse, argument)!);
 		}
 
 		if (operation.Syntax is IfStatementSyntax ifStatement)
@@ -858,8 +859,8 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 	{
 		return operation.Syntax switch
 		{
-			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
-			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?)Visit(operation.ReturnedValue, argument)),
+			ReturnStatementSyntax returnStatement => returnStatement.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
+			YieldStatementSyntax yieldStatementSyntax => yieldStatementSyntax.WithExpression((ExpressionSyntax?) Visit(operation.ReturnedValue, argument)),
 			_ => operation.Syntax
 		};
 	}
@@ -889,7 +890,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				var indices = propertyReference.Arguments.Select(a => Visit(a.Value, argument)).ToArray();
 
 				return assignmentExpression.WithLeft(ElementAccessExpression(
-					(ExpressionSyntax)instance!,
+					(ExpressionSyntax) instance!,
 					BracketedArgumentList(SeparatedList(indices.OfType<ExpressionSyntax>().Select(Argument)))
 				));
 			}
@@ -1382,7 +1383,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				}
 
 				return switchExpr
-					.WithGoverningExpression((ExpressionSyntax)visitedGoverning!)
+					.WithGoverningExpression((ExpressionSyntax) visitedGoverning!)
 					.WithArms(SeparatedList(newArms));
 			}
 		}
@@ -1407,7 +1408,7 @@ public class ConstExprPartialVisitor(SemanticModel model, MetadataLoader loader,
 				{
 					var value = Visit(arg.Value, argument);
 
-					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax)value!));
+					arguments.Add(argumentSyntax.WithExpression((ExpressionSyntax) value!));
 				}
 			}
 

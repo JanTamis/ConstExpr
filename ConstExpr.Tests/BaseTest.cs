@@ -94,11 +94,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			.Select(s => s.Identifier.Text)
 			.ToList();
 
-		var parameterTypes = method.ParameterList.Parameters
-			.Select(p => compilation.GetSemanticModel(method.SyntaxTree).GetTypeInfo(p.Type!).Type ?? compilation.ObjectType)
-			.ToList();
-
 		var semanticModel = compilation.GetSemanticModel(method.SyntaxTree);
+
+		// GetTypeInfo on a parameter's TypeSyntax does not resolve the nullable annotation even when
+		// the compilation's nullable context is enabled; GetDeclaredSymbol's IParameterSymbol.Type does.
+		var parameterTypes = method.ParameterList.Parameters
+			.Select(p => semanticModel.GetDeclaredSymbol(p)?.Type ?? compilation.ObjectType)
+			.ToList();
 
 		var formattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!;
 		var formattedOriginalBodyTwice = FormattingHelper.Format(formattedOriginalBody) as BlockSyntax ?? formattedOriginalBody;
@@ -147,7 +149,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			parameters[state.ParameterNames[i]] = new VariableItem(
 				state.ParameterTypes[i],
 				false,
-				null);
+				null,
+				state.ParameterTypes[i] is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
 		}
 
 		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
@@ -178,7 +181,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 				parameters.Add(name, new VariableItem(
 					candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
 					false,
-					null)
+					null,
+					candidate.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false })
 				{
 					CanBeInlined = true
 				});
@@ -276,7 +280,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			"TestAssembly",
 			[ CSharpSyntaxTree.ParseText(source) ],
 			BaseTestShared.MetadataReferences.Value,
-			new CSharpCompilationOptions(OutputKind.ConsoleApplication));
+			new CSharpCompilationOptions(OutputKind.ConsoleApplication, nullableContextOptions: NullableContextOptions.Enable));
 	}
 
 	private static string BuildSourceWithMethod(string testMethod)
@@ -385,9 +389,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	protected static string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
 	{
-		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType);
+		var nullability = new NullabilityInfoContext();
+		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType, nullability.Create(method.Method.ReturnParameter));
 		var parameters = method.Method.GetParameters();
-		var paramList = System.String.Join(", ", parameters.Select(p => $"{TestMethodHelper.GetTypeName(p.ParameterType)} {p.Name}"));
+		var paramList = System.String.Join(", ", parameters.Select(p => $"{TestMethodHelper.GetTypeName(p.ParameterType, nullability.Create(p))} {p.Name}"));
 
 		// Try to extract body from CallerArgumentExpression
 		var body = TestMethodHelper.ExtractLambdaBody(lambdaSource);

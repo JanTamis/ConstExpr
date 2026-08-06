@@ -1,9 +1,6 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.StringOptimizers;
 
@@ -16,20 +13,9 @@ public class IsNullOrEmptyFunctionOptimizer(SyntaxNode? instance) : BaseStringFu
 	{
 		result = null;
 
-		if (context.VisitedParameters[0] is not LiteralExpressionSyntax literal)
+		if (!CanBeNull(context, context.VisitedParameters[0]))
 		{
-			return false;
-		}
-
-		if (literal.IsKind(SyntaxKind.NullLiteralExpression))
-		{
-			result = CreateLiteral(true);
-			return true;
-		}
-
-		if (literal.IsKind(SyntaxKind.StringLiteralExpression))
-		{
-			result = CreateLiteral(String.IsNullOrEmpty(literal.Token.ValueText));
+			result = EqualsExpression(MemberAccessExpression(context.VisitedParameters[0], IdentifierName("Length")), CreateLiteral(0));
 			return true;
 		}
 

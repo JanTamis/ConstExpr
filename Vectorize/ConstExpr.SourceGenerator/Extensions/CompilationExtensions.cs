@@ -362,6 +362,16 @@ public static class CompilationExtensions
 		return typeSymbol?.GetMembers(name).OfType<IMethodSymbol>().Any() == true;
 	}
 
+	public static IMethodSymbol? GetMethod(this ITypeSymbol? typeSymbol, string name)
+	{
+		if (typeSymbol is ITypeParameterSymbol parameter)
+		{
+			return parameter.ConstraintTypes.Select(s => s.GetMethod(name)).FirstOrDefault(a => a != null);
+		}
+
+		return typeSymbol?.GetMembers(name).OfType<IMethodSymbol>().FirstOrDefault();
+	}
+
 	public static bool HasMethod(this ITypeSymbol typeSymbol, string name, Func<IMethodSymbol, bool> predicate)
 	{
 		if (typeSymbol is ITypeParameterSymbol parameter)

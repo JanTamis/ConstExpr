@@ -55,7 +55,7 @@ public partial class ConstExprPartialRewriter
 					if (inferredType is not null)
 					{
 						var varName = node.Identifier.Text;
-						var syntheticItem = new VariableItem(inferredType, true, literalVal);
+						var syntheticItem = new VariableItem(inferredType, true, literalVal, inferredType is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
 						// Use indexer instead of Add to tolerate name collisions with outer scope.
 						variables[varName] = syntheticItem;
 						return node.WithInitializer(node.Initializer.WithValue(visitedInit));
@@ -105,7 +105,7 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode HandleNewVariableDeclaration(VariableDeclaratorSyntax node, IVariableDeclaratorOperation operation, string name, SyntaxNode? value)
 	{
-		var item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value);
+		var item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value, operation.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false });
 
 		variables.Add(name, item);
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -33,6 +34,8 @@ public sealed class BinaryOptimizeContext<TLeft, TRight>
 	public SemanticModel Model { get; init; }
 
 	public ConcurrentDictionary<ulong, ISymbol> SymbolStore { get; init; }
+
+	public Func<SyntaxNode, ExpressionSyntax?> Visit { get; init; }
 
 	internal string GetDebuggerDisplay()
 	{

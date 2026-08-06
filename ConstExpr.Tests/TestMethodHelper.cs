@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ConstExpr.Tests;
@@ -19,9 +20,10 @@ public static class TestMethodHelper
 		string? lambdaSource = null)
 		where TDelegate : Delegate
 	{
-		var returnType = GetTypeName(method.Method.ReturnType);
+		var nullability = new NullabilityInfoContext();
+		var returnType = GetTypeName(method.Method.ReturnType, nullability.Create(method.Method.ReturnParameter));
 		var parameters = method.Method.GetParameters();
-		var paramList = System.String.Join(", ", parameters.Select(p => $"{GetTypeName(p.ParameterType)} {p.Name}"));
+		var paramList = System.String.Join(", ", parameters.Select(p => $"{GetTypeName(p.ParameterType, nullability.Create(p))} {p.Name}"));
 
 		// Try to extract body from CallerArgumentExpression
 		var body = ExtractLambdaBody(lambdaSource);
@@ -95,6 +97,13 @@ public static class TestMethodHelper
 		}
 
 		return -1;
+	}
+
+	public static string GetTypeName(Type type, NullabilityInfo nullability)
+	{
+		var name = GetTypeName(type);
+
+		return !type.IsValueType && nullability.ReadState == NullabilityState.Nullable ? $"{name}?" : name;
 	}
 
 	public static string GetTypeName(Type type)

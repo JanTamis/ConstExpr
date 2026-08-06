@@ -21,12 +21,15 @@ public class ConditionalOrIsNullOrEmptyStrategy()
 			return false;
 		}
 
+		var method = context.Model.Compilation.CreateString().GetMethod("IsNullOrEmpty");
+
 		optimized = InvocationExpression(
 				MemberAccessExpression(
 					IdentifierName("String"),
 					IdentifierName("IsNullOrEmpty")))
 			.WithArgumentList(
-				ArgumentList(GetExpressionSyntax(context.Left.Syntax)));
+				ArgumentList(GetExpressionSyntax(context.Left.Syntax)))
+			.WithMethodSymbolAnnotation(method, context.SymbolStore);
 		return true;
 	}
 

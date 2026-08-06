@@ -503,7 +503,8 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					variablesPartial.Add(name, new VariableItem(
 						candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
 						false,
-						null)
+						null,
+						candidate.Symbol.NullableAnnotation == NullableAnnotation.Annotated && !candidate.Symbol.Type.IsValueType)
 					{
 						CanBeInlined = true
 					});
@@ -713,20 +714,23 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 			else
 			{
+				var canBeNull = argument.Parameter.NullableAnnotation == NullableAnnotation.Annotated && !argument.Parameter.Type.IsValueType;
+
 				try
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true) { CanBeNull = canBeNull });
 				}
 				catch (Exception)
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true) { CanBeNull = canBeNull });
 				}
 			}
 		}
 
 		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
 		{
-			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true));
+			var canBeNull = parameter.NullableAnnotation == NullableAnnotation.Annotated && !parameter.IsValueType;
+			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true) { CanBeNull = canBeNull });
 		}
 
 		return variables;

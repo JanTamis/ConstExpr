@@ -868,7 +868,7 @@ public partial class ConstExprPartialRewriter
 				}
 				else
 				{
-					parameters[name] = new VariableItem(candidate.Symbol.Type, false, null) { CanBeInlined = true };
+					parameters[name] = new VariableItem(candidate.Symbol.Type, false, null, candidate.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false }) { CanBeInlined = true };
 				}
 			}
 
@@ -938,7 +938,12 @@ public partial class ConstExprPartialRewriter
 					case MethodDeclarationSyntax method:
 					{
 						var parameters = method.ParameterList.Parameters
-							.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
+							.ToDictionary(d => d.Identifier.Text, d =>
+							{
+								var type = semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType;
+
+								return new VariableItem(type, false, null, type is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
+							});
 
 						visitingMethods?.Add(targetMethod);
 						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, symbolStore, token, visitingMethods);
@@ -950,7 +955,12 @@ public partial class ConstExprPartialRewriter
 					case LocalFunctionStatementSyntax localFunc:
 					{
 						var parameters = localFunc.ParameterList.Parameters
-							.ToDictionary(d => d.Identifier.Text, d => new VariableItem(semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType, false, null));
+							.ToDictionary(d => d.Identifier.Text, d =>
+							{
+								var type = semanticModel.GetTypeInfo(d.Type).Type ?? semanticModel.Compilation.ObjectType;
+
+								return new VariableItem(type, false, null, type is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
+							});
 
 						visitingMethods?.Add(targetMethod);
 						var visitor = new ConstExprPartialRewriter(semanticModel, loader, (_, _) => { }, parameters, additionalMethods, usings, attribute, symbolStore, token, visitingMethods);

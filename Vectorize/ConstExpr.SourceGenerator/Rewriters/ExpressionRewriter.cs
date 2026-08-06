@@ -767,7 +767,9 @@ public class ExpressionRewriter(
 
 			if (!variables.TryGetValue(name, out var item))
 			{
-				item = new VariableItem(operation.Type ?? operation.Symbol.Type, true, value);
+				var type = operation.Type ?? operation.Symbol.Type;
+
+				item = new VariableItem(type, true, value, type is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
 				variables.Add(name, item);
 			}
 

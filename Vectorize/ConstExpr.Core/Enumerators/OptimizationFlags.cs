@@ -123,7 +123,7 @@ public enum OptimizationFlags
 	///   Skips bit 9 on purpose: that was the retired index-from-end conversion, and reusing its value
 	///   would silently turn this pass on for anyone still passing the old number.
 	/// </remarks>
-	ValueRangePropagation = 1 << 10,
+	ValueRangePropagation = 1 << 9,
 
 	/// <summary>
 	///   Enable default-branch hoisting.
@@ -139,7 +139,7 @@ public enum OptimizationFlags
 	///       ...                                 ...
 	///   </code>
 	/// </summary>
-	DefaultBranchHoisting = 1 << 11,
+	DefaultBranchHoisting = 1 << 10,
 
 	/// <summary>
 	///   Enable additive reassociation.
@@ -152,7 +152,7 @@ public enum OptimizationFlags
 	///   those is always exact, unlike floating-point, where it can shift rounding (see
 	///   <see cref="FastMathFlags.AssociativeMath" />).
 	/// </summary>
-	Reassociation = 1 << 12,
+	Reassociation = 1 << 11,
 
 	/// <summary>
 	///   Enable while-to-do-while conversion.
@@ -168,7 +168,10 @@ public enum OptimizationFlags
 	///   is still evaluated on every iteration, so this never risks the infinite-loop hazard
 	///   <see cref="ValueRangePropagation" /> guards against when folding a loop condition outright.
 	/// </summary>
-	WhileToDoWhileConversion = 1 << 13,
+	WhileToDoWhileConversion = 1 << 12,
+
+
+	UseNullableAnnotations = 1 << 13,
 
 	/// <summary>
 	///   Enable all general-purpose optimization passes.
@@ -178,5 +181,5 @@ public enum OptimizationFlags
 	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" />, <see cref="Reassociation" /> and
 	///   <see cref="WhileToDoWhileConversion" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion | UseNullableAnnotations
 }

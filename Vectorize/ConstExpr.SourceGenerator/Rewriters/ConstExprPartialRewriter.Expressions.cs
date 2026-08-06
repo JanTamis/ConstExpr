@@ -136,8 +136,7 @@ public partial class ConstExprPartialRewriter
 		{
 			// A `throw` branch can only appear directly as a ternary arm (or after `??`) — it can't
 			// be used as an operand of another operator, so a ternary with one must be left alone.
-			if (left is ExpressionSyntax leftForUnwrap && UnwrapParens(leftForUnwrap) is ConditionalExpressionSyntax leftConditional
-			                                           && leftConditional.WhenTrue is not ThrowExpressionSyntax && leftConditional.WhenFalse is not ThrowExpressionSyntax
+			if (left is ExpressionSyntax leftForUnwrap && UnwrapParens(leftForUnwrap) is ConditionalExpressionSyntax { WhenTrue: not ThrowExpressionSyntax, WhenFalse: not ThrowExpressionSyntax } leftConditional
 			                                           && right is ExpressionSyntax rightOperand)
 			{
 				return Visit(ConditionalExpression(
@@ -146,8 +145,7 @@ public partial class ConstExprPartialRewriter
 					BuildDistributedOperand(node.Kind(), leftConditional.WhenFalse, rightOperand, true)));
 			}
 
-			if (right is ExpressionSyntax rightForUnwrap && UnwrapParens(rightForUnwrap) is ConditionalExpressionSyntax rightConditional
-			                                             && rightConditional.WhenTrue is not ThrowExpressionSyntax && rightConditional.WhenFalse is not ThrowExpressionSyntax
+			if (right is ExpressionSyntax rightForUnwrap && UnwrapParens(rightForUnwrap) is ConditionalExpressionSyntax { WhenTrue: not ThrowExpressionSyntax, WhenFalse: not ThrowExpressionSyntax } rightConditional
 			                                             && left is ExpressionSyntax leftOperand)
 			{
 				return Visit(ConditionalExpression(

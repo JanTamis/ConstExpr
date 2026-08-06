@@ -223,7 +223,7 @@ public partial class ConstExprPartialRewriter
 					? delegateMethod.Parameters[i].Type
 					: semanticModel.Compilation.ObjectType;
 
-				subParams[paramNames[i]] = new VariableItem(paramType, true, constantArguments[i])
+				subParams[paramNames[i]] = new VariableItem(paramType, true, constantArguments[i], paramType is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false })
 				{
 					IsInitialized = true
 				};

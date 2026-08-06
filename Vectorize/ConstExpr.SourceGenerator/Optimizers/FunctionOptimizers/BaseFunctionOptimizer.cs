@@ -856,4 +856,12 @@ public abstract class BaseFunctionOptimizer
 			return invocation;
 		}
 	}
+
+	protected bool CanBeNull(FunctionOptimizerContext context, ExpressionSyntax expressionSyntax)
+	{
+		return expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression)
+		       || expressionSyntax is IdentifierNameSyntax identifierNameSyntax
+		       && context.Variables.TryGetValue(identifierNameSyntax.Identifier.Text, out var variable)
+		       && variable.CanBeNull;
+	}
 }

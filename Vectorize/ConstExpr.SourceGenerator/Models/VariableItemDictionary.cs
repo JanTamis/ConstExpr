@@ -28,7 +28,7 @@ public class VariableItemDictionary(IDictionary<string, VariableItem> inner) : I
 			if (inner.ContainsKey(key))
 			{
 				var item = inner[key];
-				inner[key] = new VariableItem(item.Type, value is not null, value);
+				inner[key] = new VariableItem(item.Type, value is not null, value, item.CanBeNull);
 			}
 			else
 			{

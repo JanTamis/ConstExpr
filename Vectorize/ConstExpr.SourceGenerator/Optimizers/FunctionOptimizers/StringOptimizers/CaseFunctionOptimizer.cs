@@ -31,8 +31,7 @@ public class CaseFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionOpt
 
 		return CaseMethods.Contains(method.Name)
 		       && type.SpecialType == SpecialType.System_String
-		       && !method.IsStatic
-		       && method.Parameters.Length == 0;
+		       && method is { IsStatic: false, Parameters.Length: 0 };
 	}
 
 	protected override bool TryOptimizeString(FunctionOptimizerContext context, ITypeSymbol stringType, [NotNullWhen(true)] out SyntaxNode? result)

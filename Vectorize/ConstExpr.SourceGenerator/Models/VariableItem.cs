@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace ConstExpr.SourceGenerator.Models;
 
-public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool isInitialized = false)
+public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool canBeNull, bool isInitialized = false)
 {
 	public ITypeSymbol Type { get; set; } = type;
 
@@ -18,6 +18,8 @@ public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool i
 	public bool IsAltered { get; set; }
 
 	public bool CanBeInlined { get; set; }
+
+	public bool CanBeNull { get; set; } = canBeNull;
 
 	/// <summary>
 	///   Indices of an array/indexable value that hold a runtime (non-constant) value. Other elements

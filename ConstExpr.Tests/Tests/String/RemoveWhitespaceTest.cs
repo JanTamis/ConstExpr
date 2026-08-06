@@ -27,11 +27,14 @@ public class RemoveWhitespaceTest : BaseTest<Func<string, string>>
 	[
 		Create(input =>
 		{
-			if (System.String.IsNullOrEmpty(input))
+			var inputLength = input.Length;
+
+			if (inputLength == 0)
 				return input;
 
-			var result = new char[input.Length];
+			var result = new char[inputLength];
 			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
 			var index = 0;
 
 			foreach (var c in input)
