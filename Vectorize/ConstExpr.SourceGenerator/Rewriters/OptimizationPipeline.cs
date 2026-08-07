@@ -90,12 +90,45 @@ public static class OptimizationPipeline
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopUnswitching))
 		{
-			body = Prune(LoopUnswitchingRewriter.Apply(body));
+			body = Prune(LoopUnswitchingRewriter.Apply(body, out var didUnswitch));
+
+			// A declaration that used to sit inside one if-arm is, after the split, a direct child of
+			// its own now-standalone loop — exactly the shape CSE and LICM (which never looks inside an
+			// if) can act on but couldn't before the split.
+			if (didUnswitch)
+			{
+				if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
+				{
+					body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);
+				}
+
+				if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
+				{
+					body = Prune(LoopInvariantCodeMotionRewriter.Apply(body));
+				}
+			}
 		}
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopFusion))
 		{
-			body = Prune(LoopFusionRewriter.Apply(body));
+			body = Prune(LoopFusionRewriter.Apply(body, out var didFuse));
+
+			// A subexpression duplicated only by the merge (each loop body had it once) cannot have
+			// been caught by the earlier CSE pass, which never saw the fused body. The local CSE just
+			// introduced for it is, in turn, a fresh direct child of the fused loop's block — a shape
+			// the earlier LICM pass never saw either, since it ran before this declaration existed.
+			if (didFuse)
+			{
+				if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
+				{
+					body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);
+				}
+
+				if (attribute.Optimizations.HasFlag(OptimizationFlags.LoopInvariantCodeMotion))
+				{
+					body = Prune(LoopInvariantCodeMotionRewriter.Apply(body));
+				}
+			}
 		}
 
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.InductionVariableStrengthReduction))
@@ -106,9 +139,9 @@ public static class OptimizationPipeline
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && body is BlockSyntax recursiveBody)
 		{
 			// Wrapped in a stand-in declaration: the rewriter only reads the name and parameters off it.
-			body = TailRecursionRewriter.Apply(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), methodName)
+			body = Prune(TailRecursionRewriter.Apply(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), methodName)
 				.WithParameterList(parameters)
-				.WithBody(recursiveBody));
+				.WithBody(recursiveBody)));
 		}
 
 		// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.

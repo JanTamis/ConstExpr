@@ -119,10 +119,6 @@ public enum OptimizationFlags
 	///     <see cref="BoundsCheckElimination" />, which keeps proving nothing about its indices.
 	///   </para>
 	/// </summary>
-	/// <remarks>
-	///   Skips bit 9 on purpose: that was the retired index-from-end conversion, and reusing its value
-	///   would silently turn this pass on for anyone still passing the old number.
-	/// </remarks>
 	ValueRangePropagation = 1 << 9,
 
 	/// <summary>

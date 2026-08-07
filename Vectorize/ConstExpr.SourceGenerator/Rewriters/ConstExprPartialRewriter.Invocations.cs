@@ -789,9 +789,18 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private BlockSyntax? OptimizeInlinedBody(BlockSyntax? body, IDictionary<string, VariableItem> parameters, ParameterListSyntax parameterList, SyntaxToken methodName)
 	{
-		return body is null
-			? body
-			: OptimizationPipeline.Apply(body, parameterList, methodName, attribute, parameters, semanticModel, symbolStore, additionalMethods, usings) as BlockSyntax ?? body;
+		if (body is null)
+		{
+			return body;
+		}
+
+		// Same preprocessing the other two call sites (the generator, the test harness) give the
+		// pipeline: pruning dead code and simplifying exception guards first, so an inlined/unrolled
+		// helper body enters OptimizationPipeline in the same state a top-level method body would.
+		var pruned = DeadCodePruner.Prune(body, parameters, semanticModel) as BlockSyntax ?? body;
+		var simplified = ExceptionGuardSimplifier.Simplify(pruned) as BlockSyntax ?? pruned;
+
+		return OptimizationPipeline.Apply(simplified, parameterList, methodName, attribute, parameters, semanticModel, symbolStore, additionalMethods, usings) as BlockSyntax ?? simplified;
 	}
 
 	/// <summary>

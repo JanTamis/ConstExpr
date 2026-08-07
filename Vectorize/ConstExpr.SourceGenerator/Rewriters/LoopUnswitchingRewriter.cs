@@ -24,39 +24,66 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public sealed class LoopUnswitchingRewriter : CSharpSyntaxRewriter
 {
+	private bool _didUnswitch;
+
 	/// <summary>
 	///   Applies loop unswitching to the supplied syntax node.
 	/// </summary>
 	public static SyntaxNode Apply(SyntaxNode node)
 	{
-		return new LoopUnswitchingRewriter().Visit(node);
+		return Apply(node, out _);
+	}
+
+	/// <summary>
+	///   Applies loop unswitching to the supplied syntax node, additionally reporting via
+	///   <paramref name="didUnswitch" /> whether any loop was actually split — so a caller can decide
+	///   whether a pass that only pays off on a freshly-split body (e.g. re-running loop invariant
+	///   code motion, which cannot look inside an <c>if</c> branch, or common subexpression
+	///   elimination) is worth rerunning.
+	/// </summary>
+	public static SyntaxNode Apply(SyntaxNode node, out bool didUnswitch)
+	{
+		var rewriter = new LoopUnswitchingRewriter();
+		var result = rewriter.Visit(node);
+		didUnswitch = rewriter._didUnswitch;
+		return result;
 	}
 
 	// Each loop visit recurses first (bottom-up, so nested loops unswitch before their enclosing
 	// loop), then attempts to replace the loop in-place with the hoisted `if`.
 
-	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
+	public override SyntaxNode VisitForStatement(ForStatementSyntax node)
 	{
 		var visited = (ForStatementSyntax) base.VisitForStatement(node)!;
-		return TryUnswitch(visited, visited.Statement) ?? visited;
+		return Track(TryUnswitch(visited, visited.Statement)) ?? visited;
 	}
 
-	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
+	public override SyntaxNode VisitWhileStatement(WhileStatementSyntax node)
 	{
 		var visited = (WhileStatementSyntax) base.VisitWhileStatement(node)!;
-		return TryUnswitch(visited, visited.Statement) ?? visited;
+		return Track(TryUnswitch(visited, visited.Statement)) ?? visited;
 	}
 
-	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
+	public override SyntaxNode VisitDoStatement(DoStatementSyntax node)
 	{
 		var visited = (DoStatementSyntax) base.VisitDoStatement(node)!;
-		return TryUnswitch(visited, visited.Statement) ?? visited;
+		return Track(TryUnswitch(visited, visited.Statement)) ?? visited;
 	}
 
-	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
+	public override SyntaxNode VisitForEachStatement(ForEachStatementSyntax node)
 	{
 		var visited = (ForEachStatementSyntax) base.VisitForEachStatement(node)!;
-		return TryUnswitch(visited, visited.Statement) ?? visited;
+		return Track(TryUnswitch(visited, visited.Statement)) ?? visited;
+	}
+
+	private StatementSyntax? Track(StatementSyntax? unswitched)
+	{
+		if (unswitched is not null)
+		{
+			_didUnswitch = true;
+		}
+
+		return unswitched;
 	}
 
 	/// <summary>

@@ -50,15 +50,31 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 /// </summary>
 public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 {
+	private bool _didFuse;
+
 	/// <summary>
 	///   Applies loop fusion to the supplied syntax node.
 	/// </summary>
 	public static SyntaxNode Apply(SyntaxNode node)
 	{
-		return new LoopFusionRewriter().Visit(node);
+		return Apply(node, out _);
 	}
 
-	public override SyntaxNode? VisitBlock(BlockSyntax node)
+	/// <summary>
+	///   Applies loop fusion to the supplied syntax node, additionally reporting via
+	///   <paramref name="didFuse" /> whether any pair of loops was actually merged — so a caller can
+	///   decide whether a pass that only pays off on a freshly-merged body (e.g. re-running common
+	///   subexpression elimination) is worth rerunning.
+	/// </summary>
+	public static SyntaxNode Apply(SyntaxNode node, out bool didFuse)
+	{
+		var rewriter = new LoopFusionRewriter();
+		var result = rewriter.Visit(node);
+		didFuse = rewriter._didFuse;
+		return result;
+	}
+
+	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		// Children first (bottom-up), so loops nested in if/for bodies fuse before this block's.
 		var visited = (BlockSyntax) base.VisitBlock(node)!;
@@ -78,6 +94,11 @@ public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 			{
 				i++;
 			}
+		}
+
+		if (changed)
+		{
+			_didFuse = true;
 		}
 
 		return changed ? visited.WithStatements(List(statements)) : visited;
