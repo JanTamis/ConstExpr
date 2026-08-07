@@ -1044,13 +1044,30 @@ public partial class ConstExprPartialRewriter
 		}
 	}
 
+	/// <summary>
+	///   Whether <paramref name="node" /> runs at most once per enclosing-function invocation, i.e.
+	///   its ancestor chain (up to the method/lambda body) contains no loop. A block nested inside a
+	///   <c>for</c>/<c>foreach</c>/<c>while</c>/<c>do</c> repeats — a read on a later iteration, or
+	///   after the loop exits, is invisible to any single pass through that block's own statement
+	///   list — so <see cref="HoistCommonBranchAssignments" /> needs this to know whether it's safe
+	///   to pass <c>isFullScope: true</c> down to <see cref="DeadCodePruner.Prune" />.
+	///   A node with no <see cref="SyntaxNode.Parent" /> is a synthetic node built mid-rewrite (e.g.
+	///   via <c>SyntaxFactory.Block(...)</c>) whose ancestor chain doesn't reflect real nesting —
+	///   treated conservatively as not full-scope, since loop nesting can't be ruled out for it.
+	/// </summary>
+	private static bool IsFullScopeBlock(BlockSyntax node)
+	{
+		return node.Parent is not null
+		       && !node.Ancestors().Any(static a => a is ForStatementSyntax or ForEachStatementSyntax or ForEachVariableStatementSyntax or WhileStatementSyntax or DoStatementSyntax);
+	}
+
 	public override SyntaxNode VisitBlock(BlockSyntax node)
 	{
 		var visited = VisitList(node.Statements);
 		var mergedForDeclarations = MergeForLoopDeclarations(visited);
 		var mergedArrayInitializers = MergeArrayElementInitializers(mergedForDeclarations);
 		var liftedDeclarations = MergeUninitializedDeclarations(mergedArrayInitializers);
-		var hoistedBranches = HoistCommonBranchAssignments(liftedDeclarations);
+		var hoistedBranches = HoistCommonBranchAssignments(liftedDeclarations, IsFullScopeBlock(node));
 		var mergedInitializers = MergeRedundantInitializers(hoistedBranches);
 		var mergedIfAssignments = MergeIfAssignmentIntoDeclaration(mergedInitializers);
 		var mergedSwaps = MergeSwapPattern(mergedIfAssignments);
@@ -2335,7 +2352,7 @@ public partial class ConstExprPartialRewriter
 	///   letting <see cref="InlineSingleUseLocalVariables" /> fold it away entirely if it turns out
 	///   to be used only once. Otherwise a plain assignment statement is inserted before the if.
 	/// </summary>
-	private SyntaxList<StatementSyntax> HoistCommonBranchAssignments(SyntaxList<StatementSyntax> statements)
+	private SyntaxList<StatementSyntax> HoistCommonBranchAssignments(SyntaxList<StatementSyntax> statements, bool isFullScope)
 	{
 		var result = statements.ToList();
 
@@ -2353,7 +2370,15 @@ public partial class ConstExprPartialRewriter
 			// told apart from a variable the branch computes for later, like its own `r`/`g`/`b`,
 			// read only after the if/else — DeadCodePruner can't make that call from the branch
 			// alone.
-			var prunedTail = ((BlockSyntax) DeadCodePruner.Prune(Block(List(result.Skip(i))), variables, semanticModel)).Statements;
+			// `result.Skip(i)` is only a suffix of the current block, so it never sees anything
+			// before position i — that's fine for a block that runs at most once (a plain nested
+			// if/else, or the outermost function body): every later read of an earlier-declared
+			// variable still shows up somewhere in that suffix (or the variable is a parameter/local
+			// with no reads at all). It is NOT fine when the current block repeats (a loop body): a
+			// read on the next iteration, or after the loop exits entirely, is invisible to this
+			// suffix. `isFullScope`, computed by the caller from the block's real ancestor chain,
+			// tells DeadCodePruner which case this is.
+			var prunedTail = ((BlockSyntax) DeadCodePruner.Prune(Block(List(result.Skip(i))), variables, semanticModel, isFullScope)).Statements;
 
 			for (var k = 0; k < prunedTail.Count; k++)
 			{

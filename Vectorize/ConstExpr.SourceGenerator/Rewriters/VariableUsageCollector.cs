@@ -37,6 +37,20 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 			return;
 		}
 
+		// A compound assignment (`x += value`) both reads the prior value of x and writes the
+		// result — unlike a simple assignment (`x = value`), which only writes. Counting it as a
+		// pure write would let a pruner conclude the variable is "never read" from a compound-only
+		// usage site, wrongly treating a real read-modify-write as a removable dead store.
+		if (IsCompoundAssignmentTarget(node))
+		{
+			ReadVariables.TryGetValue(name, out var compoundReadCount);
+			ReadVariables[name] = compoundReadCount + 1;
+
+			WrittenVariables.TryGetValue(name, out var compoundWriteCount);
+			WrittenVariables[name] = compoundWriteCount + 1;
+			return;
+		}
+
 		if (IsWriteContext(node))
 		{
 			WrittenVariables.TryGetValue(name, out var writeCount);
@@ -47,6 +61,13 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 			ReadVariables.TryGetValue(name, out var readCount);
 			ReadVariables[name] = readCount + 1;
 		}
+	}
+
+	private static bool IsCompoundAssignmentTarget(IdentifierNameSyntax node)
+	{
+		return node.Parent is AssignmentExpressionSyntax { Left: var left } assignment
+		       && left == node
+		       && !assignment.IsKind(SyntaxKind.SimpleAssignmentExpression);
 	}
 
 	public override void VisitArgument(ArgumentSyntax node)
@@ -69,7 +90,9 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 	}
 
 	/// <summary>
-	///   Determines if the identifier is being written to based on its syntactic context.
+	///   Determines if the identifier is being written to (and, unlike <see cref="IsCompoundAssignmentTarget" />,
+	///   only written to — not also read) based on its syntactic context. Compound assignment targets are
+	///   handled separately in <see cref="VisitIdentifierName" /> before this is ever consulted.
 	/// </summary>
 	private static bool IsWriteContext(IdentifierNameSyntax node)
 	{
@@ -79,10 +102,6 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 		{
 			// Direct assignment: x = value
 			AssignmentExpressionSyntax { Left: var left } when left == node => true,
-
-			// Compound assignment: x += value, x -= value, etc.
-			AssignmentExpressionSyntax { Left: var left } assignment
-				when left == node && !assignment.IsKind(SyntaxKind.SimpleAssignmentExpression) => true,
 
 			// Postfix: x++, x--
 			PostfixUnaryExpressionSyntax { Operand: var operand } when operand == node => true,

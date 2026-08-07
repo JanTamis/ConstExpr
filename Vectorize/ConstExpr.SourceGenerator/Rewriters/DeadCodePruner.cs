@@ -14,18 +14,29 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 ///   Simplified dead code pruner using the Mark-and-Sweep pattern.
 ///   First collects all variable usages, then prunes in a single rewrite pass.
 /// </summary>
-public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDictionary<string, VariableItem> variables, SemanticModel model) : CSharpSyntaxRewriter
+public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDictionary<string, VariableItem> variables, SemanticModel model, ISet<string> locallyDeclaredVariables, bool isFullScope) : CSharpSyntaxRewriter
 {
 	/// <summary>
 	///   Prunes dead code from a syntax node using the Mark-and-Sweep pattern.
+	///   <paramref name="isFullScope" /> is whether <paramref name="node" /> is the complete body of
+	///   the function/lambda that <paramref name="variables" />'s entries belong to (every
+	///   declaration and every read of every TRACKED variable — e.g. a parameter, which never has a
+	///   <c>var</c> declarator to be found inside any sub-tree — is guaranteed to be inside
+	///   <paramref name="node" />). Pass <see langword="false" /> when pruning a narrower sub-tree
+	///   (e.g. a single block's tail) carved out of a larger body: a variable declared in an
+	///   ancestor scope can have real reads outside that sub-tree — after a loop it sits in, for
+	///   instance — that this narrower view never sees, so the <see cref="CanBePrunedAssignment" />
+	///   literal-RHS fallback must not apply to it there. A variable whose own <c>var</c> declarator
+	///   IS found inside <paramref name="node" /> is safe regardless, since nothing outside its own
+	///   declaration's scope could possibly read it — see <see cref="CanBePrunedAssignment" />.
 	/// </summary>
-	public static SyntaxNode Prune(SyntaxNode node, IDictionary<string, VariableItem> variables, SemanticModel model)
+	public static SyntaxNode Prune(SyntaxNode node, IDictionary<string, VariableItem> variables, SemanticModel model, bool isFullScope = true)
 	{
 		// Phase 1: Mark - collect all variable usages
 		// Include both tracked variables and any local variable declarators found in the node
 		// (some locals are introduced during rewriting and are not present in the variables dictionary).
-		var declaredLocals = node.DescendantNodes().OfType<VariableDeclaratorSyntax>()
-			.Select(v => v.Identifier.Text);
+		var declaredLocals = new HashSet<string>(node.DescendantNodes().OfType<VariableDeclaratorSyntax>()
+			.Select(v => v.Identifier.Text));
 
 		var allTracked = variables.Keys.Concat(declaredLocals).Distinct();
 
@@ -33,7 +44,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		collector.Visit(node);
 
 		// Phase 2: Sweep - rewrite and prune dead code
-		var pruner = new DeadCodePruner(collector, variables, model);
+		var pruner = new DeadCodePruner(collector, variables, model, declaredLocals, isFullScope);
 		var result = pruner.Visit(node);
 
 		// When all statements in a top-level block are pruned, the visitor returns null.
@@ -96,8 +107,19 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 		// Fallback: HasValue may have been cleared by InvalidateAssignedVariables after an
 		// if/else with an unknown condition, even though the rewritten RHS is a literal.
-		// Pruning a dead literal write is always safe regardless of HasValue.
-		return IsConstantExpression(rhs);
+		// Pruning a dead literal write is always safe regardless of HasValue — but only when the
+		// pruned tree provably contains the variable's whole lifetime, so "not read anywhere in
+		// `node`" really does mean "not read anywhere". That holds when either:
+		//  - the variable's own `var` declarator is inside `node` (nothing outside its declaring
+		//    scope could read it, e.g. a branch-local temp like a switch's `i`/`f`/`p`/`q`/`t`), or
+		//  - `isFullScope` says `node` already IS the whole enclosing function/lambda body, which
+		//    covers variables with no declarator inside `node` at all — a parameter, or a local
+		//    declared before the sub-block a caller (e.g. HoistCommonBranchAssignments) narrowed
+		//    `node` down to. Without either, a caller running this pruner over a narrower sub-tree
+		//    (e.g. just a loop body) would see zero reads simply because the variable's real read
+		//    sits outside that sub-tree (after the loop, in an ancestor scope) — not because the
+		//    write is genuinely dead.
+		return (locallyDeclaredVariables.Contains(variableName) || isFullScope) && IsConstantExpression(rhs);
 	}
 
 	/// <summary>
