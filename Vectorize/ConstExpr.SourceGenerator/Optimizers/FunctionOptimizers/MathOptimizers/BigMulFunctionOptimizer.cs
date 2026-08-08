@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
@@ -40,15 +39,11 @@ public class BigMulFunctionOptimizer() : BaseMathFunctionOptimizer("BigMul", n =
 		var targetType = PredefinedType(Token(targetKeyword));
 
 		// Cast both operands to the wider type to ensure the widening multiply.
-		var castLeft = CastExpression(targetType, IsSimpleSyntax(left) ? left : ParenthesizedExpression(left));
-		var castRight = CastExpression(targetType, IsSimpleSyntax(right) ? right : ParenthesizedExpression(right));
+		var castLeft = CastExpression(targetType, ParenthesizedExpression(left));
+		var castRight = CastExpression(targetType, ParenthesizedExpression(right));
+		var multiply = MultiplyExpression(castLeft, castRight);
 
-		result = MultiplyExpression(castLeft, castRight);
+		result = context.Visit(multiply) ?? multiply;
 		return true;
-	}
-
-	private static bool IsSimpleSyntax(ExpressionSyntax expr)
-	{
-		return expr is IdentifierNameSyntax or LiteralExpressionSyntax or MemberAccessExpressionSyntax or InvocationExpressionSyntax;
 	}
 }
