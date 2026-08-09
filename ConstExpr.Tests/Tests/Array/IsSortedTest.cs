@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class IsSortedTest : BaseTest<Func<int[], bool>>
+public class IsSortedTest : BaseTestWithRandomValues<Func<int[], bool>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{
@@ -43,8 +43,5 @@ public class IsSortedTest : BaseTest<Func<int[], bool>>
 
 			return true;
 		}),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(new[] { 5, 3, 1, 2 }),
-		CreateFolded(new[] { 10, 20, 30 })
 	];
 }

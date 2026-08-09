@@ -1,8 +1,13 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumOfSquaresTest : BaseTest<Func<int, int>>
+public class SumOfSquaresTest() : BaseTestWithRandomValues<Func<int, int>>(maxUnrollIterations: Int32.MaxValue)
 {
+	// The loop runs n times, so n must stay well under maxUnrollIterations for every generated
+	// case to fully unroll to a literal - otherwise the expected body (computed by just invoking
+	// TestMethod) would assume folding that the rewriter correctly refuses to do for large n.
+	protected override int MaxRandomMagnitudeBits => 6;
+
 	public override string TestMethod => GetString(n =>
 	{
 		if (n <= 0)
@@ -23,8 +28,5 @@ public class SumOfSquaresTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(5),
-		CreateFolded(0),
-		CreateFolded(3)
 	];
 }

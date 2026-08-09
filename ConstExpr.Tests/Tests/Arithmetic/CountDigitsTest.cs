@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class CountDigitsTest : BaseTest<Func<int, int>>
+public class CountDigitsTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -44,8 +44,5 @@ public class CountDigitsTest : BaseTest<Func<int, int>>
 
 			return count;
 			"""),
-		CreateFolded(123),
-		CreateFolded(0),
-		CreateFolded(-4567)
 	];
 }

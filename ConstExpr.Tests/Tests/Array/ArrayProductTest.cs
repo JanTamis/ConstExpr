@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayProductTest : BaseTest<Func<int[], int>>
+public class ArrayProductTest : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(arr =>
 	{
@@ -18,8 +18,5 @@ public class ArrayProductTest : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 5, 0, 3 })
 	];
 }

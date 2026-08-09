@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.BitOperations;
 ///   PopCount(x) == 1 => IsPow2(x), == 0 => x == 0, and the != mirrors.
 /// </summary>
 [InheritsTests]
-public class BitOperationsPopCountCompareTest : BaseTest<Func<uint, (bool, bool, bool, bool)>>
+public class BitOperationsPopCountCompareTest : BaseTestWithRandomValues<Func<uint, (bool, bool, bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (
 		System.Numerics.BitOperations.PopCount(x) == 1,
@@ -21,8 +21,5 @@ public class BitOperationsPopCountCompareTest : BaseTest<Func<uint, (bool, bool,
 
 			return (bitOperationsIsPow2, x == 0, !bitOperationsIsPow2, x != 0);
 		}),
-		CreateFolded(8u),
-		CreateFolded(0u),
-		CreateFolded(7u)
 	];
 }

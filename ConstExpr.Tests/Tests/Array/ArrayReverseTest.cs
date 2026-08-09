@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class ArrayReverseTest : BaseTest<Func<int[], int[]>>
+public class ArrayReverseTest : BaseTestWithRandomValues<Func<int[], int[]>>
 {
 	public override string TestMethod => GetString(arr =>
 	{
@@ -43,8 +43,5 @@ public class ArrayReverseTest : BaseTest<Func<int[], int[]>>
 
 			return arr;
 		}),
-		Create(_ => [ 5, 4, 3, 2, 1 ], [ new[] { 1, 2, 3, 4, 5 } ]),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 42 })
 	];
 }

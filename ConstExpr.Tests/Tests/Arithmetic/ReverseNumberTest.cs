@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class ReverseNumberTest : BaseTest<Func<int, int>>
+public class ReverseNumberTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -35,8 +35,5 @@ public class ReverseNumberTest : BaseTest<Func<int, int>>
 
 			return FastCopySign(reversed, originalN);
 			"""),
-		CreateFolded(123),
-		CreateFolded(-456),
-		CreateFolded(1)
 	];
 }

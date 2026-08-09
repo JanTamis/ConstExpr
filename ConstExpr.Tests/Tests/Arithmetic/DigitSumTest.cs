@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class DigitSumTest : BaseTest<Func<int, int>>
+public class DigitSumTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -36,8 +36,5 @@ public class DigitSumTest : BaseTest<Func<int, int>>
 
 			return sum;
 			"""),
-		CreateFolded(123),
-		CreateFolded(1234),
-		CreateFolded(0)
 	];
 }

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class BinarySearchTest : BaseTest<Func<int[], int, int>>
+public class BinarySearchTest : BaseTestWithRandomValues<Func<int[], int, int>>
 {
 	public override string TestMethod => GetString((arr, target) =>
 	{
@@ -62,8 +62,5 @@ public class BinarySearchTest : BaseTest<Func<int[], int, int>>
 
 			return -1;
 		}),
-		CreateFolded(new[] { 1, 3, 5, 7, 9 }, 5),
-		CreateFolded(new[] { 0, 2, 4, 6, 8, 10 }, 8),
-		CreateFolded(new[] { 2, 4, 6, 8 }, 5)
 	];
 }

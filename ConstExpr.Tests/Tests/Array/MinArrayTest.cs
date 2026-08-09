@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class MinArrayTest : BaseTest<Func<int[], int>>
+public class MinArrayTest : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(values =>
 	{
@@ -37,8 +37,5 @@ public class MinArrayTest : BaseTest<Func<int[], int>>
 
 			return min;
 		}),
-		CreateFolded(new[] { 5, 4, 3, 9 }),
-		CreateFolded(new[] { 7, 2, 1, 8 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

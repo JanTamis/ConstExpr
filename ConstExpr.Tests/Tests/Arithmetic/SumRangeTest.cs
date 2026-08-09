@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class SumRangeTest : BaseTest<Func<int, int, long>>
+public class SumRangeTest : BaseTestWithRandomValues<Func<int, int, long>>
 {
 	public override string TestMethod => GetString((start, end) =>
 	{
@@ -25,8 +25,5 @@ public class SumRangeTest : BaseTest<Func<int, int, long>>
 
 			return (long) (end - start + 1) * (start + end) / 2L;
 		}),
-		CreateFolded(1, 10),
-		CreateFolded(1, 100),
-		CreateFolded(3, 7)
 	];
 }

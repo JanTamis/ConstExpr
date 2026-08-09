@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class FindMaxTest : BaseTest<Func<int[], int>>
+public class FindMaxTest : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{
@@ -49,8 +49,5 @@ public class FindMaxTest : BaseTest<Func<int[], int>>
 
 			return max;
 		}),
-		CreateFolded(new[] { 10, 20, 50, 30 }),
-		CreateFolded(new[] { 5, 15, 25, 100, 50 }),
-		CreateFolded(new[] { -10, -20, -5, -30 })
 	];
 }

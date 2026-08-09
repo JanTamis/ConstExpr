@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Arithmetic;
 
 [InheritsTests]
-public class ProductOfDigitsTest : BaseTest<Func<int, int>>
+public class ProductOfDigitsTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -31,8 +31,5 @@ public class ProductOfDigitsTest : BaseTest<Func<int, int>>
 
 			return product;
 			"""),
-		CreateFolded(234),
-		CreateFolded(105),
-		CreateFolded(5)
 	];
 }

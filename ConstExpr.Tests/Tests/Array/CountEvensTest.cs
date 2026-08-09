@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Array;
 
 [InheritsTests]
-public class CountEvensTest : BaseTest<Func<int[], int>>
+public class CountEvensTest : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(arr =>
 	{
@@ -32,8 +32,5 @@ public class CountEvensTest : BaseTest<Func<int[], int>>
 
 			return count;
 		}),
-		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 2, 4, 6, 8 })
 	];
 }
