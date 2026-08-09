@@ -153,9 +153,14 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			return HasNoSideEffects(initializer);
 		}
 
-		// IsAltered is intentionally not checked: if the variable is never read, the
-		// assignment (even after a re-assignment) is still dead code.
-		return variable.HasValue;
+		// IsAltered is intentionally not checked when there are no other writes: if the
+		// variable is never read, a single dead initializer is still dead code regardless of
+		// staleness. But when another statement still assigns to this variable (e.g. `b` inside
+		// a chained assignment `r = g = b = expr`), that write is judged by CanBePrunedAssignment,
+		// which DOES require `!IsAltered`. If IsAltered is true, that assignment survives pruning —
+		// so the declaration must survive too, or the surviving assignment references an undeclared
+		// variable (CS0103).
+		return variable.HasValue && (!variable.IsAltered || usageCollector.GetWriteCount(variableName) == 0);
 	}
 
 	/// <summary>

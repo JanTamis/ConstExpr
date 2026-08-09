@@ -362,6 +362,29 @@ public partial class ConstExprPartialRewriter
 		return null;
 	}
 
+	/// <summary>
+	///   When a nested/chained assignment (e.g. the <c>b = value</c> in <c>r = g = b = value</c>) is
+	///   elided by <see cref="HandleIdentifierAssignment" /> as a redundant self-assignment (the target
+	///   already holds that value), <see cref="Visit(SyntaxNode)" /> returns <see langword="null" /> for
+	///   it - not because the value is unknown, but because there is nothing left to write. Falling back
+	///   to the original, un-simplified <paramref name="originalRight" /> in that case would resurrect
+	///   the elided write with its pre-fold expression text, which can reference a variable whose
+	///   declaration a later pass (e.g. <c>DeadCodePruner</c>) has since pruned as unread. This recovers
+	///   the target's now-known value as a literal instead, so the elision propagates correctly.
+	/// </summary>
+	private ExpressionSyntax? GetElidedNestedAssignmentValue(ExpressionSyntax originalRight)
+	{
+		if (originalRight is AssignmentExpressionSyntax { Left: IdentifierNameSyntax { Identifier.Text: var name } }
+		    && variables.TryGetValue(name, out var variable)
+		    && variable.HasValue
+		    && TryCreateLiteral(variable.Value, out var literal))
+		{
+			return literal;
+		}
+
+		return null;
+	}
+
 	public override SyntaxNode? VisitAssignmentExpression(AssignmentExpressionSyntax node)
 	{
 		// a ??= b where a is provably non-null: b is only evaluated/assigned when a is null, so the
@@ -374,7 +397,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		var visitedRight = Visit(node.Right);
-		var rightExpr = visitedRight as ExpressionSyntax ?? node.Right;
+		var rightExpr = visitedRight as ExpressionSyntax ?? GetElidedNestedAssignmentValue(node.Right) ?? node.Right;
 		var kind = node.OperatorToken.Kind();
 		var hasRightValue = TryGetLiteralValue(rightExpr, out var rightValue);
 

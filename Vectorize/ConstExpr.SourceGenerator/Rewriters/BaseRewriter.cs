@@ -72,6 +72,14 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				return TryGetLiteralValue(paren.Expression, typeSymbol, out value, visitedVariables)
 				       || TryGetLiteralValue(Visit(paren.Expression), typeSymbol, out value, visitedVariables);
 			}
+			// A chained/nested assignment (e.g. the `b = 246` inside `r = g = b = 246`) evaluates
+			// to its own right-hand side's value - unwrap it so an enclosing assignment (`g = ...`)
+			// can still recognize the outer expression as a known constant even though the nested
+			// target `b` is itself an identifier, not a literal.
+			case AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.SimpleAssignmentExpression } nestedAssignment:
+			{
+				return TryGetLiteralValue(nestedAssignment.Right, typeSymbol, out value, visitedVariables);
+			}
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when TryGetLiteralValue(prefix.Operand, typeSymbol, out var inner, visitedVariables) && inner is not null:
 			{
