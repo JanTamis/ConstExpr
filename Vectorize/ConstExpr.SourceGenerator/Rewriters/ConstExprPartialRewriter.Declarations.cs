@@ -186,6 +186,29 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Converts a folded literal value to the variable's declared floating-point type when the fold
+	///   produced a narrower/integral CLR value (e.g. an `int` fold for a `double x = ...` initializer or
+	///   assignment). Without this, downstream arithmetic reads the boxed value's runtime type instead of
+	///   the declared type and silently performs integer division / emits an int literal where a double
+	///   literal (e.g. `0D`) is required. See [[double-local-folds-to-int-division]].
+	/// </summary>
+	private static object? CoerceToDeclaredType(object? value, ITypeSymbol? type)
+	{
+		if (value is null || type is null)
+		{
+			return value;
+		}
+
+		if (type.SpecialType is SpecialType.System_Single or SpecialType.System_Double or SpecialType.System_Decimal
+		    && value is sbyte or byte or short or ushort or int or uint or long or ulong)
+		{
+			return value.ToSpecialType(type.SpecialType);
+		}
+
+		return value;
+	}
+
+	/// <summary>
 	///   Updates the variable value from an initializer.
 	/// </summary>
 	private void UpdateVariableFromInitializer(VariableItem item, SyntaxNode? value, ExpressionSyntax initializerValue)
@@ -196,7 +219,7 @@ public partial class ConstExprPartialRewriter
 		}
 		else if (TryGetLiteralValue(initializerValue, out var result) || TryGetLiteralValue(value, out result))
 		{
-			item.Value = result;
+			item.Value = CoerceToDeclaredType(result, item.Type);
 		}
 		else
 		{
@@ -223,7 +246,7 @@ public partial class ConstExprPartialRewriter
 		}
 		else if (TryGetLiteralValue(value, out var result) || TryGetLiteralValue(initializerValue, out result))
 		{
-			item.Value = result;
+			item.Value = CoerceToDeclaredType(result, item.Type);
 			item.IsInitialized = true;
 		}
 		// For const variables, try to evaluate the initializer to a constant value
@@ -639,6 +662,7 @@ public partial class ConstExprPartialRewriter
 				return null;
 			}
 
+			tempValue = CoerceToDeclaredType(tempValue, variable.Type);
 			variable.Value = tempValue;
 			variable.HasValue = true;
 
