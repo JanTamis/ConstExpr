@@ -290,6 +290,10 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			// Prune bare literal expression statements (e.g. a fully-resolved array-element
 			// assignment/increment left behind as a placeholder) — no side effect to preserve.
 			case LiteralExpressionSyntax:
+			// Same, but for a negative/positive literal — those render as a unary +/- wrapping a
+			// LiteralExpressionSyntax (e.g. `-212`), not a bare LiteralExpressionSyntax.
+			case PrefixUnaryExpressionSyntax { Operand: LiteralExpressionSyntax } unary
+				when unary.IsKind(SyntaxKind.UnaryMinusExpression) || unary.IsKind(SyntaxKind.UnaryPlusExpression):
 			{
 				return null;
 			}

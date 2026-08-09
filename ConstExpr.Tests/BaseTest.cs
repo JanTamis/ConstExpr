@@ -430,11 +430,35 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		_ = TestMethod; // Force the TestMethod getter to run on this instance, populating _capturedMethod.
 
-		var result = _capturedMethod!.DynamicInvoke(parameters);
+		// Invoke on a clone of each parameter: a method under test (e.g. an in-place array reverse)
+		// may mutate its argument, and `parameters` is also handed to the rewriter afterwards as the
+		// "known" input to fold from - if the real invocation mutated the same array/list object in
+		// place, the rewriter would start folding from the post-mutation state instead of the original.
+		var result = _capturedMethod!.DynamicInvoke(parameters.Select(CloneParameterForInvocation).ToArray());
 		var literal = SyntaxHelpers.CreateLiteral(result);
 		var expectedBody = $"return {FormattingHelper.Render(literal)};";
 
 		return KeyValuePair.Create<string?, object?[]>(expectedBody, parameters);
+	}
+
+	/// <summary>
+	///   Clones a parameter value that <see cref="CreateFolded" /> is about to hand to a real delegate
+	///   invocation, so an in-place mutation performed by the method under test can't corrupt the
+	///   original value also stored in the returned test case's parameters.
+	/// </summary>
+	private static object? CloneParameterForInvocation(object? value)
+	{
+		switch (value)
+		{
+			case null:
+				return null;
+			case System.Array array:
+				return array.Clone();
+			case { } when value.GetType() is { IsGenericType: true } listType && listType.GetGenericTypeDefinition() == typeof(List<>):
+				return Activator.CreateInstance(listType, value);
+			default:
+				return value;
+		}
 	}
 
 	protected static BlockSyntax ParseBlock(string code)
