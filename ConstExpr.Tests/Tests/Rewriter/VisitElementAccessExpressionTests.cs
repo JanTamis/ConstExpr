@@ -27,9 +27,9 @@ public class VisitElementAccessExpressionTests : BaseTest<Func<int[], int, int, 
 
 			return (arrRef, Unsafe.Add(ref arrRef, 2), Unsafe.Add(ref arrRef, index1), Unsafe.Add(ref arrRef, index2));
 		}),
-		Create((_, _, _) => (10, 30, 10, 50), [ new[] { 10, 20, 30, 40, 50 }, 0, 4 ]),
-		Create((_, _, _) => (5, 15, 15, 25), [ new[] { 5, 10, 15, 20, 25 }, 2, 4 ]),
-		Create((_, _, _) => (100, 300, 200, 300), [ new[] { 100, 200, 300, 400, 500 }, 1, 2 ]),
-		Create((_, _, _) => (1, 3, 5, 1), [ new[] { 1, 2, 3, 4, 5 }, 4, 0 ])
+		CreateFolded(new[] { 10, 20, 30, 40, 50 }, 0, 4),
+		CreateFolded(new[] { 5, 10, 15, 20, 25 }, 2, 4),
+		CreateFolded(new[] { 100, 200, 300, 400, 500 }, 1, 2),
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }, 4, 0)
 	];
 }

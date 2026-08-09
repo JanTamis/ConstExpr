@@ -39,8 +39,8 @@ public class CharCountTest : BaseTest<Func<string?, char, int>>
 
 			return count;
 			"""),
-		Create((_, _) => 3, [ "ababa", 'a' ]),
-		Create((_, _) => 2, [ "aaXXa", 'X' ]),
-		Create((_, _) => 0, [ System.String.Empty, 'a' ])
+		CreateFolded("ababa", 'a'),
+		CreateFolded("aaXXa", 'X'),
+		CreateFolded(System.String.Empty, 'a')
 	];
 }

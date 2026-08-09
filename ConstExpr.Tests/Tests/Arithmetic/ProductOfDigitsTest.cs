@@ -31,8 +31,8 @@ public class ProductOfDigitsTest : BaseTest<Func<int, int>>
 
 			return product;
 			"""),
-		Create(_ => 24, [ 234 ]),
-		Create(_ => 0, [ 105 ]),
-		Create(_ => 5, [ 5 ])
+		CreateFolded(234),
+		CreateFolded(105),
+		CreateFolded(5)
 	];
 }

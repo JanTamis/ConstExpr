@@ -9,7 +9,7 @@ public class MathMinNumberTest : BaseTest<Func<double, double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 1D, [ 1.0, 2.0 ]),
-		Create((_, _) => -5D, [ -5.0, 3.0 ])
+		CreateFolded(1.0, 2.0),
+		CreateFolded(-5.0, 3.0)
 	];
 }

@@ -12,9 +12,9 @@ public class ComparisonCoefficientDivisionNegativeTest : BaseTest<Func<float, bo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x > -0.16666667f),
-		Create(_ => true, [ 0f ]),
-		Create(_ => false, [ -1f ]),
-		Create(_ => true, [ -0.1f ]),
-		Create(_ => false, [ -0.2f ])
+		CreateFolded(0f),
+		CreateFolded(-1f),
+		CreateFolded(-0.1f),
+		CreateFolded(-0.2f)
 	];
 }

@@ -53,9 +53,9 @@ public class FibonacciTest : BaseTest<Func<int, long>>
 
 			return curr;
 		}),
-		Create(_ => 5L, [ 5 ]),
-		Create(_ => 1L, [ 1 ]),
-		Create(_ => 0L, [ 0 ]),
-		Create(_ => 55L, [ 10 ])
+		CreateFolded(5),
+		CreateFolded(1),
+		CreateFolded(0),
+		CreateFolded(10)
 	];
 }

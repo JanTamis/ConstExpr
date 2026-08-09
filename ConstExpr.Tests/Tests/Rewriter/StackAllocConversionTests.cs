@@ -40,6 +40,6 @@ public class StackAllocConversionTests : BaseTest<Func<int, int>>
 		}, [ Unknown ]),
 
 		// Known input folds through the interpreter: counts[3]=1, counts[4]=1, counts[3]+counts[0]=1.
-		Create(_ => 1, [ 3 ])
+		CreateFolded(3)
 	];
 }

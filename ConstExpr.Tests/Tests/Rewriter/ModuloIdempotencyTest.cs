@@ -9,7 +9,7 @@ public class ModuloIdempotencyTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x == 0 ? throw new DivideByZeroException() : 0),
-		Create(_ => 0, [ 7 ]),
-		Create(_ => 0, [ -3 ])
+		CreateFolded(7),
+		CreateFolded(-3)
 	];
 }

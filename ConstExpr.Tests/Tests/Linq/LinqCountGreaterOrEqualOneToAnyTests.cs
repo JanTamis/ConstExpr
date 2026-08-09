@@ -16,8 +16,8 @@ public class LinqCountGreaterOrEqualOneToAnyTests() : BaseTest<Func<IEnumerable<
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Any()),
-		Create(_ => false, [ Enumerable.Empty<int>() ]),
-		Create(_ => true, [ new[] { 1 } ]),
-		Create(_ => true, [ new[] { 1, 2, 3 } ])
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 1 }),
+		CreateFolded(new[] { 1, 2, 3 })
 	];
 }

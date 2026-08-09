@@ -39,10 +39,10 @@ public class HasBalancedParenthesesTest : BaseTest<Func<string?, bool>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(_ => false, [ "(()" ]),
-		Create(_ => true, [ "((()))" ]),
-		Create(_ => true, [ "()()()" ]),
-		Create(_ => false, [ ")(" ]),
-		Create(_ => true, [ System.String.Empty ])
+		CreateFolded("(()"),
+		CreateFolded("((()))"),
+		CreateFolded("()()()"),
+		CreateFolded(")("),
+		CreateFolded(System.String.Empty)
 	];
 }

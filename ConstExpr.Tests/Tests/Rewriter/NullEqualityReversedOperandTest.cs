@@ -11,6 +11,6 @@ public class NullEqualityReversedOperandTest : BaseTest<Func<string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => false),
-		Create(_ => false, [ "hello" ])
+		CreateFolded("hello")
 	];
 }

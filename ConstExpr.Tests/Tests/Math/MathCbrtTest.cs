@@ -9,7 +9,7 @@ public class MathCbrtTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastCbrt(x);"),
-		Create(_ => 2D, [ 8.0 ]),
-		Create(_ => 3D, [ 27.0 ])
+		CreateFolded(8.0),
+		CreateFolded(27.0)
 	];
 }

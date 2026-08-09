@@ -13,8 +13,8 @@ public class ComparisonReverseSubtractionDivisionTest : BaseTest<Func<float, (bo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x > 2f, x <= 2f)),
-		Create(_ => (false, true), [ 0f ]),
-		Create(_ => (true, false), [ 5f ]),
-		Create(_ => (false, true), [ 2f ])
+		CreateFolded(0f),
+		CreateFolded(5f),
+		CreateFolded(2f)
 	];
 }

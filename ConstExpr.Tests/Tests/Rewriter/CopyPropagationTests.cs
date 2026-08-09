@@ -42,6 +42,6 @@ public class CopyPropagationTests() : BaseTest<Func<int, int, int>>(optimization
 
 		// Known inputs fold completely through the interpreter: 3 iterations of +4, plus 4 = 16.
 		// This anchors the semantics of the shape independently of the rewriter.
-		Create((_, _) => 16, [ 3, 4 ])
+		CreateFolded(3, 4)
 	];
 }

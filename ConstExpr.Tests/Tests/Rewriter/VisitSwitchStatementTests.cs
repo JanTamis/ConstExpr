@@ -34,8 +34,8 @@ public class VisitSwitchStatementTests : BaseTest<Func<int, int>>
 			2 => 20,
 			_ => 30
 		}),
-		Create(_ => 10, [ 1 ]),
-		Create(_ => 20, [ 2 ]),
-		Create(_ => 30, [ 3 ])
+		CreateFolded(1),
+		CreateFolded(2),
+		CreateFolded(3)
 	];
 }

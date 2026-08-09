@@ -9,7 +9,7 @@ public class MultiplyByOneTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		Create(_ => 7, [ 7 ]),
-		Create(_ => -2, [ -2 ])
+		CreateFolded(7),
+		CreateFolded(-2)
 	];
 }

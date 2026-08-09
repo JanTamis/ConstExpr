@@ -14,7 +14,7 @@ public class ModuloByPowerOfTwoZeroEqualityFoldsForSignedTest : BaseTest<Func<in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x & 3) == 0),
-		Create(_ => true, [ -4 ]),
-		Create(_ => false, [ -5 ])
+		CreateFolded(-4),
+		CreateFolded(-5)
 	];
 }

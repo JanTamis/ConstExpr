@@ -15,7 +15,7 @@ public class ComparisonCoefficientDivisionEqualsTest : BaseTest<Func<float, (boo
 	[
 		Create(x => (x == 0.16666667f, x != 0.16666667f)),
 		// ReSharper restore CompareOfFloatsByEqualityOperator
-		Create(_ => (false, true), [ 0f ]),
-		Create(_ => (false, true), [ 1f ])
+		CreateFolded(0f),
+		CreateFolded(1f)
 	];
 }

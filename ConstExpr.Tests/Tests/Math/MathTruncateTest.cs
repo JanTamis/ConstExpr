@@ -8,7 +8,7 @@ public class MathTruncateTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => Double.Truncate(x)),
-		Create(_ => 3D, [ 3.7 ]),
-		Create(_ => -3D, [ -3.2 ])
+		CreateFolded(3.7),
+		CreateFolded(-3.2)
 	];
 }

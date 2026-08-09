@@ -9,6 +9,6 @@ public class StringFormatTest : BaseTest<Func<string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(name => $"Hello {name}"),
-		Create(_ => "Hello World", [ "World" ])
+		CreateFolded("World")
 	];
 }

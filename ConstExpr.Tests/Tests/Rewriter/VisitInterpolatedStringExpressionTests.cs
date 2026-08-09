@@ -17,7 +17,7 @@ public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => ($"Value: {x}", "Hello  world")),
-		Create(_ => ("Value: 42", "Hello  world"), [ 42 ]),
-		Create(_ => ("Value: 50", "Hello  world"), [ 50 ])
+		CreateFolded(42),
+		CreateFolded(50)
 	];
 }

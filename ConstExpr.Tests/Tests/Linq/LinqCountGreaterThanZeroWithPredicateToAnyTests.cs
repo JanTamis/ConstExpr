@@ -13,8 +13,8 @@ public class LinqCountGreaterThanZeroWithPredicateToAnyTests() : BaseTest<Func<I
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Any(v => v > 5)),
-		Create(_ => false, [ Enumerable.Empty<int>() ]),
-		Create(_ => false, [ new[] { 1, 2, 3 } ]),
-		Create(_ => true, [ new[] { 1, 6, 3 } ])
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(new[] { 1, 6, 3 })
 	];
 }

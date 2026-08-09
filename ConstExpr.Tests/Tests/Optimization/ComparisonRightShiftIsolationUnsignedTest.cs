@@ -12,9 +12,9 @@ public class ComparisonRightShiftIsolationUnsignedTest : BaseTest<Func<uint, (bo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 20u, x >= 24u, x < 24u, x >= 20u)),
-		Create(_ => (true, false, true, false), [ 0u ]),
-		Create(_ => (false, true, false, true), [ 30u ]),
-		Create(_ => (false, false, true, true), [ 23u ]),
-		Create(_ => (false, true, false, true), [ 24u ])
+		CreateFolded(0u),
+		CreateFolded(30u),
+		CreateFolded(23u),
+		CreateFolded(24u)
 	];
 }

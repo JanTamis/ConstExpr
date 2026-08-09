@@ -12,10 +12,10 @@ public class UnsignedRangeCheckTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (uint) (x - 2) <= 8U),
-		Create(_ => true, [ 2 ]),
-		Create(_ => true, [ 10 ]),
-		Create(_ => false, [ 1 ]),
-		Create(_ => false, [ 11 ]),
-		Create(_ => false, [ -5 ])
+		CreateFolded(2),
+		CreateFolded(10),
+		CreateFolded(1),
+		CreateFolded(11),
+		CreateFolded(-5)
 	];
 }

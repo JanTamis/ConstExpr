@@ -18,9 +18,9 @@ public class VisitVariableDeclarationTests : BaseTest<Func<int, int, (int, int, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y) => (1, 2, 3, x + y, x << 1)),
-		Create((_, _) => (1, 2, 3, 15, 20), [ 10, 5 ]),
-		Create((_, _) => (1, 2, 3, 15, -40), [ -20, 35 ]),
-		Create((_, _) => (1, 2, 3, 0, 0), [ 0, 0 ]),
-		Create((_, _) => (1, 2, 3, 150, 200), [ 100, 50 ])
+		CreateFolded(10, 5),
+		CreateFolded(-20, 35),
+		CreateFolded(0, 0),
+		CreateFolded(100, 50)
 	];
 }

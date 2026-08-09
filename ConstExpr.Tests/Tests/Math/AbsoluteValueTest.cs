@@ -16,8 +16,8 @@ public class AbsoluteValueTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAbs(n);"),
-		Create(_ => 42, [ -42 ]),
-		Create(_ => 10, [ 10 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(-42),
+		CreateFolded(10),
+		CreateFolded(0)
 	];
 }

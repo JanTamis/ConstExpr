@@ -40,8 +40,8 @@ public class LinqWhereOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Count_D8X0kQ(x) + Count_2IYd7A(x) + Count_Vq7dCg(x) + Count_R_guEA(x) + Count_yTPAKg(x);"),
-		Create(_ => 19, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 38, [ new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })
 	];
 }

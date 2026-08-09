@@ -9,7 +9,7 @@ public class ModuloByOneTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => 0),
-		Create(_ => 0, [ 42 ]),
-		Create(_ => 0, [ -7 ])
+		CreateFolded(42),
+		CreateFolded(-7)
 	];
 }

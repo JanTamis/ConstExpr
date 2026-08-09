@@ -9,7 +9,7 @@ public class NegateAdditionIntTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => -5 - n),
-		Create(_ => -15, [ 10 ]),
-		Create(_ => -5, [ 0 ])
+		CreateFolded(10),
+		CreateFolded(0)
 	];
 }

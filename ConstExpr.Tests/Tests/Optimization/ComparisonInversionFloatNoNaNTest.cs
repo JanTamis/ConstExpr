@@ -13,8 +13,8 @@ public class ComparisonInversionFloatNoNaNTest() : BaseTest<Func<float, float, (
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b) => (a != b, a >= b)),
-		Create((_, _) => (false, true), [ 1f, 1f ]),
-		Create((_, _) => (true, false), [ 1f, 2f ]),
-		Create((_, _) => (true, true), [ 3f, 2f ])
+		CreateFolded(1f, 1f),
+		CreateFolded(1f, 2f),
+		CreateFolded(3f, 2f)
 	];
 }

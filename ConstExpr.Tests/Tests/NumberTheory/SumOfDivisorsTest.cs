@@ -50,8 +50,8 @@ public class SumOfDivisorsTest : BaseTest<Func<int, int>>
 
 			return sum;
 		}),
-		Create(_ => 28, [ 12 ]),
-		Create(_ => 1, [ 1 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(12),
+		CreateFolded(1),
+		CreateFolded(0)
 	];
 }

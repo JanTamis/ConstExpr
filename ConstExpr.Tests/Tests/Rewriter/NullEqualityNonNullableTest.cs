@@ -8,6 +8,6 @@ public class NullEqualityNonNullableTest : BaseTest<Func<string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => false),
-		Create(_ => false, [ "hello" ])
+		CreateFolded("hello")
 	];
 }

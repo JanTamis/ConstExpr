@@ -16,9 +16,9 @@ public class AsciiCharRangeNoBracketsTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiHexDigit(c)),
-		Create(_ => true, [ '5' ]),
-		Create(_ => true, [ 'b' ]),
-		Create(_ => true, [ 'E' ]),
-		Create(_ => false, [ 'z' ])
+		CreateFolded('5'),
+		CreateFolded('b'),
+		CreateFolded('E'),
+		CreateFolded('z')
 	];
 }

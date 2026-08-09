@@ -35,7 +35,7 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 			return (xRef << 1) + (Unsafe.Add(ref xRef, 1) << 1);
 		}),
-		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 = 6
-		Create(_ => 0, [ new List<int> { 0, 0, 0, 0, 0 } ])
+		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 = 6
+		CreateFolded(new List<int> { 0, 0, 0, 0, 0 })
 	];
 }

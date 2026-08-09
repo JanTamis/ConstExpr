@@ -14,9 +14,9 @@ public class IsAsciiLetterOrDigitTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiLetterOrDigit(c)),
-		Create(_ => true, [ '4' ]),
-		Create(_ => true, [ 'q' ]),
-		Create(_ => true, [ 'Q' ]),
-		Create(_ => false, [ '!' ])
+		CreateFolded('4'),
+		CreateFolded('q'),
+		CreateFolded('Q'),
+		CreateFolded('!')
 	];
 }

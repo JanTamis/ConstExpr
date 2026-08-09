@@ -56,9 +56,9 @@ public class ForeachContinueUnrollBasicTests : BaseTest<Func<char, int>>
 			return index;
 		}),
 		// Constant skip still folds to a plain result.
-		Create("return 2;", 'a'),
-		Create("return 2;", 'b'),
-		Create("return 2;", 'c'),
-		Create("return 3;", 'z')
+		CreateFolded('a'),
+		CreateFolded('b'),
+		CreateFolded('c'),
+		CreateFolded('z')
 	];
 }

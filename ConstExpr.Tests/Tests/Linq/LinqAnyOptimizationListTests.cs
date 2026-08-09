@@ -36,7 +36,7 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 			return Unsafe.BitCast<bool, byte>(x.Count > 0) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorkNzSYw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(collectionsMarshalAsSpan));
 			""", Unknown),
-		Create(_ => 5, [ new List<int> { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new List<int>() ])
+		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }),
+		CreateFolded(new List<int>())
 	];
 }

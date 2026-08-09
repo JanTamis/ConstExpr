@@ -11,10 +11,10 @@ public class DivideGranlundMontgomerySignedNegativeMagicTest() : BaseTest<Func<i
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => ((int) (-(1840700269L * x) >> 32) + x >> 2) - (x >> 31)),
-		Create(_ => 1, [ 10 ]),
-		Create(_ => 1, [ 7 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => -1, [ -7 ]),
-		Create(_ => -14, [ -100 ])
+		CreateFolded(10),
+		CreateFolded(7),
+		CreateFolded(0),
+		CreateFolded(-7),
+		CreateFolded(-100)
 	];
 }

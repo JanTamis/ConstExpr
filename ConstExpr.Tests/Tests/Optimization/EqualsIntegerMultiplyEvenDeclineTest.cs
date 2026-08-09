@@ -17,8 +17,8 @@ public class EqualsIntegerMultiplyEvenDeclineTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 6 == 12),
-		Create(_ => true, [ 2 ]),
-		Create(_ => false, [ 3 ]),
-		Create(_ => true, [ Int32.MinValue + 2 ])
+		CreateFolded(2),
+		CreateFolded(3),
+		CreateFolded(Int32.MinValue + 2)
 	];
 }

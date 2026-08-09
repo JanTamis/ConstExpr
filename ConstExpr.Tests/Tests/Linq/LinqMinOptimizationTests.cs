@@ -33,7 +33,7 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (tensorPrimitivesMin << 2) + Int32.Min(Min_lB3pdg(x), tensorPrimitivesMin);
 			"""),
-		Create(_ => 5, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 25, [ new[] { 5 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(new[] { 5 })
 	];
 }

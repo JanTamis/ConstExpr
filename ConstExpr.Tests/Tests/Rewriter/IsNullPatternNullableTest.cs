@@ -8,7 +8,7 @@ public class IsNullPatternNullableTest : BaseTest<Func<string?, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s == null),
-		Create(_ => true, [ null ]),
-		Create(_ => false, [ "hello" ])
+		CreateFolded((object?) null),
+		CreateFolded("hello")
 	];
 }

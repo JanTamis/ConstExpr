@@ -23,8 +23,8 @@ public class ModuloTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 3, [ 13, 10 ]),
-		Create((_, _) => 2, [ -8, 5 ]),
-		Create((_, _) => 0, [ 10, 0 ])
+		CreateFolded(13, 10),
+		CreateFolded(-8, 5),
+		CreateFolded(10, 0)
 	];
 }

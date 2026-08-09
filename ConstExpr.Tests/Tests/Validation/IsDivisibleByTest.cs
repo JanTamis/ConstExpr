@@ -8,8 +8,8 @@ public class IsDivisibleByTest : BaseTest<Func<int, int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => true, [ 10, 5 ]),
-		Create((_, _) => false, [ 10, 3 ]),
-		Create((_, _) => false, [ 0, 0 ])
+		CreateFolded(10, 5),
+		CreateFolded(10, 3),
+		CreateFolded(0, 0)
 	];
 }

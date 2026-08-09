@@ -8,7 +8,7 @@ public class NegateAdditionStrictTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(f => -5D - f),
-		Create(_ => -15D, [ 10D ]),
-		Create(_ => -5D, [ 0D ])
+		CreateFolded(10D),
+		CreateFolded(0D)
 	];
 }

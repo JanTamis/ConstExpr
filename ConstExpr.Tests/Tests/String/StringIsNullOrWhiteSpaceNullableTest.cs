@@ -8,8 +8,8 @@ public class StringIsNullOrWhiteSpaceNullableTest : BaseTest<Func<string?, bool>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ null ]),
-		Create(_ => true, [ "   " ]),
-		Create(_ => false, [ "hello" ])
+		CreateFolded((object?) null),
+		CreateFolded("   "),
+		CreateFolded("hello")
 	];
 }

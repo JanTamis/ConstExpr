@@ -8,8 +8,8 @@ public class CelsiusToFahrenheitTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(celsius => Double.MultiplyAddEstimate(celsius, 1.8, 32D)),
-		Create(_ => 32D, [ 0.0 ]),
-		Create(_ => 212D, [ 100.0 ]),
-		Create(_ => 77D, [ 25.0 ])
+		CreateFolded(0.0),
+		CreateFolded(100.0),
+		CreateFolded(25.0)
 	];
 }

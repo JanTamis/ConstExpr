@@ -8,6 +8,6 @@ public class MathDegreesToRadiansTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 0.017453292519943295),
-		Create(_ => 0D, [ 0.0 ])
+		CreateFolded(0.0)
 	];
 }

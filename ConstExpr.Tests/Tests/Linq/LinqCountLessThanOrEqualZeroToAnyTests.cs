@@ -16,7 +16,7 @@ public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerabl
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => !x.Any()),
-		Create(_ => true, [ Enumerable.Empty<int>() ]),
-		Create(_ => false, [ new[] { 1, 2, 3 } ])
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 1, 2, 3 })
 	];
 }

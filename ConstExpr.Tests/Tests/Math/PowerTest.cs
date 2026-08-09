@@ -58,9 +58,9 @@ public class PowerTest : BaseTest<Func<int, int, long>>
 
 			return result;
 		}),
-		Create((_, _) => 32L, [ 2, 5 ]),
-		Create((_, _) => 1L, [ 5, 0 ]),
-		Create((_, _) => 0L, [ 2, -3 ]),
-		Create((_, _) => 1024L, [ 2, 10 ])
+		CreateFolded(2, 5),
+		CreateFolded(5, 0),
+		CreateFolded(2, -3),
+		CreateFolded(2, 10)
 	];
 }

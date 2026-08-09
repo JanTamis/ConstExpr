@@ -15,7 +15,7 @@ public class ComparisonCoefficientDivisionStrictTest() : BaseTest<Func<float, bo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 6F < 1F),
-		Create(_ => true, [ 0f ]),
-		Create(_ => false, [ 1f ])
+		CreateFolded(0f),
+		CreateFolded(1f)
 	];
 }

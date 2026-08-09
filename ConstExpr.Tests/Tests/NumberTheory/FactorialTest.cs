@@ -42,9 +42,9 @@ public class FactorialTest : BaseTest<Func<int, long>>
 
 			return result;
 		}),
-		Create(_ => 120L, [ 5 ]),
-		Create(_ => 1L, [ 1 ]),
-		Create(_ => -1L, [ -5 ]),
-		Create(_ => 3628800L, [ 10 ])
+		CreateFolded(5),
+		CreateFolded(1),
+		CreateFolded(-5),
+		CreateFolded(10)
 	];
 }

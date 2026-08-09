@@ -50,8 +50,8 @@ public class WhileToDoWhileConversionTests() : BaseTest<Func<int, int>>(optimiza
 
 			return count;
 		}, [ Unknown ]),
-		Create(_ => 3, [ 3 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => 1, [ 1 ])
+		CreateFolded(3),
+		CreateFolded(0),
+		CreateFolded(1)
 	];
 }

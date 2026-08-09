@@ -14,8 +14,8 @@ public class LinqSelectTripleFusionTests : BaseTest<Func<IEnumerable<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(_ => 9, [ new[] { 1 } ]), // ((1*2)+1)*3 = 9
-		Create(_ => 0, [ Enumerable.Empty<int>() ]),
-		Create(_ => 45, [ new[] { 1, 2, 3 } ]) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
+		CreateFolded(new[] { 1 }), // ((1*2)+1)*3 = 9
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 1, 2, 3 }) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
 	];
 }

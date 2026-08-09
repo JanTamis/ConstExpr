@@ -26,8 +26,8 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (Unsafe.BitCast<bool, byte>(Array.IndexOf(x, \"hello\") >= 0) << 1) + Unsafe.BitCast<bool, byte>(Array.IndexOf(x, \"world\") >= 0) + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => String.Equals(v, \"HELLO\", StringComparison.CurrentCultureIgnoreCase)));", Unknown),
-		Create(_ => 4, [ new[] { "hello", "world", "foo" } ]),
-		Create(_ => 0, [ System.Array.Empty<string>() ]),
-		Create(_ => 1, [ new[] { "hi", "world", "test" } ]) // Only b matches ("world")
+		CreateFolded(new object?[] { new[] { "hello", "world", "foo" } }),
+		CreateFolded(new object?[] { System.Array.Empty<string>() }),
+		CreateFolded(new object?[] { new[] { "hi", "world", "test" } }) // Only b matches ("world")
 	];
 }

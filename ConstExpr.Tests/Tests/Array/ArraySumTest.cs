@@ -18,8 +18,8 @@ public class ArraySumTest : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 15, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 42, [ new[] { 42 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 42 })
 	];
 }

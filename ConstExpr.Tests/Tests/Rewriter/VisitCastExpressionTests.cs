@@ -19,8 +19,8 @@ public class VisitCastExpressionTests : BaseTest<Func<double, int, int, (int, do
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y, z) => ((int) x, y, (char) z, 3)),
-		Create((_, _, _) => (3, 42.0, 'A', 3), [ 3.14, 42, 65 ]),
-		Create((_, _, _) => (10, 100.0, 'Z', 3), [ 10.5, 100, 90 ]),
-		Create((_, _, _) => (-5, -10.0, ' ', 3), [ -5.8, -10, 32 ])
+		CreateFolded(3.14, 42, 65),
+		CreateFolded(10.5, 100, 90),
+		CreateFolded(-5.8, -10, 32)
 	];
 }

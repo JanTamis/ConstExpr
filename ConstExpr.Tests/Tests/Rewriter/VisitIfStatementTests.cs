@@ -37,9 +37,9 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((condition, x, y) => (1, 4, condition ? x : y, Int32.Max(x, y))),
-		Create((_, _, _) => (1, 4, 10, 10), [ true, 10, 5 ]),
-		Create((_, _, _) => (1, 4, 30, 30), [ false, 20, 30 ]),
-		Create((_, _, _) => (1, 4, 100, 200), [ true, 100, 200 ]),
-		Create((_, _, _) => (1, 4, 15, 15), [ false, 15, 15 ])
+		CreateFolded(true, 10, 5),
+		CreateFolded(false, 20, 30),
+		CreateFolded(true, 100, 200),
+		CreateFolded(false, 15, 15)
 	];
 }

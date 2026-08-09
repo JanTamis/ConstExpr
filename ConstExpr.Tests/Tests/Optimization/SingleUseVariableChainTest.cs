@@ -21,6 +21,6 @@ public class SingleUseVariableChainTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n + 1 << 1, [ Unknown ]), // Both a and b inlined; * 2 → << 1
-		Create(_ => 12, [ 5 ]) // (5 + 1) * 2 = 12
+		CreateFolded(5) // (5 + 1) * 2 = 12
 	];
 }

@@ -29,7 +29,7 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (TensorPrimitives.Max(x) << 2) + Max_JcFfKg(x);"),
-		Create(_ => 18, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 30, [ new[] { 5 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(new[] { 5 })
 	];
 }

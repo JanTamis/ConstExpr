@@ -36,8 +36,8 @@ public class DigitSumTest : BaseTest<Func<int, int>>
 
 			return sum;
 			"""),
-		Create(_ => 6, [ 123 ]),
-		Create(_ => 10, [ 1234 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(123),
+		CreateFolded(1234),
+		CreateFolded(0)
 	];
 }

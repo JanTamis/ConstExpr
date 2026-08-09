@@ -62,7 +62,7 @@ public class PartialRedundancyIfElseTest() : BaseTest<Func<int[], bool, int>>(op
 
 			return sum;
 		}),
-		Create((_, _) => 10, [ new[] { 3, 5 }, true ]),
-		Create((_, _) => -2, [ new[] { 3, 5 }, false ])
+		CreateFolded(new[] { 3, 5 }, true),
+		CreateFolded(new[] { 3, 5 }, false)
 	];
 }

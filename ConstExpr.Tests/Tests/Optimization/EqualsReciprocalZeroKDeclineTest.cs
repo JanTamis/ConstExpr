@@ -14,7 +14,7 @@ public class EqualsReciprocalZeroKDeclineTest : BaseTest<Func<float, bool>>
 	[
 		Create(x => 6F / x == 0F),
 		// ReSharper restore CompareOfFloatsByEqualityOperator
-		Create(_ => false, [ 3f ]),
-		Create(_ => false, [ 1000000f ])
+		CreateFolded(3f),
+		CreateFolded(1000000f)
 	];
 }

@@ -13,8 +13,8 @@ public class IsAsciiLetterTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiLetter(c)),
-		Create(_ => true, [ 'm' ]),
-		Create(_ => true, [ 'M' ]),
-		Create(_ => false, [ '5' ])
+		CreateFolded('m'),
+		CreateFolded('M'),
+		CreateFolded('5')
 	];
 }

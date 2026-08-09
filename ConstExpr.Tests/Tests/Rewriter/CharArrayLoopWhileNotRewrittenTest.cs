@@ -41,6 +41,6 @@ public class CharArrayLoopWhileNotRewrittenTest : BaseTest<Func<string, string>>
 
 			return new string(result);
 		}),
-		Create(_ => "HELLO", [ "hello" ])
+		CreateFolded("hello")
 	];
 }

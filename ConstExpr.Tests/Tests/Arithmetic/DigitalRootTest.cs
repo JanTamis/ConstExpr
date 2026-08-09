@@ -44,8 +44,8 @@ public class DigitalRootTest : BaseTest<Func<int, int>>
 
 			return num;
 			"""),
-		Create(_ => 2, [ 38 ]),
-		Create(_ => 6, [ 942 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(38),
+		CreateFolded(942),
+		CreateFolded(0)
 	];
 }

@@ -21,8 +21,8 @@ public class ClampTest : BaseTest<Func<int, int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((value, min, max) => Int32.Clamp(value, min, max)),
-		Create((_, _, _) => 5, [ 5, 0, 10 ]),
-		Create((_, _, _) => 0, [ -5, 0, 10 ]),
-		Create((_, _, _) => 10, [ 15, 0, 10 ])
+		CreateFolded(5, 0, 10),
+		CreateFolded(-5, 0, 10),
+		CreateFolded(15, 0, 10)
 	];
 }

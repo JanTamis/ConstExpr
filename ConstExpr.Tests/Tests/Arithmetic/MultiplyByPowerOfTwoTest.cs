@@ -8,8 +8,8 @@ public class MultiplyByPowerOfTwoTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 40, [ 10, 2 ]),
-		Create((_, _) => 0, [ 0, 5 ]),
-		Create((_, _) => 128, [ 4, 5 ])
+		CreateFolded(10, 2),
+		CreateFolded(0, 5),
+		CreateFolded(4, 5)
 	];
 }

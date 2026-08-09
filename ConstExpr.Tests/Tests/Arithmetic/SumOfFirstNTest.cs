@@ -8,8 +8,8 @@ public class SumOfFirstNTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n * (n + 1) >> 1),
-		Create(_ => 55, [ 10 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => 5050, [ 100 ])
+		CreateFolded(10),
+		CreateFolded(0),
+		CreateFolded(100)
 	];
 }

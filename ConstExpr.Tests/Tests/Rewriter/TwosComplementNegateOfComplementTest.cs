@@ -8,7 +8,7 @@ public class TwosComplementNegateOfComplementTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n + 1),
-		Create(_ => 6, [ 5 ]), // ~5 = -6, -(-6) = 6
-		Create(_ => 1, [ 0 ]) // ~0 = -1, -(-1) = 1
+		CreateFolded(5), // ~5 = -6, -(-6) = 6
+		CreateFolded(0) // ~0 = -1, -(-1) = 1
 	];
 }

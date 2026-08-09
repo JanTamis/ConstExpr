@@ -28,8 +28,8 @@ public class WhileToDoWhileConversionNotProvenTest() : BaseTest<Func<int, int>>(
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 3, [ 3 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => 0, [ -5 ])
+		CreateFolded(3),
+		CreateFolded(0),
+		CreateFolded(-5)
 	];
 }

@@ -9,7 +9,7 @@ public class StringReplaceWithDifferentArgsTest : BaseTest<Func<string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s.Replace('a', 'b')),
-		Create(_ => "hello", [ "hello" ]),
-		Create(_ => "bbnbnb", [ "banana" ])
+		CreateFolded("hello"),
+		CreateFolded("banana")
 	];
 }

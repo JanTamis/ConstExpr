@@ -43,8 +43,8 @@ public class IsSortedTest : BaseTest<Func<int[], bool>>
 
 			return true;
 		}),
-		Create(_ => true, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => false, [ new[] { 5, 3, 1, 2 } ]),
-		Create(_ => true, [ new[] { 10, 20, 30 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(new[] { 5, 3, 1, 2 }),
+		CreateFolded(new[] { 10, 20, 30 })
 	];
 }

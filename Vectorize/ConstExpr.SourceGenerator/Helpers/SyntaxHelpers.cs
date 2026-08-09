@@ -351,41 +351,10 @@ public static class SyntaxHelpers
 		{
 			var tupleItems = new List<ArgumentSyntax>();
 
-			// Check for ValueTuple fields (Item1, Item2, etc.)
-			var fields = valueType.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
-
-			if (fields.Length > 0)
+			if (!TryAddTupleItems(valueType, value, tupleItems))
 			{
-				foreach (var field in fields)
-				{
-					var itemValue = field.GetValue(value);
-
-					if (!TryCreateLiteral(itemValue, out var itemExpr))
-					{
-						result = null;
-						return false;
-					}
-
-					tupleItems.Add(Argument(itemExpr));
-				}
-			}
-			else
-			{
-				// Check for Tuple properties (Item1, Item2, etc.)
-				var properties = valueType.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
-
-				foreach (var prop in properties)
-				{
-					var itemValue = prop.GetValue(value);
-
-					if (!TryCreateLiteral(itemValue, out var itemExpr))
-					{
-						result = null;
-						return false;
-					}
-
-					tupleItems.Add(Argument(itemExpr));
-				}
+				result = null;
+				return false;
 			}
 
 			result = TupleExpression(SeparatedList(tupleItems));
@@ -475,6 +444,54 @@ public static class SyntaxHelpers
 
 		result = null;
 		return false;
+	}
+
+	private static bool TryAddTupleItems(Type tupleType, object? tupleValue, List<ArgumentSyntax> tupleItems)
+	{
+		// Check for ValueTuple fields (Item1, Item2, etc.)
+		var fields = tupleType.GetFields().Where(f => f.Name.StartsWith("Item")).ToArray();
+
+		if (fields.Length > 0)
+		{
+			foreach (var field in fields)
+			{
+				var itemValue = field.GetValue(tupleValue);
+
+				if (!TryCreateLiteral(itemValue, out var itemExpr))
+				{
+					return false;
+				}
+
+				tupleItems.Add(Argument(itemExpr));
+			}
+
+			// ValueTuple<T1..T7, TRest> nests elements 8+ inside a "Rest" field, itself a tuple
+			var restField = tupleType.GetField("Rest");
+
+			if (restField is not null && !TryAddTupleItems(restField.FieldType, restField.GetValue(tupleValue), tupleItems))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		// Check for Tuple properties (Item1, Item2, etc.)
+		var properties = tupleType.GetProperties().Where(p => p.Name.StartsWith("Item")).ToArray();
+
+		foreach (var prop in properties)
+		{
+			var itemValue = prop.GetValue(tupleValue);
+
+			if (!TryCreateLiteral(itemValue, out var itemExpr))
+			{
+				return false;
+			}
+
+			tupleItems.Add(Argument(itemExpr));
+		}
+
+		return true;
 	}
 
 	public static ExpressionSyntax CreateLiteral<T>(T? value, bool useExplicitByte = false)

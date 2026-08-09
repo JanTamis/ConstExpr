@@ -8,8 +8,8 @@ public class ConcatenateTest : BaseTest<Func<string, string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => "helloworld", [ "hello", "world" ]),
-		Create((_, _) => "test", [ "test", System.String.Empty ]),
-		Create((_, _) => "", [ System.String.Empty, System.String.Empty ])
+		CreateFolded("hello", "world"),
+		CreateFolded("test", System.String.Empty),
+		CreateFolded(System.String.Empty, System.String.Empty)
 	];
 }

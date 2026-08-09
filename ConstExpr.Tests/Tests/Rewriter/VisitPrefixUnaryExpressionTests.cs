@@ -22,9 +22,9 @@ public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, b) => (-5, 10, false, -5, -x, 0, !b)),
-		Create((_, _) => (-5, 10, false, -5, -10, 0, false), [ 10, true ]),
-		Create((_, _) => (-5, 10, false, -5, 20, 0, true), [ -20, false ]),
-		Create((_, _) => (-5, 10, false, -5, 0, 0, true), [ 0, false ]),
-		Create((_, _) => (-5, 10, false, -5, -100, 0, false), [ 100, true ])
+		CreateFolded(10, true),
+		CreateFolded(-20, false),
+		CreateFolded(0, false),
+		CreateFolded(100, true)
 	];
 }

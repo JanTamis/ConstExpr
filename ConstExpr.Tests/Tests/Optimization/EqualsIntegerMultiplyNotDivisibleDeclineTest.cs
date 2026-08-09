@@ -16,8 +16,8 @@ public class EqualsIntegerMultiplyNotDivisibleDeclineTest : BaseTest<Func<int, b
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 13 == 7),
-		Create(_ => false, [ 2 ]),
-		Create(_ => false, [ 3 ]),
-		Create(_ => true, [ 1651910499 ])
+		CreateFolded(2),
+		CreateFolded(3),
+		CreateFolded(1651910499)
 	];
 }

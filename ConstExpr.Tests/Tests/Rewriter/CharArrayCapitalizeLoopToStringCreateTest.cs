@@ -58,8 +58,8 @@ public class CharArrayCapitalizeLoopToStringCreateTest : BaseTest<Func<string, s
 
 			return new string(result);
 		}),
-		Create(_ => "Hello World", [ "hello world" ]),
-		Create(_ => "", [ System.String.Empty ]),
-		Create(_ => "Already Capitalized", [ "Already Capitalized" ])
+		CreateFolded("hello world"),
+		CreateFolded(System.String.Empty),
+		CreateFolded("Already Capitalized")
 	];
 }

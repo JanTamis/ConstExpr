@@ -24,7 +24,7 @@ public class PartialRedundancyTernaryTest() : BaseTest<Func<int[], bool, int>>(o
 
 			return flag ? numbersLength + 2 : numbersLength + 1;
 		}),
-		Create((_, _) => 4, [ new[] { 3, 5 }, true ]),
-		Create((_, _) => 3, [ new[] { 3, 5 }, false ])
+		CreateFolded(new[] { 3, 5 }, true),
+		CreateFolded(new[] { 3, 5 }, false)
 	];
 }

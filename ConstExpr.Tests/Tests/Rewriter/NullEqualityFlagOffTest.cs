@@ -10,6 +10,6 @@ public class NullEqualityFlagOffTest() : BaseTest<Func<string, bool>>(optimizati
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => false, [ "hello" ])
+		CreateFolded("hello")
 	];
 }

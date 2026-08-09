@@ -85,7 +85,7 @@ public class PartialRedundancyMutatedInArmTest() : BaseTest<Func<int, bool, int>
 
 			return sum * n;
 		}),
-		Create((_, _) => 8, [ 3, true ]),
-		Create((_, _) => 15, [ 3, false ])
+		CreateFolded(3, true),
+		CreateFolded(3, false)
 	];
 }

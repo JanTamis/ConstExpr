@@ -17,7 +17,7 @@ public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Array.FindAll(x, v => v << 1 > 4).Length;"),
-		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

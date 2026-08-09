@@ -13,8 +13,8 @@ public class ReassociationRewriterTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => 0 - x * 3 + 5),
-		Create(_ => 5, [ 0 ]),
-		Create(_ => -25, [ 10 ]),
-		Create(_ => 11, [ -2 ])
+		CreateFolded(0),
+		CreateFolded(10),
+		CreateFolded(-2)
 	];
 }

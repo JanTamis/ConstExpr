@@ -24,6 +24,6 @@ public class CommonSubexpressionMemberAccessTest() : BaseTest<Func<string, int>>
 
 			return sLength * sLength;
 		}),
-		Create(_ => 9, [ "abc" ])
+		CreateFolded("abc")
 	];
 }

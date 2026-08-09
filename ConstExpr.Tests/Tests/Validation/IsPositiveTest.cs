@@ -8,8 +8,8 @@ public class IsPositiveTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ 42 ]),
-		Create(_ => false, [ -10 ]),
-		Create(_ => false, [ 0 ])
+		CreateFolded(42),
+		CreateFolded(-10),
+		CreateFolded(0)
 	];
 }

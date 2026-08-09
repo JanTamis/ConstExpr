@@ -23,8 +23,8 @@ public class SumOfSquaresTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 55, [ 5 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => 14, [ 3 ])
+		CreateFolded(5),
+		CreateFolded(0),
+		CreateFolded(3)
 	];
 }

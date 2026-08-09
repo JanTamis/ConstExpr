@@ -16,7 +16,7 @@ public class LinqByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_BgXwWg(x) + Count_A_x9WQ(x, v) + Count_GdwhZA(x, v) + Count_0yIQSg(x);", Unknown),
-		Create(_ => 11, [ new[] { 1, 2, 2, 3, 4 } ]),
-		Create(_ => 3, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 2, 3, 4 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

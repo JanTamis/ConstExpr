@@ -34,8 +34,8 @@ public class GCDTest : BaseTest<Func<int, int, int>>
 
 			return a;
 			"""),
-		Create((_, _) => 6, [ 48, 18 ]),
-		Create((_, _) => 1, [ 17, 19 ]),
-		Create((_, _) => 15, [ 45, 60 ])
+		CreateFolded(48, 18),
+		CreateFolded(17, 19),
+		CreateFolded(45, 60)
 	];
 }

@@ -46,8 +46,8 @@ public class LCMTest : BaseTest<Func<int, int, int>>
 
 			return FastAbs(a * b) / aa;
 			"""),
-		Create((_, _) => 12, [ 4, 6 ]),
-		Create((_, _) => 0, [ 0, 5 ]),
-		Create((_, _) => 42, [ 21, 6 ])
+		CreateFolded(4, 6),
+		CreateFolded(0, 5),
+		CreateFolded(21, 6)
 	];
 }

@@ -9,7 +9,7 @@ public class ModuloByPowerOfTwoTest : BaseTest<Func<uint, uint>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x & 7u),
-		Create(_ => 3u, [ 11u ]),
-		Create(_ => 0u, [ 8u ])
+		CreateFolded(11u),
+		CreateFolded(8u)
 	];
 }

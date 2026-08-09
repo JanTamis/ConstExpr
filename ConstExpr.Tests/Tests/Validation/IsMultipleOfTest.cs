@@ -8,8 +8,8 @@ public class IsMultipleOfTest : BaseTest<Func<int, int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => true, [ 15, 5 ]),
-		Create((_, _) => false, [ 17, 3 ]),
-		Create((_, _) => true, [ 0, 5 ])
+		CreateFolded(15, 5),
+		CreateFolded(17, 3),
+		CreateFolded(0, 5)
 	];
 }

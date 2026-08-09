@@ -25,9 +25,9 @@ public class VisitVariableDeclaratorTests : BaseTest<Func<int, int, (int, int, i
 
 			return (10, 15, 30, d, d - 10);
 		}),
-		Create((_, _) => (10, 15, 30, 15, 5), [ 10, 5 ]),
-		Create((_, _) => (10, 15, 30, 25, 15), [ 15, 10 ]),
-		Create((_, _) => (10, 15, 30, 0, -10), [ 0, 0 ]),
-		Create((_, _) => (10, 15, 30, 150, 140), [ 100, 50 ])
+		CreateFolded(10, 5),
+		CreateFolded(15, 10),
+		CreateFolded(0, 0),
+		CreateFolded(100, 50)
 	];
 }

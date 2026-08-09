@@ -35,8 +35,8 @@ public class ReverseNumberTest : BaseTest<Func<int, int>>
 
 			return FastCopySign(reversed, originalN);
 			"""),
-		Create(_ => 321, [ 123 ]),
-		Create(_ => -654, [ -456 ]),
-		Create(_ => 1, [ 1 ])
+		CreateFolded(123),
+		CreateFolded(-456),
+		CreateFolded(1)
 	];
 }

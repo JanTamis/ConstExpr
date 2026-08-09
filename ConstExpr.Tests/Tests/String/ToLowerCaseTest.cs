@@ -8,8 +8,8 @@ public class ToLowerCaseTest : BaseTest<Func<string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => "hello", [ "HELLO" ]),
-		Create(_ => "world123", [ "WoRlD123" ]),
-		Create(_ => "", [ System.String.Empty ])
+		CreateFolded("HELLO"),
+		CreateFolded("WoRlD123"),
+		CreateFolded(System.String.Empty)
 	];
 }

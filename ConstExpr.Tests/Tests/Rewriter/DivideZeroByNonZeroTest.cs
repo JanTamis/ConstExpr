@@ -9,7 +9,7 @@ public class DivideZeroByNonZeroTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => 0),
-		Create(_ => 0, [ 7 ]),
-		Create(_ => 0, [ -2 ])
+		CreateFolded(7),
+		CreateFolded(-2)
 	];
 }

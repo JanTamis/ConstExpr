@@ -42,7 +42,7 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (TensorPrimitives.Max(x) << 1) + (TensorPrimitives.Min(x) << 1) + xRef;
 		}),
-		Create(_ => 9, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 25, [ new[] { 5 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(new[] { 5 })
 	];
 }

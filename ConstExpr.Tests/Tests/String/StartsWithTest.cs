@@ -8,8 +8,8 @@ public class StartsWithTest : BaseTest<Func<string, string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => true, [ "hello", "hel" ]),
-		Create((_, _) => false, [ "world", "foo" ]),
-		Create((_, _) => true, [ System.String.Empty, System.String.Empty ])
+		CreateFolded("hello", "hel"),
+		CreateFolded("world", "foo"),
+		CreateFolded(System.String.Empty, System.String.Empty)
 	];
 }

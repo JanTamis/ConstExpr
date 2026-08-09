@@ -12,9 +12,9 @@ public class RightShiftZeroCompareTest : BaseTest<Func<uint, (bool, bool)>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 16U, x >= 16U)),
-		Create(_ => (true, false), [ 0u ]),
-		Create(_ => (true, false), [ 15u ]),
-		Create(_ => (false, true), [ 16u ]),
-		Create(_ => (false, true), [ UInt32.MaxValue ])
+		CreateFolded(0u),
+		CreateFolded(15u),
+		CreateFolded(16u),
+		CreateFolded(UInt32.MaxValue)
 	];
 }

@@ -8,6 +8,6 @@ public class MathFBitIncrementTest : BaseTest<Func<float, float>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastBitIncrement(x);"),
-		Create(_ => 2F, [ 1.9999999f ])
+		CreateFolded(1.9999999f)
 	];
 }

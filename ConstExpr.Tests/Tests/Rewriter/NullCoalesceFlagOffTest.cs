@@ -10,6 +10,6 @@ public class NullCoalesceFlagOffTest() : BaseTest<Func<string, string, string>>(
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => "hello", [ "hello", "world" ])
+		CreateFolded("hello", "world")
 	];
 }

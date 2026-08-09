@@ -44,7 +44,7 @@ public class ArrayReverseTest : BaseTest<Func<int[], int[]>>
 			return arr;
 		}),
 		Create(_ => [ 5, 4, 3, 2, 1 ], [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => [ ], [ System.Array.Empty<int>() ]),
-		Create(_ => [ 42 ], [ new[] { 42 } ])
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 42 })
 	];
 }

@@ -21,14 +21,14 @@ public class PatternBitmaskTest : BaseTest<Func<int, bool>>
 
 			return (uint) diff <= 19U && (0x84211u >> diff & 1) != 0;
 		}), // Unknown value
-		Create(_ => true, [ 1 ]), // Match
-		Create(_ => true, [ 5 ]), // Match
-		Create(_ => true, [ 10 ]), // Match
-		Create(_ => true, [ 15 ]), // Match
-		Create(_ => true, [ 20 ]), // Match
-		Create(_ => false, [ 0 ]), // No match
-		Create(_ => false, [ 3 ]), // No match
-		Create(_ => false, [ 7 ]), // No match
-		Create(_ => false, [ 21 ]) // No match
+		CreateFolded(1), // Match
+		CreateFolded(5), // Match
+		CreateFolded(10), // Match
+		CreateFolded(15), // Match
+		CreateFolded(20), // Match
+		CreateFolded(0), // No match
+		CreateFolded(3), // No match
+		CreateFolded(7), // No match
+		CreateFolded(21) // No match
 	];
 }

@@ -62,7 +62,7 @@ public class LinqToDictionaryOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (ToDictionary_1EegoQ(x).Count << 3) + (ToDictionary_sCunBg(x).Count << 1) + ToDictionary_3VBgJQ(x).Count + ToDictionary___qgkw(x).Count + ToDictionary_at7ziQ(x).Count + ToDictionary_XXbqPA(x).Count + ToDictionary_nBFL_A(x).Count + ToDictionary_vxO49g(x).Count;"),
-		Create(_ => 48, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

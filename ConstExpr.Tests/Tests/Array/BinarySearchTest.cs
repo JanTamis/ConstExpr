@@ -62,8 +62,8 @@ public class BinarySearchTest : BaseTest<Func<int[], int, int>>
 
 			return -1;
 		}),
-		Create((_, _) => 2, [ new[] { 1, 3, 5, 7, 9 }, 5 ]),
-		Create((_, _) => 4, [ new[] { 0, 2, 4, 6, 8, 10 }, 8 ]),
-		Create((_, _) => -1, [ new[] { 2, 4, 6, 8 }, 5 ])
+		CreateFolded(new[] { 1, 3, 5, 7, 9 }, 5),
+		CreateFolded(new[] { 0, 2, 4, 6, 8, 10 }, 8),
+		CreateFolded(new[] { 2, 4, 6, 8 }, 5)
 	];
 }

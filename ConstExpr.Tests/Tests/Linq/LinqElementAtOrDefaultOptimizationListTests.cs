@@ -39,7 +39,7 @@ public class LinqElementAtOrDefaultOptimizationListTests : BaseTest<Func<List<in
 
 			return (xCount > 0 ? xRef << 1 : 0) + (xCount > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (xCount > 10 ? Unsafe.Add(ref xRef, 10) : 0);
 		}),
-		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 1 + 2 + 0 = 6
-		Create(_ => 0, [ new List<int>() ]) // All return 0 (default)
+		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 + 0 = 6
+		CreateFolded(new List<int>()) // All return 0 (default)
 	];
 }

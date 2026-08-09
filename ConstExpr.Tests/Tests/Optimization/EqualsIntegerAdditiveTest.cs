@@ -15,8 +15,8 @@ public class EqualsIntegerAdditiveTest : BaseTest<Func<int, (bool, bool, bool)>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 7, x == 13, x == -7)),
-		Create(_ => (true, false, false), [ 7 ]),
-		Create(_ => (false, true, false), [ 13 ]),
-		Create(_ => (false, false, true), [ -7 ])
+		CreateFolded(7),
+		CreateFolded(13),
+		CreateFolded(-7)
 	];
 }

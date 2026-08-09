@@ -12,7 +12,7 @@ public class DivideIdempotencyTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 1, [ 5 ]),
-		Create(_ => 1, [ -3 ])
+		CreateFolded(5),
+		CreateFolded(-3)
 	];
 }

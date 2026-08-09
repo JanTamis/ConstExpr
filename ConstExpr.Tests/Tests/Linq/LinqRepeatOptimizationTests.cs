@@ -111,7 +111,7 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 
 			return ((gt ? element : ThrowInvalidOperationException<int>("Sequence contains no elements")) << 2) + count + element * count + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(gt && element == 5) + (count > 2 ? element : ThrowArgumentOutOfRangeException<int>("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(count <= 0 || element > 0);
 		}),
-		Create((_, _) => 40, [ 3, 4 ])
+		CreateFolded(3, 4)
 	];
 
 	// Local stand-ins for the private helpers the generator extracts throw-expressions into (see

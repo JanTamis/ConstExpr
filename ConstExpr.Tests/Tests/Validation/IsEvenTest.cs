@@ -16,7 +16,7 @@ public class IsEvenTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Int32.IsEvenInteger(FastAbs(n));"),
-		Create(_ => true, [ 4 ]),
-		Create(_ => false, [ 5 ])
+		CreateFolded(4),
+		CreateFolded(5)
 	];
 }

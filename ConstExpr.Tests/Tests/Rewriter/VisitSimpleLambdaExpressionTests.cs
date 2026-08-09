@@ -16,10 +16,10 @@ public class VisitSimpleLambdaExpressionTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(y => y + 1),
-		Create(_ => 7, [ 6 ]),
-		Create(_ => 12, [ 11 ]),
-		Create(_ => 2, [ 1 ]),
-		Create(_ => 0, [ -1 ]),
-		Create(_ => 1, [ 0 ])
+		CreateFolded(6),
+		CreateFolded(11),
+		CreateFolded(1),
+		CreateFolded(-1),
+		CreateFolded(0)
 	];
 }

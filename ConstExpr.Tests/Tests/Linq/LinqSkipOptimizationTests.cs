@@ -24,7 +24,7 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 
 			return xLength + Int32.Max(0, xLength - 4);
 		}),
-		Create(_ => 3, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

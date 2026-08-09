@@ -14,6 +14,6 @@ public class ConditionalAccessKnownNullTest : BaseTest<Func<string?, string?>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(_ => null, [ null ])
+		CreateFolded((object?) null)
 	];
 }

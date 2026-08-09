@@ -13,6 +13,6 @@ public class IsNotNullPatternNonNullableTest : BaseTest<Func<string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => true),
-		Create(_ => true, [ "hello" ])
+		CreateFolded("hello")
 	];
 }

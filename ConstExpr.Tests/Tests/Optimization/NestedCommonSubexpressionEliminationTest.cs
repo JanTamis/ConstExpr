@@ -34,6 +34,6 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 
 			return result;
 		}),
-		Create((_, _) => 4, [ 1, 5 ])
+		CreateFolded(1, 5)
 	];
 }

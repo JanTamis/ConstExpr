@@ -11,8 +11,8 @@ public class ComparisonInversionIntTest : BaseTest<Func<int, int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b) => a >= b),
-		Create((_, _) => false, [ 1, 2 ]),
-		Create((_, _) => true, [ 2, 1 ]),
-		Create((_, _) => true, [ 1, 1 ])
+		CreateFolded(1, 2),
+		CreateFolded(2, 1),
+		CreateFolded(1, 1)
 	];
 }

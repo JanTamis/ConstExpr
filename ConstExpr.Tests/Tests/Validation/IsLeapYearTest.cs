@@ -29,7 +29,7 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | Fa
 
 			return (year & 3) == 0 && year - ((castVal >> 5) - rshift) * 100 != 0 && year - ((castVal >> 7) - rshift) * 400 == 0;
 		}),
-		Create(_ => true, [ 2000 ]),
-		Create(_ => false, [ 1900 ])
+		CreateFolded(2000),
+		CreateFolded(1900)
 	];
 }

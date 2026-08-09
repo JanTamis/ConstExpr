@@ -53,6 +53,6 @@ public class LinqFirstOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (xRef << 2) + (First_zVpC_g(x) << 1) + First_x5lKxQ(x) + First_O1a9Fw(x) + First_NyySEw(x) + First_BgmaKg(x) + Unsafe.Add(ref xRef, x.Length - 1) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x);
 			"""),
-		Create(_ => 28, [ new[] { 1, 2, 3, 4, 5 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 })
 	];
 }

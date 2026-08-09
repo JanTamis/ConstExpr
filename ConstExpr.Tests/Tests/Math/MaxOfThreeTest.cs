@@ -23,7 +23,7 @@ public class MaxOfThreeTest : BaseTest<Func<int, int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b, c) => Int32.Max(c, Int32.Max(b, a))),
-		Create((_, _, _) => 10, [ 5, 10, 3 ]),
-		Create((_, _, _) => 5, [ 5, 5, 5 ])
+		CreateFolded(5, 10, 3),
+		CreateFolded(5, 5, 5)
 	];
 }

@@ -13,7 +13,7 @@ public class StringIsNullOrEmptyNonNullTest : BaseTest<Func<string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s.Length == 0),
-		Create(_ => true, [ System.String.Empty ]),
-		Create(_ => false, [ "hello" ])
+		CreateFolded(System.String.Empty),
+		CreateFolded("hello")
 	];
 }

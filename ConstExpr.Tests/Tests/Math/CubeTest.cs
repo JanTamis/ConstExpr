@@ -8,8 +8,8 @@ public class CubeTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 125, [ 5 ]),
-		Create(_ => 0, [ 0 ]),
-		Create(_ => -8, [ -2 ])
+		CreateFolded(5),
+		CreateFolded(0),
+		CreateFolded(-2)
 	];
 }

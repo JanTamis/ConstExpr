@@ -60,7 +60,7 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_sv6FOA(x) + 10;"),
-		Create(_ => 367, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 1063, [ new[] { 1, 2, 3, 4, 5, 6 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 })
 	];
 }

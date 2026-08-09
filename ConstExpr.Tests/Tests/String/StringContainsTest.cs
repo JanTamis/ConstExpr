@@ -8,9 +8,9 @@ public class StringContainsTest : BaseTest<Func<string, string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Contains_57jrtQ(s, sub);"),
-		Create((_, _) => true, [ "hello", "ell" ]),
-		Create((_, _) => false, [ "hello", "world" ]),
-		Create((_, _) => true, [ "abc", System.String.Empty ]),
-		Create((_, _) => false, [ System.String.Empty, "x" ])
+		CreateFolded("hello", "ell"),
+		CreateFolded("hello", "world"),
+		CreateFolded("abc", System.String.Empty),
+		CreateFolded(System.String.Empty, "x")
 	];
 }

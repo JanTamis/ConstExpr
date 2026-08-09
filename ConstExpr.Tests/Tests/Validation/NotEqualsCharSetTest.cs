@@ -17,9 +17,9 @@ public class NotEqualsCharSetTest : BaseTest<Func<char, bool>>
 
 			return (uint) diff > 13U || (0x2801u >> diff & 1) == 0;
 		}),
-		Create(_ => false, [ '-' ]),
-		Create(_ => false, [ ' ' ]),
-		Create(_ => false, [ '+' ]),
-		Create(_ => true, [ 'x' ])
+		CreateFolded('-'),
+		CreateFolded(' '),
+		CreateFolded('+'),
+		CreateFolded('x')
 	];
 }

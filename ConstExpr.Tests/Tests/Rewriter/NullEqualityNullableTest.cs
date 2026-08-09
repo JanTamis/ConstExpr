@@ -8,7 +8,7 @@ public class NullEqualityNullableTest : BaseTest<Func<string?, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ null ]),
-		Create(_ => false, [ "hello" ])
+		CreateFolded((object?) null),
+		CreateFolded("hello")
 	];
 }

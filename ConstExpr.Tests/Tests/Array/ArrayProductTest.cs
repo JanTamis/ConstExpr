@@ -18,8 +18,8 @@ public class ArrayProductTest : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 120, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 1, [ System.Array.Empty<int>() ]),
-		Create(_ => 0, [ new[] { 5, 0, 3 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 5, 0, 3 })
 	];
 }

@@ -12,10 +12,10 @@ public class BitOperationsTrailingZeroCountCompareTest : BaseTest<Func<uint, boo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x & 7U) == 0),
-		Create(_ => true, [ 8u ]),
-		Create(_ => true, [ 0u ]),
-		Create(_ => true, [ 64u ]),
-		Create(_ => false, [ 4u ]),
-		Create(_ => false, [ 7u ])
+		CreateFolded(8u),
+		CreateFolded(0u),
+		CreateFolded(64u),
+		CreateFolded(4u),
+		CreateFolded(7u)
 	];
 }

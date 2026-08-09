@@ -22,6 +22,6 @@ public class CommutativeCommonSubexpressionTest() : BaseTest<Func<int, int, int>
 			var sum = x + y;
 			return sum * sum;
 		}),
-		Create((_, _) => 25, [ 2, 3 ])
+		CreateFolded(2, 3)
 	];
 }

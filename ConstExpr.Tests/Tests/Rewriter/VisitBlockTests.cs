@@ -25,9 +25,9 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y) => (y << 1) + (x << 1) + 5),
-		Create((_, _) => 21, [ 5, 3 ]),
-		Create((_, _) => 35, [ 10, 5 ]),
-		Create((_, _) => 7, [ 0, 1 ]),
-		Create((_, _) => 5, [ -10, 10 ])
+		CreateFolded(5, 3),
+		CreateFolded(10, 5),
+		CreateFolded(0, 1),
+		CreateFolded(-10, 10)
 	];
 }

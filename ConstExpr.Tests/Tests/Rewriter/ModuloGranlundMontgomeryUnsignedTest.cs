@@ -16,9 +16,9 @@ public class ModuloGranlundMontgomeryUnsignedTest() : BaseTest<Func<uint, uint>>
 
 			return x - (castVal + (x - castVal >> 1) >> 2) * 7U;
 		}),
-		Create(_ => 3u, [ 10u ]),
-		Create(_ => 0u, [ 7u ]),
-		Create(_ => 0u, [ 0u ]),
-		Create(_ => 6u, [ 6u ])
+		CreateFolded(10u),
+		CreateFolded(7u),
+		CreateFolded(0u),
+		CreateFolded(6u)
 	];
 }

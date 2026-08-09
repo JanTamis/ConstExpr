@@ -33,6 +33,6 @@ public class ValueRangeBitmaskFoldTest : BaseTest<Func<int, int>>
 		}, [ Unknown ]),
 
 		// A known input folds through the interpreter before the pass sees anything.
-		Create(_ => 5, [ 21 ])
+		CreateFolded(21)
 	];
 }

@@ -15,10 +15,10 @@ public class ConditionalBitCastNaNSafeNegationTest() : BaseTest<Func<double, dou
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create((_, _) => 1, [ Double.NaN, 1.0 ]),
-		Create((_, _) => 1, [ 1.0, Double.NaN ]),
-		Create((_, _) => 1, [ Double.NaN, Double.NaN ]),
-		Create((_, _) => 0, [ 1.0, 2.0 ]),
-		Create((_, _) => 1, [ 2.0, 1.0 ])
+		CreateFolded(Double.NaN, 1.0),
+		CreateFolded(1.0, Double.NaN),
+		CreateFolded(Double.NaN, Double.NaN),
+		CreateFolded(1.0, 2.0),
+		CreateFolded(2.0, 1.0)
 	];
 }

@@ -13,8 +13,8 @@ public class ComparisonCoefficientDivisionTest : BaseTest<Func<float, (bool, boo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 0.25f, x > 0.25f, x <= 0.25f, x >= 0.25f)),
-		Create(_ => (true, false, true, false), [ 0f ]),
-		Create(_ => (false, true, false, true), [ 1f ]),
-		Create(_ => (false, false, true, true), [ 0.25f ])
+		CreateFolded(0f),
+		CreateFolded(1f),
+		CreateFolded(0.25f)
 	];
 }

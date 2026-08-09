@@ -56,7 +56,7 @@ public class LinqFirstOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (Array.Find(x, v => v > 0) << 1) + (gt ? xRef * 5 : 0) + Array.Find(x, v => v > 3) + Array.Find(x, v => v > 2) + Array.Find(x, v => v < 5) + Array.Find(x, v => v == 3) + TensorPrimitives.Min(x) + (gt ? Unsafe.Add(ref xRef, xLength - 1) : 0);
 			"""),
-		Create(_ => 24, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

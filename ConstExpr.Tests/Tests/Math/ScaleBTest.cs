@@ -10,6 +10,6 @@ public class ScaleBTest : BaseTest<Func<double, int, double>>
 		Create("return FastScaleB(x, n);"), // Unknown args → emit fast helper
 		Create((x, _) => x, [ Unknown, 0 ]), // ScaleB(x, 0) = x (2^0 = 1)
 		Create((_, _) => 0D, [ 0.0, Unknown ]), // ScaleB(0, n) = 0
-		Create((_, _) => 16D, [ 2.0, 3 ]) // ScaleB(2.0, 3) = 2.0 * 2^3 = 16.0
+		CreateFolded(2.0, 3) // ScaleB(2.0, 3) = 2.0 * 2^3 = 16.0
 	];
 }

@@ -13,7 +13,7 @@ public class ShiftZeroTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => 0),
-		Create(_ => 0, [ 5 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(5),
+		CreateFolded(0)
 	];
 }

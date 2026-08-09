@@ -53,6 +53,6 @@ public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
 		}, [ Unknown ]),
 
 		// n = 5 masks to 1, so the loop runs from 1 up to 10: nine iterations.
-		Create(_ => 9, [ 5 ])
+		CreateFolded(5)
 	];
 }

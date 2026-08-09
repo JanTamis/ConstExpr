@@ -8,6 +8,6 @@ public class MathFAtan2Test : BaseTest<Func<float, float, float>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAtan2(y, x);"),
-		Create((_, _) => 0F, [ 0f, 2f ])
+		CreateFolded(0f, 2f)
 	];
 }

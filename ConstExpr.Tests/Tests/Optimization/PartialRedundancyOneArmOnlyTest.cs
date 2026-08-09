@@ -51,8 +51,8 @@ public class PartialRedundancyOneArmOnlyTest() : BaseTest<Func<int, bool, bool, 
 
 			return sum;
 		}),
-		Create((_, _, _) => 8, [ 2, true, true ]),
-		Create((_, _, _) => 4, [ 2, true, false ]),
-		Create((_, _, _) => 0, [ 2, false, false ])
+		CreateFolded(2, true, true),
+		CreateFolded(2, true, false),
+		CreateFolded(2, false, false)
 	];
 }

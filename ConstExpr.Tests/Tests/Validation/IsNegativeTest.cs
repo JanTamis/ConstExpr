@@ -8,7 +8,7 @@ public class IsNegativeTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ -10 ]),
-		Create(_ => false, [ 0 ])
+		CreateFolded(-10),
+		CreateFolded(0)
 	];
 }

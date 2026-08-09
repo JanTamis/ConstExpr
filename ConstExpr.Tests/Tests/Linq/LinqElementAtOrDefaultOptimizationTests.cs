@@ -50,8 +50,8 @@ public class LinqElementAtOrDefaultOptimizationTests : BaseTest<Func<int[], int>
 
 			return (xLength > 0 ? xRef << 1 : 0) + (xLength > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (xLength > 2 ? Unsafe.Add(ref xRef, 2) << 1 : 0) + (xLength > 10 ? Unsafe.Add(ref xRef, 10) : 0) + (xLength > 3 ? Unsafe.Add(ref xRef, 3) : 0);
 		}),
-		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
-		Create(_ => 0, [ System.Array.Empty<int>() ]), // All return 0 (default)
-		Create(_ => 0, [ new[] { 0, 0, 0, 0, 0 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 0 + 4 = 16
+		CreateFolded(System.Array.Empty<int>()), // All return 0 (default)
+		CreateFolded(new[] { 0, 0, 0, 0, 0 })
 	];
 }

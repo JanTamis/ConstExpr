@@ -11,8 +11,8 @@ public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(_ => 6L, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0L, [ Enumerable.Empty<int>() ]),
-		Create(_ => 42L, [ new[] { 42 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 42 })
 	];
 }

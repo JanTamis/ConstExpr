@@ -32,9 +32,9 @@ public class VisitIsPatternExpressionTests : BaseTest<Func<int, int, object, cha
 
 			return [ true, false, x == 0, y > 0, obj is int, (uint) diff <= 20U && (0x104111u >> diff & 1) != 0, (uint) x <= 80U && x % 20 == 0, castVal <= 4U, castVal <= 9U && (0x28Du >> diff2 & 1) != 0, (uint) (x - 2) > 1U ];
 		}),
-		Create((_, _, _, _) => [ true, false, true, false, true, false, true, false, false, true ], [ 0, -5, 42, 'b' ]),
-		Create((_, _, _, _) => [ true, false, false, true, true, false, false, false, true, true ], [ 10, 20, 100, 'c' ]),
-		Create((_, _, _, _) => [ true, false, false, true, false, false, false, true, false, true ], [ 5, 15, "hello", 'd' ]),
-		Create((_, _, _, _) => [ true, false, false, false, true, true, false, false, false, true ], [ -10, -20, 0, 'e' ])
+		CreateFolded(0, -5, 42, 'b'),
+		CreateFolded(10, 20, 100, 'c'),
+		CreateFolded(5, 15, "hello", 'd'),
+		CreateFolded(-10, -20, 0, 'e')
 	];
 }

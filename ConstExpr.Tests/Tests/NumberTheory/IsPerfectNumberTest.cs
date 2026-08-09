@@ -34,9 +34,9 @@ public class IsPerfectNumberTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ 6 ]),
-		Create(_ => true, [ 28 ]),
-		Create(_ => false, [ 12 ]),
-		Create(_ => false, [ 1 ])
+		CreateFolded(6),
+		CreateFolded(28),
+		CreateFolded(12),
+		CreateFolded(1)
 	];
 }

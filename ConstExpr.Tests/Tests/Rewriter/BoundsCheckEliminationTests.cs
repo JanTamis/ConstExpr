@@ -39,6 +39,6 @@ public class BoundsCheckEliminationTests : BaseTest<Func<int[], int>>
 		}, [ Unknown ]),
 
 		// Known input folds through the interpreter before the pass ever sees an array.
-		Create(_ => 15, [ new[] { 1, 2, 3, 4, 5 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 })
 	];
 }

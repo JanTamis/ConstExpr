@@ -8,8 +8,8 @@ public class NthTriangularNumberTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n * (n + 1) >> 1),
-		Create(_ => 15, [ 5 ]),
-		Create(_ => 1, [ 1 ]),
-		Create(_ => 55, [ 10 ])
+		CreateFolded(5),
+		CreateFolded(1),
+		CreateFolded(10)
 	];
 }

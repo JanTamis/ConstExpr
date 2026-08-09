@@ -13,8 +13,8 @@ public class IsAsciiHexDigitLowerTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiHexDigitLower(c)),
-		Create(_ => true, [ '3' ]),
-		Create(_ => true, [ 'b' ]),
-		Create(_ => false, [ 'g' ])
+		CreateFolded('3'),
+		CreateFolded('b'),
+		CreateFolded('g')
 	];
 }

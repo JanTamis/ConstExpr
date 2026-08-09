@@ -9,7 +9,7 @@ public class ConditionalAndWithFalseTest : BaseTest<Func<bool, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => false),
-		Create(_ => false, [ true ]),
-		Create(_ => false, [ false ])
+		CreateFolded(true),
+		CreateFolded(false)
 	];
 }

@@ -13,8 +13,8 @@ public class AbsoluteDifferenceTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAbs(a - b);"),
-		Create((_, _) => 5, [ 10, 5 ]),
-		Create((_, _) => 30, [ -10, 20 ]),
-		Create((_, _) => 0, [ 42, 42 ])
+		CreateFolded(10, 5),
+		CreateFolded(-10, 20),
+		CreateFolded(42, 42)
 	];
 }

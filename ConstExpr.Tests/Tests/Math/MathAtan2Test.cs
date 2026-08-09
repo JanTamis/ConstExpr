@@ -8,6 +8,6 @@ public class MathAtan2Test : BaseTest<Func<double, double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAtan2(y, x);"),
-		Create((_, _) => 0D, [ 0.0, 2.0 ])
+		CreateFolded(0.0, 2.0)
 	];
 }

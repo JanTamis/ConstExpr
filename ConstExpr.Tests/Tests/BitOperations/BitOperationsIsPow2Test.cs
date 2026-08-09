@@ -8,11 +8,11 @@ public class BitOperationsIsPow2UintTest : BaseTest<Func<uint, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ 8u ]),
-		Create(_ => true, [ 1024u ]),
-		Create(_ => false, [ 0u ]),
-		Create(_ => false, [ 7u ]),
-		Create(_ => false, [ 6u ])
+		CreateFolded(8u),
+		CreateFolded(1024u),
+		CreateFolded(0u),
+		CreateFolded(7u),
+		CreateFolded(6u)
 	];
 }
 
@@ -24,9 +24,9 @@ public class BitOperationsIsPow2IntTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => true, [ 16 ]),
-		Create(_ => false, [ 0 ]),
-		Create(_ => false, [ -4 ]),
-		Create(_ => false, [ 6 ])
+		CreateFolded(16),
+		CreateFolded(0),
+		CreateFolded(-4),
+		CreateFolded(6)
 	];
 }

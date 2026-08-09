@@ -8,9 +8,9 @@ public class StringIsNullOrWhiteSpaceTest : BaseTest<Func<string, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s.AsSpan().IsWhiteSpace()),
-		Create(_ => true, [ System.String.Empty ]),
-		Create(_ => true, [ "   " ]),
-		Create(_ => false, [ "hello" ]),
-		Create(_ => false, [ " x " ])
+		CreateFolded(System.String.Empty),
+		CreateFolded("   "),
+		CreateFolded("hello"),
+		CreateFolded(" x ")
 	];
 }

@@ -33,6 +33,6 @@ public class ValueRangeUnknownOperandTest : BaseTest<Func<int, int>>
 		}, [ Unknown ]),
 
 		// 21 | 15 = 31, which trips the guard.
-		Create(_ => -1, [ 21 ])
+		CreateFolded(21)
 	];
 }

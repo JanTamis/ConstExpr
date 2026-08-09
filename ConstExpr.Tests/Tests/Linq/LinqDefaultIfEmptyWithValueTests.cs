@@ -31,7 +31,7 @@ public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 
 			return (gt ? xRef : 42) + (gt ? xRef : 99) + First_mA5pFw(x) + (gt ? xRef : 10);
 			"""),
-		Create(_ => 4, [ new[] { 1 } ]), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
-		Create(_ => 228, [ System.Array.Empty<int>() ]) // Empty: returns default values 42+99+77+20 = 238
+		CreateFolded(new[] { 1 }), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
+		CreateFolded(System.Array.Empty<int>()) // Empty: returns default values 42+99+77+20 = 238
 	];
 }

@@ -46,9 +46,9 @@ public class IsPrimeTest : BaseTest<Func<int, bool>>
 
 			return true;
 		}),
-		Create(_ => true, [ 17 ]),
-		Create(_ => true, [ 29 ]),
-		Create(_ => false, [ 1 ]),
-		Create(_ => false, [ 100 ])
+		CreateFolded(17),
+		CreateFolded(29),
+		CreateFolded(1),
+		CreateFolded(100)
 	];
 }

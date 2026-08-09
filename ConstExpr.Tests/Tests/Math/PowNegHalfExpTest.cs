@@ -8,7 +8,7 @@ public class PowNegHalfExpTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => Double.ReciprocalSqrtEstimate(x)),
-		Create(_ => 0.5D, [ 4.0 ]),
-		Create(_ => 1D, [ 1.0 ])
+		CreateFolded(4.0),
+		CreateFolded(1.0)
 	];
 }

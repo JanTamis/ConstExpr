@@ -16,8 +16,8 @@ public class StringLengthTest : BaseTest<Func<string?, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s?.Length ?? -1),
-		Create(_ => 0, [ System.String.Empty ]),
-		Create(_ => 11, [ "hello world" ]),
-		Create(_ => -1, [ null ])
+		CreateFolded(System.String.Empty),
+		CreateFolded("hello world"),
+		CreateFolded((object?) null)
 	];
 }

@@ -12,7 +12,7 @@ public class IsInRangeTest : BaseTest<Func<int, int, int, bool>>
 		Create((_, _, _) => false, [ Unknown, 10, 1 ]),
 		Create((_, _, _) => false, [ Unknown, -1, -10 ]),
 		Create("return (uint)(value + 10) <= 9U;", Unknown, -10, -1),
-		Create((_, _, _) => false, [ 15, 1, 10 ]),
-		Create((_, _, _) => true, [ 1, 1, 10 ])
+		CreateFolded(15, 1, 10),
+		CreateFolded(1, 1, 10)
 	];
 }

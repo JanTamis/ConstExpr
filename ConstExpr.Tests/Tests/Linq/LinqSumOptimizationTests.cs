@@ -31,7 +31,7 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 9 + Sum_dcMRsA(x);"),
-		Create(_ => 54, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 39, [ new[] { 5 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(new[] { 5 })
 	];
 }

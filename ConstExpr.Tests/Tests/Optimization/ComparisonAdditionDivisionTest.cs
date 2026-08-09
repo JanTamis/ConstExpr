@@ -12,8 +12,8 @@ public class ComparisonAdditionDivisionTest : BaseTest<Func<float, (bool, bool, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < -2f, x > -2f, x <= -2f, x >= -2f)),
-		Create(_ => (false, true, false, true), [ 0f ]),
-		Create(_ => (true, false, true, false), [ -5f ]),
-		Create(_ => (false, false, true, true), [ -2f ])
+		CreateFolded(0f),
+		CreateFolded(-5f),
+		CreateFolded(-2f)
 	];
 }

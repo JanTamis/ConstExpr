@@ -9,6 +9,6 @@ public class MathTanTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastTan(x);"),
-		Create(_ => 0D, [ 0.0 ])
+		CreateFolded(0.0)
 	];
 }

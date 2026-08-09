@@ -21,8 +21,8 @@ public class VisitForEachStatementTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 15, [ new[] { 4, 5, 6 } ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 4, 5, 6 })
 	];
 }

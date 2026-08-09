@@ -9,7 +9,7 @@ public class PowTwoToExpTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => Double.Exp2(n)),
-		Create(_ => 8D, [ 3.0 ]),
-		Create(_ => 1D, [ 0.0 ])
+		CreateFolded(3.0),
+		CreateFolded(0.0)
 	];
 }

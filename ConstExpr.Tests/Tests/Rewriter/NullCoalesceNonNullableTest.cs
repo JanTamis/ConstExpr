@@ -8,6 +8,6 @@ public class NullCoalesceNonNullableTest : BaseTest<Func<string, string, string>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, _) => a),
-		Create((_, _) => "hello", [ "hello", "world" ])
+		CreateFolded("hello", "world")
 	];
 }

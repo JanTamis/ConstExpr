@@ -17,10 +17,10 @@ public class IsAsciiHexDigitTest : BaseTest<Func<char, bool>>
 		// Known char constants: char comparisons bypass full constant folding
 		// (implicit char→int conversion causes the per-range &&s to fall back to
 		// Char.IsAsciiDigit / Char.IsBetween, which are then combined by this optimizer)
-		Create(_ => true, [ '5' ]),
-		Create(_ => true, [ 'a' ]),
-		Create(_ => true, [ 'F' ]),
-		Create(_ => false, [ 'g' ]),
-		Create(_ => false, [ 'Z' ])
+		CreateFolded('5'),
+		CreateFolded('a'),
+		CreateFolded('F'),
+		CreateFolded('g'),
+		CreateFolded('Z')
 	];
 }

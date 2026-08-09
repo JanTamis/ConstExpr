@@ -24,6 +24,6 @@ public class CommonSubexpressionNameCollisionTest() : BaseTest<Func<int, int, in
 			var prod2 = prod * y;
 			return prod2 * prod2;
 		}),
-		Create((_, _) => 100, [ 2, 5 ])
+		CreateFolded(2, 5)
 	];
 }

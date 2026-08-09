@@ -9,6 +9,6 @@ public class MathAcoshTest : BaseTest<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAcosh(x);"),
-		Create(_ => 0D, [ 1.0 ])
+		CreateFolded(1.0)
 	];
 }

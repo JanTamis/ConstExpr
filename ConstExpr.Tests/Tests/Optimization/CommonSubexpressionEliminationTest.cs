@@ -19,6 +19,6 @@ public class CommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>
 			var sum = x * y + 1;
 			return sum * sum;
 		}),
-		Create((_, _) => 121, [ 2, 5 ])
+		CreateFolded(2, 5)
 	];
 }

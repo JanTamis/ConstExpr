@@ -65,7 +65,7 @@ public class ValueRangeEarlyExitLoopWriteTest : BaseTest<Func<int, int, int>>
 		}),
 
 		// One pass counts, the second does not — folding the guard to true would answer 2.
-		Create((_, _) => 1, [ 1, 2 ]),
-		Create((_, _) => -1, [ 40, 2 ])
+		CreateFolded(1, 2),
+		CreateFolded(40, 2)
 	];
 }

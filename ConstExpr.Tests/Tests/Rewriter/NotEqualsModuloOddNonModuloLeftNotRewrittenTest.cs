@@ -16,7 +16,7 @@ public class NotEqualsModuloOddNonModuloLeftNotRewrittenTest : BaseTest<Func<int
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x != -2),
-		Create(_ => true, [ 7 ]),
-		Create(_ => false, [ -2 ])
+		CreateFolded(7),
+		CreateFolded(-2)
 	];
 }

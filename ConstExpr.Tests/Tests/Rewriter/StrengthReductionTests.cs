@@ -39,6 +39,6 @@ public class StrengthReductionTests : BaseTest<Func<int, int>>
 
 		// Known bound folds completely through the interpreter: 10 * (0+1+2+3+4) = 100. This
 		// anchors the semantics of the shape independently of the rewriter.
-		Create(_ => 100, [ 5 ])
+		CreateFolded(5)
 	];
 }

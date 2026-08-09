@@ -46,6 +46,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// </summary>
 	public abstract string TestMethod { get; }
 
+	private TDelegate? _capturedMethod;
+
 	private static int GetDelegateParameterCount()
 	{
 		return BaseTestShared.DelegateParameterCount.GetOrAdd(typeof(TDelegate), static delegateType => delegateType.GetMethod("Invoke")?.GetParameters().Length
@@ -387,8 +389,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return KeyValuePair.Create<string?, object?[]>(body, Enumerable.Repeat<object?>(Unknown, delegateParamCount).ToArray());
 	}
 
-	protected static string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
+	protected string GetString(TDelegate method, [CallerArgumentExpression(nameof(method))] string? lambdaSource = null)
 	{
+		_capturedMethod = method;
+
 		var nullability = new NullabilityInfoContext();
 		var returnType = TestMethodHelper.GetTypeName(method.Method.ReturnType, nullability.Create(method.Method.ReturnParameter));
 		var parameters = method.Method.GetParameters();
@@ -401,6 +405,36 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			{returnType} TestMethod({paramList})
 			{body}
 			""";
+	}
+
+	/// <summary>
+	///   Helper method to create a test case whose expected result is computed by invoking the real
+	///   <see cref="TestMethod" /> delegate with the given (fully known) parameter values, instead of a
+	///   hand-typed literal. Guarantees the expected value can never drift from the logic under test.
+	/// </summary>
+	/// <param name="parameters">The known parameter values to invoke <see cref="TestMethod" /> with.</param>
+	/// <returns>A key-value pair representing the test case.</returns>
+	protected KeyValuePair<string?, object?[]> CreateFolded(params object?[] parameters)
+	{
+		var delegateParamCount = GetDelegateParameterCount();
+
+		if (parameters.Length != delegateParamCount)
+		{
+			throw new InvalidOperationException("Parameter count mismatch.");
+		}
+
+		if (parameters.Any(p => ReferenceEquals(p, Unknown)))
+		{
+			throw new InvalidOperationException("CreateFolded requires all parameter values to be known; use Create(...) for cases with Unknown parameters.");
+		}
+
+		_ = TestMethod; // Force the TestMethod getter to run on this instance, populating _capturedMethod.
+
+		var result = _capturedMethod!.DynamicInvoke(parameters);
+		var literal = SyntaxHelpers.CreateLiteral(result);
+		var expectedBody = $"return {FormattingHelper.Render(literal)};";
+
+		return KeyValuePair.Create<string?, object?[]>(expectedBody, parameters);
 	}
 
 	protected static BlockSyntax ParseBlock(string code)

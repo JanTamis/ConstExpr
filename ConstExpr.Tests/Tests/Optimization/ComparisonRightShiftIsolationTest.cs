@@ -17,11 +17,11 @@ public class ComparisonRightShiftIsolationTest : BaseTest<Func<int, (bool, bool,
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 0, x >= 4, x < 4, x >= 0)),
-		Create(_ => (true, false, true, false), [ -5 ]),
-		Create(_ => (true, false, true, false), [ -4 ]),
-		Create(_ => (true, false, true, false), [ -1 ]),
-		Create(_ => (false, false, true, true), [ 0 ]),
-		Create(_ => (false, false, true, true), [ 3 ]),
-		Create(_ => (false, true, false, true), [ 4 ])
+		CreateFolded(-5),
+		CreateFolded(-4),
+		CreateFolded(-1),
+		CreateFolded(0),
+		CreateFolded(3),
+		CreateFolded(4)
 	];
 }

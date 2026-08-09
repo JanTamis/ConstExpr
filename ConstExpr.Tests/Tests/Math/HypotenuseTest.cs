@@ -8,8 +8,8 @@ public class HypotenuseTest : BaseTest<Func<int, int, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b) => Double.Sqrt(a * a + b * b)),
-		Create((_, _) => 5D, [ 3, 4 ]),
-		Create((_, _) => 13D, [ 5, 12 ]),
-		Create((_, _) => 10D, [ 0, 10 ])
+		CreateFolded(3, 4),
+		CreateFolded(5, 12),
+		CreateFolded(0, 10)
 	];
 }

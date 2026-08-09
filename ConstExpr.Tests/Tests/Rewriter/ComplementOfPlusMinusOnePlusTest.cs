@@ -8,7 +8,7 @@ public class ComplementOfPlusMinusOnePlusTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => -n - 2),
-		Create(_ => -7, [ 5 ]),
-		Create(_ => -2, [ 0 ])
+		CreateFolded(5),
+		CreateFolded(0)
 	];
 }

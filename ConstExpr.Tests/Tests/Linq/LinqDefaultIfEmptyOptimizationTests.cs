@@ -44,7 +44,7 @@ public class LinqDefaultIfEmptyOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (Int32.Max(x.Length, 1) << 3) + (Int32.Max(Count_w6J_9Q(x), 1) << 1);"),
-		Create(_ => 50, [ new[] { 1, 2, 3, 4, 5 } ]), // Non-empty: each DefaultIfEmpty returns 5 elements, so 5*10 = 50
-		Create(_ => 10, [ System.Array.Empty<int>() ]) // Empty: each DefaultIfEmpty returns 1 element (default), so 1*10 = 10
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // Non-empty: each DefaultIfEmpty returns 5 elements, so 5*10 = 50
+		CreateFolded(System.Array.Empty<int>()) // Empty: each DefaultIfEmpty returns 1 element (default), so 1*10 = 10
 	];
 }

@@ -25,6 +25,6 @@ public class RegexReplaceTests : BaseTest<Func<string, string, string, RegexOpti
 		Create(null, Unknown, @"^\d+$", Unknown, Unknown),
 
 		// Fully constant: should fold to literal result.
-		Create((_, _, _, _) => "hello # #", [ "hello 1 2", @"\d", "#", RegexOptions.None ])
+		CreateFolded("hello 1 2", @"\d", "#", RegexOptions.None)
 	];
 }

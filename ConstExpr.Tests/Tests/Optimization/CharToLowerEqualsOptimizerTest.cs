@@ -11,7 +11,7 @@ public class CharToLowerEqualsOptimizerTest : BaseTest<Func<char, char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((left, right) => left.Equals(right, StringComparison.CurrentCultureIgnoreCase)),
-		Create((_, _) => true, [ 'A', 'a' ]),
-		Create((_, _) => false, [ 'A', 'b' ])
+		CreateFolded('A', 'a'),
+		CreateFolded('A', 'b')
 	];
 }

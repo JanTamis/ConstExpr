@@ -14,11 +14,11 @@ public class PatternBitmaskConsecutiveTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => (uint) (n - 5) <= 3U),
-		Create(_ => true, [ 5 ]),
-		Create(_ => true, [ 6 ]),
-		Create(_ => true, [ 7 ]),
-		Create(_ => true, [ 8 ]),
-		Create(_ => false, [ 4 ]),
-		Create(_ => false, [ 9 ])
+		CreateFolded(5),
+		CreateFolded(6),
+		CreateFolded(7),
+		CreateFolded(8),
+		CreateFolded(4),
+		CreateFolded(9)
 	];
 }

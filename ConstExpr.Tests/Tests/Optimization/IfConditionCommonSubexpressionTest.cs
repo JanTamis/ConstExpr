@@ -48,7 +48,7 @@ public class IfConditionCommonSubexpressionTest() : BaseTest<Func<int[], int>>(o
 
 			return sum;
 		}),
-		Create(_ => 7, [ new[] { 7 } ]),
-		Create(_ => 8, [ new[] { 3, 5 } ])
+		CreateFolded(new[] { 7 }),
+		CreateFolded(new[] { 3, 5 })
 	];
 }

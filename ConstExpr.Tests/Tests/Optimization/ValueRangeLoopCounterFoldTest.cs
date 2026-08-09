@@ -40,6 +40,6 @@ public class ValueRangeLoopCounterFoldTest : BaseTest<Func<int, int>>
 
 		// Known bound unrolls away entirely: 0 + 1 + 2 + 3 + 4. Anchors the semantics of the shape
 		// independently of the rewriter.
-		Create(_ => 10, [ 5 ])
+		CreateFolded(5)
 	];
 }

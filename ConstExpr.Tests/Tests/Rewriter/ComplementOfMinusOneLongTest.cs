@@ -8,7 +8,7 @@ public class ComplementOfMinusOneLongTest : BaseTest<Func<long, long>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => -n),
-		Create(_ => -5L, [ 5L ]),
-		Create(_ => 0L, [ 0L ])
+		CreateFolded(5L),
+		CreateFolded(0L)
 	];
 }

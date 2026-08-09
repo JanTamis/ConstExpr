@@ -33,7 +33,7 @@ public class IsPalindromeTest : BaseTest<Func<int, bool>>
 
 			return original == reversed;
 			"""),
-		Create(_ => true, [ 121 ]),
-		Create(_ => false, [ 123 ])
+		CreateFolded(121),
+		CreateFolded(123)
 	];
 }

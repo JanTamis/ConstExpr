@@ -25,8 +25,8 @@ public class SumRangeTest : BaseTest<Func<int, int, long>>
 
 			return (long) (end - start + 1) * (start + end) / 2L;
 		}),
-		Create((_, _) => 55L, [ 1, 10 ]),
-		Create((_, _) => 5050L, [ 1, 100 ]),
-		Create((_, _) => 25L, [ 3, 7 ])
+		CreateFolded(1, 10),
+		CreateFolded(1, 100),
+		CreateFolded(3, 7)
 	];
 }

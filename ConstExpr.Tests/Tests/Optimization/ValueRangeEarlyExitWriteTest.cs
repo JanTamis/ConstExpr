@@ -43,8 +43,8 @@ public class ValueRangeEarlyExitWriteTest : BaseTest<Func<int, int>>
 
 		// n = 0 is the one value in range that still passes the second guard; n = 4 is the one that
 		// proves it was not folded to true.
-		Create(_ => 0, [ 0 ]),
-		Create(_ => 0, [ 4 ]),
-		Create(_ => -1, [ 40 ])
+		CreateFolded(0),
+		CreateFolded(4),
+		CreateFolded(40)
 	];
 }

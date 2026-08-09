@@ -55,8 +55,8 @@ public class ForeachMultipleBreakUnrollTests : BaseTest<Func<char, char, int>>
 			return index;
 		}),
 		// Constant args fold to the index of the first char matching either target.
-		Create("return 0;", 'a', 'z'),
-		Create("return 1;", 'z', 'b'),
-		Create("return 3;", 'y', 'z')
+		CreateFolded('a', 'z'),
+		CreateFolded('z', 'b'),
+		CreateFolded('y', 'z')
 	];
 }

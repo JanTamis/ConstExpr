@@ -44,8 +44,8 @@ public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_w6J_9Q(x) * 9 + Unsafe.BitCast<bool, byte>(x.Length > 0);"),
-		Create(_ => 46, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 28, [ new[] { 1, 1, 2, 2, 3 } ]) // 3 distinct values
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 1, 1, 2, 2, 3 }) // 3 distinct values
 	];
 }

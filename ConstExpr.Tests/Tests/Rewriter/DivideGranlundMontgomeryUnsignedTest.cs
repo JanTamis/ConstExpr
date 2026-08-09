@@ -16,10 +16,10 @@ public class DivideGranlundMontgomeryUnsignedTest() : BaseTest<Func<uint, uint>>
 
 			return castVal + (x - castVal >> 1) >> 2;
 		}),
-		Create(_ => 1u, [ 10u ]),
-		Create(_ => 1u, [ 7u ]),
-		Create(_ => 0u, [ 0u ]),
-		Create(_ => 0u, [ 6u ]),
-		Create(_ => 2u, [ 14u ])
+		CreateFolded(10u),
+		CreateFolded(7u),
+		CreateFolded(0u),
+		CreateFolded(6u),
+		CreateFolded(14u)
 	];
 }

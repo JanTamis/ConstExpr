@@ -26,7 +26,7 @@ public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int
 
 			return (sLength, sLength, sLength, sLength, sLength, sLength);
 			"""),
-		Create(_ => (3, 3, 3, 3, 3, 3), [ "abc" ]),
-		Create(_ => (-1, -2, -3, -4, -5, -6), [ null ])
+		CreateFolded("abc"),
+		CreateFolded((object?) null)
 	];
 }

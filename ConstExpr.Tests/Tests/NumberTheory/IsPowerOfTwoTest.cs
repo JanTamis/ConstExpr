@@ -16,7 +16,7 @@ public class IsPowerOfTwoTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n > 0 && (n & n - 1) == 0),
-		Create(_ => true, [ 16 ]),
-		Create(_ => false, [ 18 ])
+		CreateFolded(16),
+		CreateFolded(18)
 	];
 }

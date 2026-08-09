@@ -12,6 +12,6 @@ public class NullCoalesceAssignmentExpressionNonNullableTest : BaseTest<Func<str
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return a;"),
-		Create((_, _) => "hello", [ "hello", "world" ])
+		CreateFolded("hello", "world")
 	];
 }

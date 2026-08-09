@@ -15,7 +15,7 @@ public class EqualsIntegerMultiplyOddTest : BaseTest<Func<int, (bool, bool)>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 3, x != 3)),
-		Create(_ => (true, false), [ 3 ]),
-		Create(_ => (false, true), [ 4 ])
+		CreateFolded(3),
+		CreateFolded(4)
 	];
 }

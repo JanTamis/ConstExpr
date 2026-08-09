@@ -32,8 +32,8 @@ public class CountEvensTest : BaseTest<Func<int[], int>>
 
 			return count;
 		}),
-		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ]),
-		Create(_ => 4, [ new[] { 2, 4, 6, 8 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 }),
+		CreateFolded(System.Array.Empty<int>()),
+		CreateFolded(new[] { 2, 4, 6, 8 })
 	];
 }

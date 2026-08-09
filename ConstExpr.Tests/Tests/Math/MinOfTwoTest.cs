@@ -8,8 +8,8 @@ public class MinOfTwoTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b) => Int32.Min(a, b)),
-		Create((_, _) => 5, [ 5, 10 ]),
-		Create((_, _) => -10, [ -10, 20 ]),
-		Create((_, _) => 0, [ 0, 0 ])
+		CreateFolded(5, 10),
+		CreateFolded(-10, 20),
+		CreateFolded(0, 0)
 	];
 }

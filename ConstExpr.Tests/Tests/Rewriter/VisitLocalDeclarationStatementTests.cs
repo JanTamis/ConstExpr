@@ -19,9 +19,9 @@ public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int,
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, _) => (1, 2, 3, x + 6)),
-		Create((_, _) => (1, 2, 3, 16), [ 10, 5 ]),
-		Create((_, _) => (1, 2, 3, 1), [ -5, 0 ]),
-		Create((_, _) => (1, 2, 3, 6), [ 0, 100 ]),
-		Create((_, _) => (1, 2, 3, 48), [ 42, 7 ])
+		CreateFolded(10, 5),
+		CreateFolded(-5, 0),
+		CreateFolded(0, 100),
+		CreateFolded(42, 7)
 	];
 }

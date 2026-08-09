@@ -45,9 +45,9 @@ public class RemoveWhitespaceTest : BaseTest<Func<string, string>>
 
 			return new string(result, 0, index);
 		}),
-		Create(_ => "HelloWorld", [ "Hello World" ]),
-		Create(_ => "TestString", [ "  Test  String  " ]),
-		Create(_ => "", [ "   " ]),
-		Create(_ => "abc", [ "abc" ])
+		CreateFolded("Hello World"),
+		CreateFolded("  Test  String  "),
+		CreateFolded("   "),
+		CreateFolded("abc")
 	];
 }

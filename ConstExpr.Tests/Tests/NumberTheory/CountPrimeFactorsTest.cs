@@ -51,7 +51,7 @@ public class CountPrimeFactorsTest : BaseTest<Func<int, int>>
 
 			return count;
 			"""),
-		Create(_ => 3, [ 12 ]),
-		Create(_ => 0, [ 1 ])
+		CreateFolded(12),
+		CreateFolded(1)
 	];
 }

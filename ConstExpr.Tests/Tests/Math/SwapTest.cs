@@ -15,8 +15,8 @@ public class SwapTest : BaseTest<Func<int, int, (int, int)>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b) => (b, a)),
-		Create((_, _) => (20, 10), [ 10, 20 ]),
-		Create((_, _) => (0, 42), [ 42, 0 ]),
-		Create((_, _) => (-5, 5), [ 5, -5 ])
+		CreateFolded(10, 20),
+		CreateFolded(42, 0),
+		CreateFolded(5, -5)
 	];
 }

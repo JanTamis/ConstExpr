@@ -50,7 +50,7 @@ public class ForeachBreakUnrollBasicTests : BaseTest<Func<char, int>>
 			return index;
 		}),
 		// Constant target still folds to a plain result.
-		Create("return 1;", 'b'),
-		Create("return 3;", 'z')
+		CreateFolded('b'),
+		CreateFolded('z')
 	];
 }

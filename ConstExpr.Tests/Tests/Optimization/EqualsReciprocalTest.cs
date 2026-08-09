@@ -15,7 +15,7 @@ public class EqualsReciprocalTest : BaseTest<Func<float, (bool, bool)>>
 	[
 		Create(x => (x == 3f, x != 3f)),
 		// ReSharper restore CompareOfFloatsByEqualityOperator
-		Create(_ => (true, false), [ 3f ]),
-		Create(_ => (false, true), [ 4f ])
+		CreateFolded(3f),
+		CreateFolded(4f)
 	];
 }

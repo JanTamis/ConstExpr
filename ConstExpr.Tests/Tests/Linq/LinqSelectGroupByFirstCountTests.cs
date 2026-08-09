@@ -15,7 +15,7 @@ public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.DistinctBy(v => v % 3).Count()),
-		Create(_ => 3, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
-		Create(_ => 1, [ new[] { 3, 6, 9 } ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 }),
+		CreateFolded(new[] { 3, 6, 9 })
 	];
 }

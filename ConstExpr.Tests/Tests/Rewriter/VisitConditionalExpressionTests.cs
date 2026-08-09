@@ -20,9 +20,9 @@ public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((condition, x, y) => (10, 40, 50, condition ? x : y, Int32.Max(x, y))),
-		Create((_, _, _) => (10, 40, 50, 100, 100), [ true, 100, 50 ]),
-		Create((_, _, _) => (10, 40, 50, 75, 75), [ false, 25, 75 ]),
-		Create((_, _, _) => (10, 40, 50, -10, 20), [ true, -10, 20 ]),
-		Create((_, _, _) => (10, 40, 50, 15, 15), [ false, 15, 15 ])
+		CreateFolded(true, 100, 50),
+		CreateFolded(false, 25, 75),
+		CreateFolded(true, -10, 20),
+		CreateFolded(false, 15, 15)
 	];
 }

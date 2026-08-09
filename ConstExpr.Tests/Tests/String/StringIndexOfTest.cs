@@ -8,9 +8,9 @@ public class StringIndexOfTest : BaseTest<Func<string, string, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 1, [ "hello", "ell" ]),
-		Create((_, _) => -1, [ "hello", "xyz" ]),
-		Create((_, _) => 0, [ "hello", "h" ]),
-		Create((_, _) => 4, [ "hello", "o" ])
+		CreateFolded("hello", "ell"),
+		CreateFolded("hello", "xyz"),
+		CreateFolded("hello", "h"),
+		CreateFolded("hello", "o")
 	];
 }

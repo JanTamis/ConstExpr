@@ -9,6 +9,6 @@ public class StringFormatTwoArgsTest : BaseTest<Func<string, string, string>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((first, last) => $"{first} {last}"),
-		Create((_, _) => "John Doe", [ "John", "Doe" ])
+		CreateFolded("John", "Doe")
 	];
 }

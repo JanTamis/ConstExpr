@@ -8,8 +8,8 @@ public class PercentageTest : BaseTest<Func<double, double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((value, percentage) => value * percentage * 0.01),
-		Create((_, _) => 25D, [ 100.0, 25.0 ]),
-		Create((_, _) => 0D, [ 50.0, 0.0 ]),
-		Create((_, _) => 7.5D, [ 50.0, 15.0 ])
+		CreateFolded(100.0, 25.0),
+		CreateFolded(50.0, 0.0),
+		CreateFolded(50.0, 15.0)
 	];
 }

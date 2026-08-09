@@ -37,6 +37,6 @@ public class ValueRangeMutatedCounterTest : BaseTest<Func<int, int>>
 
 		// n = 5 advances i to 5 in the body and 6 in the incrementor, so the second test of i < n
 		// already fails. One pass, sum 5.
-		Create(_ => 5, [ 5 ])
+		CreateFolded(5)
 	];
 }

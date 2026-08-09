@@ -41,6 +41,6 @@ public class CharArrayLoopNonIdentifierSourceNotRewrittenTest : BaseTest<Func<st
 
 			return new string(result);
 		}),
-		Create(_ => "HELLO_WORLD", [ "hello world" ])
+		CreateFolded("hello world")
 	];
 }

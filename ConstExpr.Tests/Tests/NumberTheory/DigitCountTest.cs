@@ -40,8 +40,8 @@ public class DigitCountTest : BaseTest<Func<int, int>>
 
 			return count;
 			"""),
-		Create(_ => 3, [ 123 ]),
-		Create(_ => 1, [ 0 ]),
-		Create(_ => 4, [ -1234 ])
+		CreateFolded(123),
+		CreateFolded(0),
+		CreateFolded(-1234)
 	];
 }

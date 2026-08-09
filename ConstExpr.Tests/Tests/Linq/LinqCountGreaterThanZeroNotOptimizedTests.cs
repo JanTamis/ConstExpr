@@ -13,8 +13,8 @@ public class LinqCountGreaterThanZeroNotOptimizedTests() : BaseTest<Func<IEnumer
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create(_ => false, [ Enumerable.Empty<int>() ]),
-		Create(_ => false, [ new[] { 42 } ]),
-		Create(_ => true, [ new[] { 1, 2 } ])
+		CreateFolded(Enumerable.Empty<int>()),
+		CreateFolded(new[] { 42 }),
+		CreateFolded(new[] { 1, 2 })
 	];
 }

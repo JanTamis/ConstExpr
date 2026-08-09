@@ -23,7 +23,7 @@ public class ComparisonAdditionDivisionStrictTest() : BaseTest<Func<float, (bool
 	[
 		// ReSharper disable once CompareOfFloatsByEqualityOperator
 		Create(x => (x + 3F < 1F, x + x == 1F)),
-		Create(_ => (false, false), [ 0f ]),
-		Create(_ => (true, false), [ -5f ])
+		CreateFolded(0f),
+		CreateFolded(-5f)
 	];
 }

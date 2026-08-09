@@ -21,7 +21,7 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Length <= 0),
-		Create(_ => false, [ new[] { 1, 2, 3 } ]),
-		Create(_ => true, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

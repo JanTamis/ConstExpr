@@ -53,7 +53,7 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (Array.FindLast(x, v => v > 0) << 1) + (gt ? Unsafe.Add(ref xRef, xLength - 1) << 2 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + TensorPrimitives.Max(x) + (gt ? xRef : 0);
 			"""),
-		Create(_ => 53, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

@@ -37,8 +37,8 @@ public class MinArrayTest : BaseTest<Func<int[], int>>
 
 			return min;
 		}),
-		Create(_ => 3, [ new[] { 5, 4, 3, 9 } ]),
-		Create(_ => 1, [ new[] { 7, 2, 1, 8 } ]),
-		Create(_ => Int32.MaxValue, [ System.Array.Empty<int>() ])
+		CreateFolded(new[] { 5, 4, 3, 9 }),
+		CreateFolded(new[] { 7, 2, 1, 8 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

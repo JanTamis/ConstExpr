@@ -14,7 +14,7 @@ public class EqualsIntegerReverseAddTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x == 7),
-		Create(_ => true, [ 7 ]),
-		Create(_ => false, [ 0 ])
+		CreateFolded(7),
+		CreateFolded(0)
 	];
 }

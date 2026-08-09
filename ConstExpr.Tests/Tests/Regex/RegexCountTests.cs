@@ -14,8 +14,8 @@ public class RegexCountTests : BaseTest<Func<string, string, int>>
 		CreateDefault(),
 
 		// Both constant: fold to integer literal
-		Create((_, _) => 2, [ "hello world", @"\w+" ]),
-		Create((_, _) => 0, [ "123abc", @"^\d+$" ]),
-		Create((_, _) => 3, [ "a1b2c3", @"\d" ])
+		CreateFolded("hello world", @"\w+"),
+		CreateFolded("123abc", @"^\d+$"),
+		CreateFolded("a1b2c3", @"\d")
 	];
 }

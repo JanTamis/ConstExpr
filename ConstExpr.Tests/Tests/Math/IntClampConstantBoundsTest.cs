@@ -21,8 +21,8 @@ public class IntClampConstantBoundsTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(value => Int32.Clamp(value, 0, 10)),
-		Create(_ => 5, [ 5 ]),
-		Create(_ => 0, [ -5 ]),
-		Create(_ => 10, [ 15 ])
+		CreateFolded(5),
+		CreateFolded(-5),
+		CreateFolded(15)
 	];
 }

@@ -16,7 +16,7 @@ public class EqualsReciprocalStrictTest() : BaseTest<Func<float, bool>>(FastMath
 	[
 		Create(x => 6F / x == 2F),
 		// ReSharper restore CompareOfFloatsByEqualityOperator
-		Create(_ => true, [ 3f ]),
-		Create(_ => false, [ 4f ])
+		CreateFolded(3f),
+		CreateFolded(4f)
 	];
 }

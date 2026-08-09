@@ -18,9 +18,9 @@ public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		Create(_ => 7, [ 7 ]),
-		Create(_ => 1, [ 1 ]),
-		Create(_ => -1, [ -1 ]),
-		Create(_ => 0, [ 0 ])
+		CreateFolded(7),
+		CreateFolded(1),
+		CreateFolded(-1),
+		CreateFolded(0)
 	];
 }

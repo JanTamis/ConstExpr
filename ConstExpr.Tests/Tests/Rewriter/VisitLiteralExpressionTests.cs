@@ -23,9 +23,9 @@ public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, doub
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, _) => (42, 3.14, "hello", 'x', true, x + 42)),
-		Create((_, _) => (42, 3.14, "hello", 'x', true, 52), [ 10, 1.5 ]),
-		Create((_, _) => (42, 3.14, "hello", 'x', true, 142), [ 100, 2.5 ]),
-		Create((_, _) => (42, 3.14, "hello", 'x', true, 32), [ -10, 0.0 ]),
-		Create((_, _) => (42, 3.14, "hello", 'x', true, 42), [ 0, 5.0 ])
+		CreateFolded(10, 1.5),
+		CreateFolded(100, 2.5),
+		CreateFolded(-10, 0.0),
+		CreateFolded(0, 5.0)
 	];
 }

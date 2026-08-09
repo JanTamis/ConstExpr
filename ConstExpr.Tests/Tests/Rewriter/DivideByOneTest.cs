@@ -9,7 +9,7 @@ public class DivideByOneTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		Create(_ => 9, [ 9 ]),
-		Create(_ => -4, [ -4 ])
+		CreateFolded(9),
+		CreateFolded(-4)
 	];
 }

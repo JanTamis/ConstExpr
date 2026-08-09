@@ -19,10 +19,10 @@ public class PatternBitmaskByteTest : BaseTest<Func<byte, bool>>
 
 			return diff <= 6 && (0x45u >> diff & 1) != 0;
 		}),
-		Create(_ => true, [ (byte) 1 ]),
-		Create(_ => true, [ (byte) 3 ]),
-		Create(_ => true, [ (byte) 7 ]),
-		Create(_ => false, [ (byte) 0 ]),
-		Create(_ => false, [ (byte) 4 ])
+		CreateFolded((byte) 1),
+		CreateFolded((byte) 3),
+		CreateFolded((byte) 7),
+		CreateFolded((byte) 0),
+		CreateFolded((byte) 4)
 	];
 }

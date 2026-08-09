@@ -30,7 +30,7 @@ public class ValueRangeGuardRefinementTest : BaseTest<Func<int, int>>
 		Create(n => (uint) n <= 9U ? n << 1 : 0, [ Unknown ]),
 
 		// Inside the guarded range, and outside it.
-		Create(_ => 8, [ 4 ]),
-		Create(_ => 0, [ 40 ])
+		CreateFolded(4),
+		CreateFolded(40)
 	];
 }

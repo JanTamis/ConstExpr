@@ -40,8 +40,8 @@ public class LinqContainsOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 			return Unsafe.BitCast<bool, byte>(Contains__KFndQ(collectionsMarshalAsSpan)) * 5 + Unsafe.BitCast<bool, byte>(x.Exists(v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(collectionsMarshalAsSpan));
 			""", Unknown),
-		Create(_ => 6, [ new List<int> { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 0, [ new List<int>() ]),
-		Create(_ => 0, [ new List<int> { 1, 2, 4, 5, 6 } ]) // No 3, all tests fail
+		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }),
+		CreateFolded(new List<int>()),
+		CreateFolded(new List<int> { 1, 2, 4, 5, 6 }) // No 3, all tests fail
 	];
 }

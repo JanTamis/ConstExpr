@@ -44,8 +44,8 @@ public class ReverseStringTest : BaseTest<Func<string, string>>
 
 			return new string(chars);
 		}),
-		Create(_ => "olleh", [ "hello" ]),
-		Create(_ => "", [ System.String.Empty ]),
-		Create(_ => "a", [ "a" ])
+		CreateFolded("hello"),
+		CreateFolded(System.String.Empty),
+		CreateFolded("a")
 	];
 }

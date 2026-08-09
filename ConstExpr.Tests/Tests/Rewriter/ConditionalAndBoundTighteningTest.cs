@@ -9,7 +9,7 @@ public class ConditionalAndBoundTighteningTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x > 5),
-		Create(_ => false, [ 3 ]),
-		Create(_ => true, [ 6 ])
+		CreateFolded(3),
+		CreateFolded(6)
 	];
 }

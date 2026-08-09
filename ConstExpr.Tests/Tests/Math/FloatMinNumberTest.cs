@@ -9,6 +9,6 @@ public class FloatMinNumberTest : BaseTest<Func<float, float, float>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 1F, [ 1.0f, 2.0f ])
+		CreateFolded(1.0f, 2.0f)
 	];
 }

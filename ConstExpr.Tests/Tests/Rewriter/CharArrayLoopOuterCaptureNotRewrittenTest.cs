@@ -41,6 +41,6 @@ public class CharArrayLoopOuterCaptureNotRewrittenTest : BaseTest<Func<string, c
 
 			return new string(result);
 		}),
-		Create((_, _) => "hello_world", [ "hello world", '_' ])
+		CreateFolded("hello world", '_')
 	];
 }

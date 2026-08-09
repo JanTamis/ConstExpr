@@ -56,8 +56,8 @@ public class ForeachBreakDuplicateGuardTests : BaseTest<Func<char, int>>
 			return index;
 		}),
 		// The first 'l' still wins (index 2), and a miss still counts the whole string.
-		Create("return 2;", 'l'),
-		Create("return 4;", 'o'),
-		Create("return 5;", 'x')
+		CreateFolded('l'),
+		CreateFolded('o'),
+		CreateFolded('x')
 	];
 }

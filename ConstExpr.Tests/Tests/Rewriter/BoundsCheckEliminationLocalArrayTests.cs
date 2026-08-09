@@ -34,6 +34,6 @@ public class BoundsCheckEliminationLocalArrayTests : BaseTest<Func<int, int>>
 			return Unsafe.Add(ref bufRef, mod) + bufRef;
 		}, [ Unknown ]),
 
-		Create(_ => 3, [ 3 ])
+		CreateFolded(3)
 	];
 }

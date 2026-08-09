@@ -46,7 +46,7 @@ public class LinqElementAtOrDefaultSkipOptimizationTests : BaseTest<Func<int[], 
 
 			return (xLength > 1 ? Unsafe.Add(ref xRef, 1) << 1 : 0) + (xLength > 3 ? Unsafe.Add(ref xRef, 3) << 1 : 0) + (xLength > 2 ? Unsafe.Add(ref xRef, 2) : 0) + (xLength > 11 ? Unsafe.Add(ref xRef, 11) : 0) + (xLength > 0 ? xRef : 0);
 		}),
-		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
-		Create(_ => 0, [ System.Array.Empty<int>() ]) // All return 0 (default)
+		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // 2 + 4 + 4 + 2 + 3 + 0 + 1 = 16
+		CreateFolded(System.Array.Empty<int>()) // All return 0 (default)
 	];
 }

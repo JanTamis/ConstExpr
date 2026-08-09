@@ -10,7 +10,7 @@ public class UnsignedRightShiftZeroTest() : BaseTest<Func<int, int>>(FastMathFla
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => 0),
-		Create(_ => 0, [ 3 ]),
-		Create(_ => 0, [ 31 ])
+		CreateFolded(3),
+		CreateFolded(31)
 	];
 }

@@ -8,7 +8,7 @@ public class BitOperationsRotateRightUintTest : BaseTest<Func<uint, int, uint>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 1U, [ 8u, 3 ]),
-		Create((_, _) => 8U, [ 1u, 29 ])
+		CreateFolded(8u, 3),
+		CreateFolded(1u, 29)
 	];
 }

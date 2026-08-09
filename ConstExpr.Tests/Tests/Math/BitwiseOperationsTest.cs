@@ -8,8 +8,8 @@ public class BitwiseOperationsTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 14, [ 12, 10 ]),
-		Create((_, _) => 8, [ 8, 8 ]),
-		Create((_, _) => 5, [ 5, 0 ])
+		CreateFolded(12, 10),
+		CreateFolded(8, 8),
+		CreateFolded(5, 0)
 	];
 }

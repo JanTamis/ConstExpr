@@ -9,7 +9,7 @@ public class XorIdentityTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		Create(_ => 5, [ 5 ]),
-		Create(_ => -3, [ -3 ])
+		CreateFolded(5),
+		CreateFolded(-3)
 	];
 }

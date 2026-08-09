@@ -8,8 +8,8 @@ public class DivideByPowerOfTwoTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create((_, _) => 2, [ 10, 2 ]),
-		Create((_, _) => 0, [ 1, 5 ]),
-		Create((_, _) => 4, [ 128, 5 ])
+		CreateFolded(10, 2),
+		CreateFolded(1, 5),
+		CreateFolded(128, 5)
 	];
 }
