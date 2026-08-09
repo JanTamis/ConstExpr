@@ -31,8 +31,6 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 		}
 	}
 
-	private const int MaxConsecutiveMisses = 10_000;
-
 	/// <summary>
 	///   Lazily generates test cases with randomly generated (fully known) parameter values, using
 	///   <see cref="BaseTest{TDelegate}.CreateFolded" /> to compute each expected result by invoking the real
