@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class HSVToRGBTest : BaseTest<Func<double, double, double, (byte, byte, byte)>>
+public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double, (byte, byte, byte)>>
 {
 	public override string TestMethod => GetString((h, s, v) =>
 	{

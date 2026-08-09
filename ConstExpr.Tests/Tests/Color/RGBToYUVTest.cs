@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Color;
 
 [InheritsTests]
-public class RGBToYUVTest : BaseTest<Func<byte, byte, byte, (double, double, double)>>
+public class RGBToYUVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (double, double, double)>>
 {
 	public override string TestMethod => GetString((r, g, b) =>
 	{
