@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Hashing;
 
 [InheritsTests]
-public class ELFHashTests : BaseTest<Func<string, uint>>
+public class ELFHashTests : BaseTestWithRandomValues<Func<string, uint>>
 {
 	public override string TestMethod => GetString(str =>
 	{
