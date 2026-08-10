@@ -682,7 +682,28 @@ public partial class ConstExprPartialRewriter
 			    && node.Parent is not ForStatementSyntax
 			    && node.FirstAncestorOrSelf<SwitchSectionSyntax>() is null)
 			{
-				return null;
+				// The assignment is redundant, but its VALUE may still be consumed by an enclosing
+				// expression (e.g. the `test = ...` inside `(test = hash & HighBits) != 0U`) rather
+				// than discarded (a bare `x = V;` expression statement). Only prune the write itself
+				// when nothing reads the assignment's value; otherwise fold it to that value so the
+				// enclosing expression can still see it, instead of silently reverting to the
+				// original un-visited (and possibly un-inlined) right-hand side.
+				var discardingAncestor = node.Parent;
+
+				while (discardingAncestor is ParenthesizedExpressionSyntax)
+				{
+					discardingAncestor = discardingAncestor.Parent;
+				}
+
+				if (discardingAncestor is ExpressionStatementSyntax)
+				{
+					return null;
+				}
+
+				if (TryCreateLiteral(tempValue, out var elidedLiteral))
+				{
+					return elidedLiteral;
+				}
 			}
 
 			tempValue = CoerceToDeclaredType(tempValue, variable.Type);

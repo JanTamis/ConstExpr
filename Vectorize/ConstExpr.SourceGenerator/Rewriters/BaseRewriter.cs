@@ -97,8 +97,16 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					}
 				}
 
-				value = inner.Negate();
-				return true;
+				value = prefix.OperatorToken.Kind() switch
+				{
+					SyntaxKind.MinusToken => inner.Negate(),
+					SyntaxKind.TildeToken => inner.BitwiseNot(),
+					SyntaxKind.ExclamationToken => inner.LogicalNot(),
+					SyntaxKind.PlusToken => inner,
+					_ => null
+				};
+
+				return value is not null;
 			}
 			// a..b => System.Range
 			case RangeExpressionSyntax rangeSyntax:
