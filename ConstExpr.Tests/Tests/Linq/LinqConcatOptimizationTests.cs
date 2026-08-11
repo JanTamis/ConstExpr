@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Concat() optimization - verify that Empty enumerables and unnecessary operations are optimized
 /// </summary>
 [InheritsTests]
-public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqConcatOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -50,8 +50,5 @@ public class LinqConcatOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 12 + 702;"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 5, 10 })
 	];
 }

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Where() optimization - verify constant folding and combining of Where clauses
 /// </summary>
 [InheritsTests]
-public class LinqWhereOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqWhereOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -40,8 +40,5 @@ public class LinqWhereOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Count_D8X0kQ(x) + Count_2IYd7A(x) + Count_Vq7dCg(x) + Count_R_guEA(x) + Count_yTPAKg(x);"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 })
 	];
 }

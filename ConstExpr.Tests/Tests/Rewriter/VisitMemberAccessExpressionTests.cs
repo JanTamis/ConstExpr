@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitMemberAccessExpression - field/property evaluation
 /// </summary>
 [InheritsTests]
-public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int, int, string, bool)>>
+public class VisitMemberAccessExpressionTests : BaseTestWithRandomValues<Func<string, bool, (int, int, string, bool)>>
 {
 	public override string TestMethod => GetString((s, useEmpty) =>
 	{
@@ -20,9 +20,5 @@ public class VisitMemberAccessExpressionTests : BaseTest<Func<string, bool, (int
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((s, useEmpty) => (useEmpty ? 0 : s.Length, 5, "", useEmpty || s == "")),
-		CreateFolded("hello", false),
-		CreateFolded("ignored", true),
-		CreateFolded("cat", false),
-		CreateFolded(System.String.Empty, true)
 	];
 }

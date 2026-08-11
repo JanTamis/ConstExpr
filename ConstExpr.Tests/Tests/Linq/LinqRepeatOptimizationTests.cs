@@ -57,8 +57,14 @@ namespace ConstExpr.Tests.Linq;
 ///   When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
-public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
+public class LinqRepeatOptimizationTests : BaseTestWithRandomValues<Func<int, int, int>>
 {
+	// `count` drives a REAL Enumerable.Repeat(...).Sum()/.../.All(...) invocation in CreateFolded
+	// (the optimizer's closed-form rewrite doesn't apply to the plain-LINQ expected-value computation) -
+	// with the default full 31-bit magnitude, count can land in the billions, making a single random
+	// test case take seconds and occasionally minutes. Cap it so every draw stays fast.
+	protected override int MaxRandomMagnitudeBits => 8;
+
 	public override string TestMethod => GetString((element, count) =>
 	{
 		// Repeat(element, count).Count() => count
@@ -111,7 +117,6 @@ public class LinqRepeatOptimizationTests : BaseTest<Func<int, int, int>>
 
 			return ((gt ? element : ThrowInvalidOperationException<int>("Sequence contains no elements")) << 2) + count + element * count + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(gt && element == 5) + (count > 2 ? element : ThrowArgumentOutOfRangeException<int>("")) + element + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(count <= 0 || element > 0);
 		}),
-		CreateFolded(3, 4)
 	];
 
 	// Local stand-ins for the private helpers the generator extracts throw-expressions into (see

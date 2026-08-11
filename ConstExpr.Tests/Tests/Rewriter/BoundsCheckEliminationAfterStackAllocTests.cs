@@ -10,7 +10,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   that span. Pins the hand-off, which only works because the <c>Span&lt;T&gt;</c> type survives.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationAfterStackAllocTests : BaseTest<Func<int, int>>
+public class BoundsCheckEliminationAfterStackAllocTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -33,6 +33,6 @@ public class BoundsCheckEliminationAfterStackAllocTests : BaseTest<Func<int, int
 			Unsafe.Add(ref countsRef, mod)++;
 
 			return Unsafe.Add(ref countsRef, mod) + countsRef;
-		}, [ Unknown ])
+		})
 	];
 }

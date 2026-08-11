@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int, int, int, int, int)>>
+public class ConditionalNullAccessVariantsTest : BaseTestWithRandomValues<Func<string, (int, int, int, int, int, int)>>
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -26,7 +26,5 @@ public class ConditionalNullAccessVariantsTest : BaseTest<Func<string, (int, int
 
 			return (sLength, sLength, sLength, sLength, sLength, sLength);
 			"""),
-		CreateFolded("abc"),
-		CreateFolded((object?) null)
 	];
 }

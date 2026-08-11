@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Tests for Pow algebraic strategies: literal base transformations.</summary>
 [InheritsTests]
-public class PowTwoToExpTest : BaseTest<Func<double, double>>
+public class PowTwoToExpTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(n => System.Math.Pow(2.0, n));
 

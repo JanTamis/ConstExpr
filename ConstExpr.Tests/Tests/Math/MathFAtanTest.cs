@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Atan(float) → FastAtan(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAtanTest : BaseTest<Func<float, float>>
+public class MathFAtanTest : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Atan(x));
 

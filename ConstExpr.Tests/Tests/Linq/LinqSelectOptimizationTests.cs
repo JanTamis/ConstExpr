@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Select() optimization - verify identity lambdas, cast optimizations, and lambda fusion
 /// </summary>
 [InheritsTests]
-public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
+public class LinqSelectOptimizationTests : BaseTestWithRandomValues<Func<IEnumerable<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -23,8 +23,5 @@ public class LinqSelectOptimizationTests : BaseTest<Func<IEnumerable<int>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_xcpydQ(x) + (Sum_2MT2Cw(x) ?? 0) + Sum_I5kOlg(x);"),
-		CreateFolded(new[] { 1, 2, 3 }), // a=6, b=6, c=(3)+(5)+(7)=15 = 27
-		CreateFolded(Enumerable.Empty<int>()), // a=0, b=0, c=0 = 0
-		CreateFolded(new[] { 5 }) // a=5, b=5, c=11 = 21
 	];
 }

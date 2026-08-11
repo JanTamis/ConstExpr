@@ -9,8 +9,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   producer — exactly what fusion preserves.
 /// </summary>
 [InheritsTests]
-public class LoopFusionProducerConsumerTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionProducerConsumerTests() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var values = new int[n];

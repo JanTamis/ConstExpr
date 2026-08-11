@@ -9,14 +9,12 @@ namespace ConstExpr.Tests.Rewriter;
 ///   odd/even confusion the test guards against.
 /// </summary>
 [InheritsTests]
-public class NotEqualsModuloOddNonModuloLeftNotRewrittenTest : BaseTest<Func<int, bool>>
+public class NotEqualsModuloOddNonModuloLeftNotRewrittenTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x + 2 != 0);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x != -2),
-		CreateFolded(7),
-		CreateFolded(-2)
 	];
 }

@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   non-negative — -5 % 4 == -1 in C#, but -5 &amp; 3 == 3.
 /// </summary>
 [InheritsTests]
-public class ModuloByPowerOfTwoSignedNotRewrittenTest : BaseTest<Func<int, int>>
+public class ModuloByPowerOfTwoSignedNotRewrittenTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x => x % 4);
 

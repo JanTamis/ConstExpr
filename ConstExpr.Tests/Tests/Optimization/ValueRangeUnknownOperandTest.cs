@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   what separates "the pass fired" from "the pass folds whatever it is shown".
 /// </summary>
 [InheritsTests]
-public class ValueRangeUnknownOperandTest : BaseTest<Func<int, int>>
+public class ValueRangeUnknownOperandTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -30,9 +30,6 @@ public class ValueRangeUnknownOperandTest : BaseTest<Func<int, int>>
 			var lane = n | 15;
 
 			return lane > 20 ? -1 : lane;
-		}, [ Unknown ]),
-
-		// 21 | 15 = 31, which trips the guard.
-		CreateFolded(21)
+		}),
 	];
 }

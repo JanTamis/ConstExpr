@@ -442,11 +442,22 @@ public class CountFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumera
 				case nameof(Enumerable.GroupBy) when GetMethodArguments(chainInvocation).FirstOrDefault() is { Expression: { } predicateArg }
 				                                     && TryGetLambda(predicateArg, out var predicate):
 				{
-					var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
-					var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation) as ExpressionSyntax ?? distinctByInvocation;
+					// TryOptimizeByOptimizer's 2-arg overload defaults typeArguments to context.Method's own
+					// TypeArguments - here that's Count<TSource>'s single type argument, not the two
+					// (TSource, TKey) that DistinctBy<TSource,TKey> needs, so .Construct(typeArguments) threw
+					// "Wrong number of type arguments" and the whole fold silently fell back to raw syntax
+					// (see the catch in TryOptimizeByOptimizer). Resolve GroupBy's own symbol instead, same
+					// as the CountBy case above.
+					if (context.Model.TryGetSymbol<IMethodSymbol>(chainInvocation, context.SymbolStore, out var groupByMethodSymbol))
+					{
+						var distinctByInvocation = CreateInvocation(chainSource, "DistinctBy", predicate);
+						var newDistinctByCountInvocation = TryOptimizeByOptimizer<DistinctByFunctionOptimizer>(context, distinctByInvocation, groupByMethodSymbol.TypeArguments.ToArray()) as ExpressionSyntax ?? distinctByInvocation;
 
-					result = UpdateInvocation(context, newDistinctByCountInvocation);
-					return true;
+						result = UpdateInvocation(context, newDistinctByCountInvocation);
+						return true;
+					}
+
+					break;
 				}
 			}
 

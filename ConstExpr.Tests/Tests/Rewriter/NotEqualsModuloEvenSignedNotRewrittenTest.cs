@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   false).
 /// </summary>
 [InheritsTests]
-public class NotEqualsModuloEvenSignedNotRewrittenTest : BaseTest<Func<int, bool>>
+public class NotEqualsModuloEvenSignedNotRewrittenTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x % 2 != 1);
 

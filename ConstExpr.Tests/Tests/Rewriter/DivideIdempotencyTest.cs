@@ -5,14 +5,12 @@ namespace ConstExpr.Tests.Rewriter;
 ///   fire — see DivideIdempotencyNotRewrittenTest and DivideIdempotencyProvenNonZeroTest.
 /// </summary>
 [InheritsTests]
-public class DivideIdempotencyTest : BaseTest<Func<int, int>>
+public class DivideIdempotencyTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x => x / x);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(5),
-		CreateFolded(-3)
 	];
 }

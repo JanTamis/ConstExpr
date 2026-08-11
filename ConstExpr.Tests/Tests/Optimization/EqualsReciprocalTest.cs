@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   on the sign of v there) but which is safe for equality.
 /// </summary>
 [InheritsTests]
-public class EqualsReciprocalTest : BaseTest<Func<float, (bool, bool)>>
+public class EqualsReciprocalTest : BaseTestWithRandomValues<Func<float, (bool, bool)>>
 {
 	// ReSharper disable CompareOfFloatsByEqualityOperator — testing exactly that comparison.
 	public override string TestMethod => GetString(x => (6 / x == 2, 6 / x != 2));
@@ -14,8 +14,5 @@ public class EqualsReciprocalTest : BaseTest<Func<float, (bool, bool)>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 3f, x != 3f)),
-		// ReSharper restore CompareOfFloatsByEqualityOperator
-		CreateFolded(3f),
-		CreateFolded(4f)
 	];
 }

@@ -14,7 +14,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pruned case silently self-correcting because nothing gets spliced back in.
 /// </summary>
 [InheritsTests]
-public class AsymmetricBranchPruneLoopInvariantEffectTests() : BaseTest<Func<int, int, bool, int>>(optimizations: OptimizationFlags.None)
+public class AsymmetricBranchPruneLoopInvariantEffectTests() : BaseTestWithRandomValues<Func<int, int, bool, int>>(optimizations: OptimizationFlags.None)
 {
 	public override string TestMethod => GetString((n, x, flag) =>
 	{
@@ -56,6 +56,6 @@ public class AsymmetricBranchPruneLoopInvariantEffectTests() : BaseTest<Func<int
 			}
 
 			return a + b;
-		}, [ Unknown, Unknown, Unknown ])
+		})
 	];
 }

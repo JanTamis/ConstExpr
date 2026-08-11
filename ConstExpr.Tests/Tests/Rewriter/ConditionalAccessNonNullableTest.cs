@@ -1,8 +1,9 @@
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class ConditionalAccessNonNullableTest : BaseTest<Func<string, string?>>
+public class ConditionalAccessNonNullableTest : BaseTestWithRandomValues<Func<string, string?>>
 {
+
 	// ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract — being non-nullable is the point.
 	public override string TestMethod => GetString(s => s?.Trim());
 

@@ -9,9 +9,11 @@ namespace ConstExpr.Tests.Rewriter;
 ///   declaration becomes a direct child of its own now-standalone loop and LICM can hoist it.
 /// </summary>
 [InheritsTests]
-public class LoopUnswitchingInvariantHoistTests() : BaseTest<Func<int, int, int, bool, int>>(
+public class LoopUnswitchingInvariantHoistTests() : BaseTestWithRandomValues<Func<int, int, int, bool, int>>(
 	optimizations: OptimizationFlags.LoopUnswitching | OptimizationFlags.LoopInvariantCodeMotion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x, y, flag) =>
 	{
 		var sum = 0;

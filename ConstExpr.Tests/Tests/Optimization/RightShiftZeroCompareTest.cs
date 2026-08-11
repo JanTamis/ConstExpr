@@ -5,16 +5,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   (x &gt;&gt; 4) == 0 => x &lt; 16U and (x &gt;&gt; 4) != 0 => x &gt;= 16U.
 /// </summary>
 [InheritsTests]
-public class RightShiftZeroCompareTest : BaseTest<Func<uint, (bool, bool)>>
+public class RightShiftZeroCompareTest : BaseTestWithRandomValues<Func<uint, (bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x >> 4 == 0, x >> 4 != 0));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 16U, x >= 16U)),
-		CreateFolded(0u),
-		CreateFolded(15u),
-		CreateFolded(16u),
-		CreateFolded(UInt32.MaxValue)
 	];
 }

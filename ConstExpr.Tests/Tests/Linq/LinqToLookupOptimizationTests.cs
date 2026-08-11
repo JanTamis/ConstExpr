@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and removing Distinct would change the group sizes.
 /// </summary>
 [InheritsTests]
-public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToLookupOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -59,7 +59,10 @@ public class LinqToLookupOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return ToLookup_MVa_MQ(x).Count * 7 + (ToLookup_sloNHA(x).Count << 1) + (x.ToLookup(v => v).Count << 1) + ToLookup_i0qdOA(x).Count + ToLookup_VYmdsA(x).Count + ToLookup_BusWaA(x).Count;"),
-		Create("return new Lookup_criNog().Count * 11 + (new Lookup_Bzo8AQ().Count << 1) + new Lookup_cr7zhQ().Count;", new[] { 1, 2, 3 }),
-		Create("return new Lookup_Pu_yfg().Count * 14;", System.Array.Empty<int>())
+		// Count on a compile-time-generated Lookup struct now folds all the way to a literal (see
+		// ConstExprPartialRewriter.VisitMemberAccessExpression's Lookup-count-annotation check), so these
+		// two known-input cases collapse past the `new Lookup_xxx().Count` intermediate shape entirely.
+		CreateFolded(new[] { 1, 2, 3 }),
+		CreateFolded(System.Array.Empty<int>())
 	];
 }

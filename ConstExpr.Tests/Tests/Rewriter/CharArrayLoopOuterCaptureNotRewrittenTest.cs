@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   string.Create lambda cannot capture it.
 /// </summary>
 [InheritsTests]
-public class CharArrayLoopOuterCaptureNotRewrittenTest : BaseTest<Func<string, char, string>>
+public class CharArrayLoopOuterCaptureNotRewrittenTest : BaseTestWithRandomValues<Func<string, char, string>>
 {
 	public override string TestMethod => GetString((input, replacement) =>
 	{
@@ -41,6 +41,5 @@ public class CharArrayLoopOuterCaptureNotRewrittenTest : BaseTest<Func<string, c
 
 			return new string(result);
 		}),
-		CreateFolded("hello world", '_')
 	];
 }

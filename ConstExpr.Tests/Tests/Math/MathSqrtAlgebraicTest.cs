@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Sqrt(x * x) → Abs(x): algebraic identity for pure expressions.</summary>
 [InheritsTests]
-public class MathSqrtAlgebraicTest : BaseTest<Func<double, double>>
+public class MathSqrtAlgebraicTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Sqrt(x * x));
 

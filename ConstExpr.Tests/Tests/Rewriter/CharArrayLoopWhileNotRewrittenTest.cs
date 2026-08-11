@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   over the same array must NOT be rewritten to <c>string.Create</c>.
 /// </summary>
 [InheritsTests]
-public class CharArrayLoopWhileNotRewrittenTest : BaseTest<Func<string, string>>
+public class CharArrayLoopWhileNotRewrittenTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -41,6 +41,5 @@ public class CharArrayLoopWhileNotRewrittenTest : BaseTest<Func<string, string>>
 
 			return new string(result);
 		}),
-		CreateFolded("hello")
 	];
 }

@@ -319,13 +319,34 @@ public partial class ConstExprPartialRewriter
 	///     <c>var f = ref numbers[0];</c>, which is CS8171. <c>DeadCodePruner</c> normalizes the same
 	///     way and needed the same guard.
 	///   </para>
+	///   <para>
+	///     <c>Span&lt;T&gt;</c>/<c>ReadOnlySpan&lt;T&gt;</c> is a third case, for the same underlying
+	///     reason as stackalloc: <c>Span&lt;int&gt; buf = array;</c> goes through an implicit reference
+	///     conversion, so <c>var</c> would infer <c>array</c>'s own type instead - and once the
+	///     initializer folds to a literal collection, <c>var buf = [1, 2, 3];</c> does not even compile
+	///     (a collection expression has no type of its own for <c>var</c> to infer).
+	///   </para>
 	/// </summary>
 	private static TypeSyntax SimplifiedTypeOf(VariableDeclarationSyntax node, VariableDeclaratorSyntax declarator)
 	{
 		return node.Type is RefTypeSyntax
 		       || declarator.Initializer?.Value is StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax
+		       || IsSpanType(node.Type)
 			? node.Type
 			: ParseTypeName("var");
+	}
+
+	// Ponytail: matches the type name only, not the namespace - the same trade-off BoundsCheckRewriter's
+	// own Classify makes, since a user type of the same name would fail loudly as a compile error rather
+	// than silently misbehave.
+	private static bool IsSpanType(TypeSyntax type)
+	{
+		return type switch
+		{
+			GenericNameSyntax { Identifier.Text: "Span" or "ReadOnlySpan", TypeArgumentList.Arguments.Count: 1 } => true,
+			QualifiedNameSyntax qualified => IsSpanType(qualified.Right),
+			_ => false
+		};
 	}
 
 	/// <summary>
@@ -421,7 +442,7 @@ public partial class ConstExprPartialRewriter
 			// Handle element access assignments
 			case ElementAccessExpressionSyntax elementAccess:
 			{
-				var result = HandleElementAccessAssignment(node, elementAccess, rightExpr, hasRightValue, rightValue);
+				var result = HandleElementAccessAssignment(node, elementAccess, rightExpr, hasRightValue, rightValue, kind);
 
 				if (result is not null)
 				{
@@ -710,6 +731,14 @@ public partial class ConstExprPartialRewriter
 			variable.Value = tempValue;
 			variable.HasValue = true;
 
+			// IsAltered only ever gets set (never cleared elsewhere in this file) once a variable's
+			// value becomes unknowable - e.g. `ref var bufRef = ref MemoryMarshal.GetReference(buf);`
+			// marks bufRef altered since that initializer isn't foldable. Without clearing it here, a
+			// later confident assignment like `bufRef = -45536;` updates Value/HasValue correctly but
+			// every subsequent read still treats bufRef as untrustworthy (read sites gate on
+			// `HasValue && !IsAltered`), so `bufRef << 1` never folds even though the value is right there.
+			variable.IsAltered = false;
+
 			if (TryCreateLiteral(tempValue, out var literal))
 			{
 				return node.WithRight(literal);
@@ -762,6 +791,7 @@ public partial class ConstExprPartialRewriter
 		{
 			variable.Value = newValue;
 			variable.HasValue = true;
+			variable.IsAltered = false;
 
 			// The assignment can be removed since we've computed the value
 			return null;
@@ -800,7 +830,7 @@ public partial class ConstExprPartialRewriter
 	/// <summary>
 	///   Handles element access assignment.
 	/// </summary>
-	private SyntaxNode? HandleElementAccessAssignment(AssignmentExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
+	private SyntaxNode? HandleElementAccessAssignment(AssignmentExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue, SyntaxKind kind)
 	{
 		// Resolve the receiver. For a tracked array variable we read the boxed array directly rather than
 		// through TryGetLiteralValue, so per-element folding keeps working even after some elements became
@@ -852,7 +882,10 @@ public partial class ConstExprPartialRewriter
 					return null;
 				}
 
-				var result = HandleArrayElementAssignment(instanceVal as Array, indexConsts, arrayOp.Indices.Length, rightValue, rightExpr);
+				var arr = instanceVal as Array;
+				var (effectiveValue, effectiveExpr) = CombineForCompoundElementAssignment(kind, arr, indexConsts, rightValue, rightExpr);
+
+				var result = HandleArrayElementAssignment(arr, indexConsts, arrayOp.Indices.Length, effectiveValue, effectiveExpr);
 
 				// A constant overwrite makes the element known again.
 				if (result is not null && receiver?.UnknownIndices is { } known && indexConsts is [ int knownIndex ])
@@ -865,16 +898,101 @@ public partial class ConstExprPartialRewriter
 
 			case IPropertyReferenceOperation propOp:
 			{
-				if (hasRightValue && propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length
-				    && loader.TryExecuteMethod(propOp.Property.SetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts.Append(rightValue), out _))
+				// A Span<T>/ReadOnlySpan<T> indexer is an IPropertyReferenceOperation too, but when it
+				// was assigned from an already-tracked array (`Span<int> buf = array;`), instanceVal
+				// already IS that same boxed Array (Span<T> aliases it, never copies it) - so the write
+				// can go straight through HandleArrayElementAssignment exactly like a real array,
+				// instead of the reflection call below, which cannot work here anyway: Span<T> is a ref
+				// struct and its SetMethod can't be reflection-invoked with a boxed receiver.
+				if (hasRightValue && propOp.Property.IsIndexer && instanceVal is Array shadowArray && indexConsts.Length == propOp.Arguments.Length)
 				{
-					return null;
+					var (shadowValue, shadowExpr) = CombineForCompoundElementAssignment(kind, shadowArray, indexConsts, rightValue, rightExpr);
+
+					return HandleArrayElementAssignment(shadowArray, indexConsts, propOp.Arguments.Length, shadowValue, shadowExpr);
 				}
+
+				if (hasRightValue && propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length)
+				{
+					var effectiveValue = rightValue;
+
+					// Same combination as the array branch above, but the current value has to come
+					// from the indexer's own getter (reflectively) rather than Array.GetValue.
+					if (kind != SyntaxKind.EqualsToken
+					    && loader.TryExecuteMethod(propOp.Property.GetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts, out var currentValue))
+					{
+						effectiveValue = ObjectExtensions.ExecuteBinaryOperation(kind, currentValue, rightValue);
+					}
+
+					if (loader.TryExecuteMethod(propOp.Property.SetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts.Append(effectiveValue), out _))
+					{
+						// Mirrors the array branch above: instanceVal is the same reference as the tracked
+						// variable's Value (see the TryGetLiteralValue call above), so the setter just mutated
+						// it in place - any later read of this element already observes the write. The
+						// assignment statement can therefore collapse to its right-hand value, exactly like a
+						// folded array-element write, letting DeadCodePruner drop it once nothing reads it.
+						return TryCreateLiteral(effectiveValue, out var combinedLiteral) ? combinedLiteral : rightExpr;
+					}
+				}
+
 				break;
 			}
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	///   For a compound element assignment (<c>arr[i] += x</c>), combines the CURRENT value at the
+	///   target index with <paramref name="rightValue" /> using <paramref name="kind" />'s operator -
+	///   <paramref name="rightValue" /> alone is only the RHS operand, exactly the value a simple
+	///   assignment (<c>arr[i] = x</c>) would need, so writing it unchanged for a compound assignment
+	///   would silently drop the "current value +" part. For a simple assignment, or when the current
+	///   value can't be read (non-int/long/char index shape), returns the inputs unchanged.
+	/// </summary>
+	private (object? Value, ExpressionSyntax Expr) CombineForCompoundElementAssignment(SyntaxKind kind, Array? arr, object?[] indexConsts, object? rightValue, ExpressionSyntax rightExpr)
+	{
+		if (kind == SyntaxKind.EqualsToken || arr is null || !TryGetArrayElementValue(arr, indexConsts, out var currentValue))
+		{
+			return (rightValue, rightExpr);
+		}
+
+		var combinedValue = ObjectExtensions.ExecuteBinaryOperation(kind, currentValue, rightValue);
+
+		return (combinedValue, TryCreateLiteral(combinedValue, out var combinedLiteral) ? combinedLiteral : rightExpr);
+	}
+
+	/// <summary>Reads the current element value at <paramref name="indexConsts" />, mirroring the index shapes <see cref="HandleArrayElementAssignment" /> writes.</summary>
+	private static bool TryGetArrayElementValue(Array arr, object?[] indexConsts, out object? value)
+	{
+		value = null;
+
+		try
+		{
+			if (indexConsts.Length == 1)
+			{
+				value = indexConsts[0] switch
+				{
+					int i => arr.GetValue(i),
+					long l => arr.GetValue(l),
+					char c => arr.GetValue(c),
+					_ => null
+				};
+			}
+			else if (indexConsts.All(a => a is int))
+			{
+				value = arr.GetValue(indexConsts.OfType<int>().ToArray());
+			}
+			else if (indexConsts.All(a => a is long))
+			{
+				value = arr.GetValue(indexConsts.OfType<long>().ToArray());
+			}
+
+			return value is not null;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	/// <summary>

@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   array in place, followed by <c>new string(...)</c>, is rewritten to <c>string.Create</c>.
 /// </summary>
 [InheritsTests]
-public class CharArrayCapitalizeLoopToStringCreateTest : BaseTest<Func<string, string>>
+public class CharArrayCapitalizeLoopToStringCreateTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -58,8 +58,5 @@ public class CharArrayCapitalizeLoopToStringCreateTest : BaseTest<Func<string, s
 
 			return new string(result);
 		}),
-		CreateFolded("hello world"),
-		CreateFolded(System.String.Empty),
-		CreateFolded("Already Capitalized")
 	];
 }

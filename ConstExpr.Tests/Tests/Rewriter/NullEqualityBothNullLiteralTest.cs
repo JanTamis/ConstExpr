@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   check doesn't change the answer for the both-literal case.
 /// </summary>
 [InheritsTests]
-public class NullEqualityBothNullLiteralTest : BaseTest<Func<bool>>
+public class NullEqualityBothNullLiteralTest : BaseTestWithRandomValues<Func<bool>>
 {
 	public override string TestMethod => GetString(() => null == null);
 

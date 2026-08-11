@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Last() optimization - verify that unnecessary operations before Last() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqLastOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -54,6 +54,5 @@ public class LinqLastOptimizationTests : BaseTest<Func<int[], int>>
 
 			return Unsafe.Add(ref xRef, x.Length - 1) * 6 + Last_2dXLhA(x) + Last_wNj_fg(x) + Last_ExAmKQ(x) + Last_VGrzDg(x) + xRef + TensorPrimitives.Max(x) + TensorPrimitives.Min(x);
 			"""),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 })
 	];
 }

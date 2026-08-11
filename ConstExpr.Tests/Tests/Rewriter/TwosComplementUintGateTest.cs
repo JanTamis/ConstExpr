@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class TwosComplementUintGateTest : BaseTest<Func<uint, uint>>
+public class TwosComplementUintGateTest : BaseTestWithRandomValues<Func<uint, uint>>
 {
 	public override string TestMethod => GetString(n => ~(n - 1));
 

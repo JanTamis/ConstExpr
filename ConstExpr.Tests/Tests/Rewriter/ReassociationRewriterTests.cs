@@ -6,15 +6,12 @@ namespace ConstExpr.Tests.Rewriter;
 ///   collapsed group is a positive, power-of-two coefficient).
 /// </summary>
 [InheritsTests]
-public class ReassociationRewriterTests : BaseTest<Func<int, int>>
+public class ReassociationRewriterTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x => x - x - x - x - x + 5);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => 0 - x * 3 + 5),
-		CreateFolded(0),
-		CreateFolded(10),
-		CreateFolded(-2)
 	];
 }

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for LastOrDefault() optimization - verify that unnecessary operations before LastOrDefault() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqLastOrDefaultOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -53,7 +53,5 @@ public class LinqLastOrDefaultOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (Array.FindLast(x, v => v > 0) << 1) + (gt ? Unsafe.Add(ref xRef, xLength - 1) << 2 : 0) + Array.FindLast(x, v => v > 3) + Array.FindLast(x, v => v > 2) + Array.FindLast(x, v => v < 5) + Array.FindLast(x, v => v == 3) + TensorPrimitives.Max(x) + (gt ? xRef : 0);
 			"""),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Sin(double) → FastSin(x) in FastMath mode (polynomial approximation).</summary>
 [InheritsTests]
-public class MathSinTest : BaseTest<Func<double, double>>
+public class MathSinTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Sin(x));
 

@@ -6,15 +6,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   threshold (0.25) is exactly representable in float, keeping the expected literal unambiguous.
 /// </summary>
 [InheritsTests]
-public class ComparisonCoefficientDivisionTest : BaseTest<Func<float, (bool, bool, bool, bool)>>
+public class ComparisonCoefficientDivisionTest : BaseTestWithRandomValues<Func<float, (bool, bool, bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x * 4 < 1, x * 4 > 1, x * 4 <= 1, x * 4 >= 1));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 0.25f, x > 0.25f, x <= 0.25f, x >= 0.25f)),
-		CreateFolded(0f),
-		CreateFolded(1f),
-		CreateFolded(0.25f)
 	];
 }

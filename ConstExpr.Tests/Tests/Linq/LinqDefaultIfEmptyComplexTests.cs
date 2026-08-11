@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for DefaultIfEmpty() with complex scenarios
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
+public class LinqDefaultIfEmptyComplexTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +33,5 @@ public class LinqDefaultIfEmptyComplexTests : BaseTest<Func<int[], int>>
 
 			return (gt ? xRef << 1 : 20) + (gt ? Unsafe.Add(ref xRef, xLength - 1) << 1 : 20) + Sum_HI9NYg(x) + Sum_swQo7g(x);
 			"""),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // a=15 (sum 1-5), b=25 (empty→default), c=1, d=1 (first), e=5, f=5 (last) = 52
-		CreateFolded(System.Array.Empty<int>()) // a=50 (empty→default), b=25 (empty→default), c=d=e=f=10 (empty→innermost default) = 115
 	];
 }

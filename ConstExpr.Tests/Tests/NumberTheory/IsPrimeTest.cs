@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPrimeTest : BaseTest<Func<int, bool>>
+public class IsPrimeTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -46,9 +46,5 @@ public class IsPrimeTest : BaseTest<Func<int, bool>>
 
 			return true;
 		}),
-		CreateFolded(17),
-		CreateFolded(29),
-		CreateFolded(1),
-		CreateFolded(100)
 	];
 }

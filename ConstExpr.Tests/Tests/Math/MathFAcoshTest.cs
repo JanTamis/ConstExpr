@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Acosh(float) -> FastAcosh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAcoshTest : BaseTest<Func<float, float>>
+public class MathFAcoshTest : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Acosh(x));
 

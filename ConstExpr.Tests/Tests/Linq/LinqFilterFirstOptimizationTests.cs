@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Moving Where before sorting reduces the number of elements to be sorted.
 /// </summary>
 [InheritsTests]
-public class LinqFilterFirstOptimizationTests : BaseTest<Func<int[], IEnumerable<int>>>
+public class LinqFilterFirstOptimizationTests : BaseTestWithRandomValues<Func<int[], IEnumerable<int>>>
 {
 	public override string TestMethod => GetString(x =>
 	{

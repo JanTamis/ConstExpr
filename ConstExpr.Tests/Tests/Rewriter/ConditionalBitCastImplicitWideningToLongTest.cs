@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   reachable only via byte's implicit numeric widening, not the identity byte case.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastImplicitWideningToLongTest : BaseTest<Func<double, double, long>>
+public class ConditionalBitCastImplicitWideningToLongTest : BaseTestWithRandomValues<Func<double, double, long>>
 {
 	public override string TestMethod => GetString((x, y) => x < y ? 1L : 0L);
 

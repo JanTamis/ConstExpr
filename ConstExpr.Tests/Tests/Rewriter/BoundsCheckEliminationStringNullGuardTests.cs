@@ -9,8 +9,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   is why the pass does not use it.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationStringNullGuardTests : BaseTest<Func<string?, int>>
+public class BoundsCheckEliminationStringNullGuardTests : BaseTestWithRandomValues<Func<string?, int>>
 {
+
 	public override string TestMethod => GetString(text =>
 	{
 		if (text is null)

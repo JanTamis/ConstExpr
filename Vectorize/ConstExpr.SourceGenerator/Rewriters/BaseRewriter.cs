@@ -32,6 +32,68 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 		return TryGetLiteralValue(node, typeSymbol, out value, new HashSet<string>());
 	}
 
+	/// <summary>
+	///   Matches the exact <c>Double.NaN</c>/<c>Double.PositiveInfinity</c>/<c>Double.NegativeInfinity</c>
+	///   (and <c>Single</c> equivalent) member-access shape <see cref="SyntaxHelpers.TryCreateLiteral{T}(T,bool,out ExpressionSyntax)" />
+	///   emits, by name rather than by symbol - see the call site in <see cref="TryGetLiteralValue(SyntaxNode?,ITypeSymbol?,out object?,HashSet{string})" />
+	///   for why a symbol lookup can't be used here.
+	/// </summary>
+	private static bool TryGetWellKnownFloatConstant(string typeName, string memberName, out object? value)
+	{
+		value = (typeName, memberName) switch
+		{
+			("Double", nameof(Double.NaN)) => Double.NaN,
+			("Double", nameof(Double.PositiveInfinity)) => Double.PositiveInfinity,
+			("Double", nameof(Double.NegativeInfinity)) => Double.NegativeInfinity,
+			("Single", nameof(Single.NaN)) => Single.NaN,
+			("Single", nameof(Single.PositiveInfinity)) => Single.PositiveInfinity,
+			("Single", nameof(Single.NegativeInfinity)) => Single.NegativeInfinity,
+			_ => null
+		};
+
+		return value is not null;
+	}
+
+	/// <summary>
+	///   Shared by the stackalloc cases below: resolves every initializer expression to a literal
+	///   value and packs them into an <see cref="Array" /> of <paramref name="elementType" /> (or, if
+	///   not supplied, the first resolved element's runtime type - mirroring how the implicit-array-
+	///   creation case elsewhere in this switch infers its element type).
+	/// </summary>
+	private bool TryGetArrayFromInitializerElements(SeparatedSyntaxList<ExpressionSyntax> expressions, Type? elementType, ITypeSymbol? typeSymbol, HashSet<string> visitedVariables, out object? value)
+	{
+		var elements = new List<object?>();
+
+		foreach (var element in expressions)
+		{
+			if (!TryGetLiteralValue(element, typeSymbol, out var elemVal, visitedVariables))
+			{
+				value = null;
+				return false;
+			}
+
+			elements.Add(elemVal);
+		}
+
+		elementType ??= elements.Count > 0 ? elements[0]?.GetType() : null;
+
+		if (elementType is null)
+		{
+			value = null;
+			return false;
+		}
+
+		var array = Array.CreateInstance(elementType, elements.Count);
+
+		for (var i = 0; i < elements.Count; i++)
+		{
+			array.SetValue(Convert.ChangeType(elements[i], elementType), i);
+		}
+
+		value = array;
+		return true;
+	}
+
 	private bool TryGetLiteralValue([NotNullWhen(true)] SyntaxNode? node, ITypeSymbol? typeSymbol, out object? value, HashSet<string> visitedVariables)
 	{
 		switch (node)
@@ -315,6 +377,12 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					var rewriter = new ExpressionRewriter(semanticModel, loader, (_, _) => { }, variables, parameters, CancellationToken.None, symbolStore);
 					var body = rewriter.Visit(parenthesizedLambdaExpressionSyntax.Body);
 
+					if (body is null)
+					{
+						value = null;
+						return false;
+					}
+
 					value = Expression.Lambda(body, parameters.Values).Compile();
 					return true;
 				}
@@ -402,6 +470,22 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 					}
 				}
 				break;
+			}
+			// Double.NaN/PositiveInfinity/NegativeInfinity (and the Single equivalents) are emitted as
+			// this exact member-access shape by SyntaxHelpers.TryCreateLiteral, since C# has no numeric-
+			// literal syntax for them. TryCreateLiteral is a pure syntax helper with no semantic model to
+			// annotate the synthetic node with its real IFieldSymbol (the mechanism the MemberAccessExpressionSyntax
+			// case below relies on), so a folded NaN/Infinity value read back through here would otherwise
+			// never resolve - e.g. `2D / Double.NaN` never seeing Double.NaN as a known operand and so never
+			// folding to Double.NaN itself. Matched by name, not symbol - same trade-off as other ponytail
+			// checks in this codebase (BoundsCheckRewriter.Classify, etc.).
+			case MemberAccessExpressionSyntax
+			{
+				Expression: IdentifierNameSyntax { Identifier.Text: "Double" or "Single" } wellKnownFloatType,
+				Name.Identifier.Text: var wellKnownFloatMember
+			} when TryGetWellKnownFloatConstant(wellKnownFloatType.Identifier.Text, wellKnownFloatMember, out value):
+			{
+				return true;
 			}
 			case MemberAccessExpressionSyntax memberAccessExpressionSyntax:
 			{
@@ -570,6 +654,61 @@ public class BaseRewriter(SemanticModel semanticModel, MetadataLoader loader, ID
 				}
 
 				break;
+			}
+			// `stackalloc int[4]` / `stackalloc int[] { 1, 2, 3 }` - treated like `new int[4]` for
+			// constant-folding purposes: the JIT zero-initializes stack-allocated memory in practice
+			// (this generator doesn't special-case [SkipLocalsInit]), so a shadow Array of the same
+			// length/values lets the per-element array read/write tracking already built for real
+			// arrays also apply to stackalloc'd Spans, instead of treating them as permanently unknown
+			// from declaration onward (which previously left BoundsCheckRewriter's low-level ref/
+			// Unsafe.Add rewrite as the only thing that ever ran, even when every value was known).
+			case StackAllocArrayCreationExpressionSyntax { Type: ArrayTypeSyntax stackAllocArrayType } stackAllocExpression:
+			{
+				if (!semanticModel.TryGetSymbol(stackAllocArrayType.ElementType, symbolStore, out ITypeSymbol? stackElementTypeSymbol)
+				    || loader.GetType(stackElementTypeSymbol) is not { } stackElementType)
+				{
+					value = null;
+					return false;
+				}
+
+				if (stackAllocExpression.Initializer is not null)
+				{
+					if (!TryGetArrayFromInitializerElements(stackAllocExpression.Initializer.Expressions, stackElementType, typeSymbol, visitedVariables, out value))
+					{
+						return false;
+					}
+
+					return true;
+				}
+
+				if (stackAllocArrayType.RankSpecifiers.Count != 1
+				    || stackAllocArrayType.RankSpecifiers[0].Sizes is not [ { } stackAllocSizeExpr ]
+				    || !TryGetLiteralValue(stackAllocSizeExpr, typeSymbol, out var stackAllocSizeVal, visitedVariables)
+				    || stackAllocSizeVal is null)
+				{
+					value = null;
+					return false;
+				}
+
+				try
+				{
+					value = Array.CreateInstance(stackElementType, Convert.ToInt32(stackAllocSizeVal));
+					return true;
+				}
+				catch
+				{
+					value = null;
+					return false;
+				}
+			}
+			case ImplicitStackAllocArrayCreationExpressionSyntax implicitStackAllocExpression:
+			{
+				if (!TryGetArrayFromInitializerElements(implicitStackAllocExpression.Initializer.Expressions, null, typeSymbol, visitedVariables, out value))
+				{
+					return false;
+				}
+
+				return true;
 			}
 			case CollectionExpressionSyntax collectionExpressionSyntax:
 			{

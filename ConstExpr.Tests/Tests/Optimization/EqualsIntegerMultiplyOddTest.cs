@@ -8,14 +8,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   as a plain multiply.
 /// </summary>
 [InheritsTests]
-public class EqualsIntegerMultiplyOddTest : BaseTest<Func<int, (bool, bool)>>
+public class EqualsIntegerMultiplyOddTest : BaseTestWithRandomValues<Func<int, (bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x * 11 == 33, x * 11 != 33));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 3, x != 3)),
-		CreateFolded(3),
-		CreateFolded(4)
 	];
 }

@@ -7,8 +7,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   first loop's completed result) must block fusion.
 /// </summary>
 [InheritsTests]
-public class LoopFusionStatementBetweenTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionStatementBetweenTests() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;

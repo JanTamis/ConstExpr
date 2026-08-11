@@ -9,15 +9,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   to decline on — 13 survives as a plain multiply.
 /// </summary>
 [InheritsTests]
-public class EqualsIntegerMultiplyNotDivisibleDeclineTest : BaseTest<Func<int, bool>>
+public class EqualsIntegerMultiplyNotDivisibleDeclineTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x * 13 == 7);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 13 == 7),
-		CreateFolded(2),
-		CreateFolded(3),
-		CreateFolded(1651910499)
 	];
 }

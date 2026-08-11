@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class NullCoalesceAssignmentFlagOffTest() : BaseTest<Func<string, string, string>>(optimizations: OptimizationFlags.All & ~OptimizationFlags.UseNullableAnnotations)
+public class NullCoalesceAssignmentFlagOffTest() : BaseTestWithRandomValues<Func<string, string, string>>(optimizations: OptimizationFlags.All & ~OptimizationFlags.UseNullableAnnotations)
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -14,10 +14,8 @@ public class NullCoalesceAssignmentFlagOffTest() : BaseTest<Func<string, string,
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create("""
-			a ??= "world";
-
-			return a;
-			""", "hello", "world")
+		// UseNullableAnnotations only gates ANNOTATION-derived non-null proofs (see its doc comment) -
+		// a is KNOWN here, not merely annotated, so folding still happens with the flag off.
+		CreateFolded("hello", "world")
 	];
 }

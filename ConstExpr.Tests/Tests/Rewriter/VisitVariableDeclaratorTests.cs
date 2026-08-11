@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitVariableDeclarator - tracks variables, handles duplicates
 /// </summary>
 [InheritsTests]
-public class VisitVariableDeclaratorTests : BaseTest<Func<int, int, (int, int, int, int, int)>>
+public class VisitVariableDeclaratorTests : BaseTestWithRandomValues<Func<int, int, (int, int, int, int, int)>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -25,9 +25,5 @@ public class VisitVariableDeclaratorTests : BaseTest<Func<int, int, (int, int, i
 
 			return (10, 15, 30, d, d - 10);
 		}),
-		CreateFolded(10, 5),
-		CreateFolded(15, 10),
-		CreateFolded(0, 0),
-		CreateFolded(100, 50)
 	];
 }

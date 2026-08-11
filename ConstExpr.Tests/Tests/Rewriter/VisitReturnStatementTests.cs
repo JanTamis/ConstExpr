@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitReturnStatement - constant return value folding
 /// </summary>
 [InheritsTests]
-public class VisitReturnStatementTests : BaseTest<Func<int>>
+public class VisitReturnStatementTests : BaseTestWithRandomValues<Func<int>>
 {
 	public override string TestMethod => GetString(() => 1 + 2);
 

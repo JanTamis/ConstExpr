@@ -1,8 +1,10 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class FactorialTest : BaseTest<Func<int, long>>
+public class FactorialTest : BaseTestWithRandomValues<Func<int, long>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		if (n < 0)

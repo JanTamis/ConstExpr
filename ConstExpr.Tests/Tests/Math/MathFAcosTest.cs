@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Acos(float) → FastAcos(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAcosTest : BaseTest<Func<float, float>>
+public class MathFAcosTest : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Acos(x));
 

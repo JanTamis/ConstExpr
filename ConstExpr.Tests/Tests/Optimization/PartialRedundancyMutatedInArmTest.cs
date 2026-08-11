@@ -47,8 +47,10 @@ namespace ConstExpr.Tests.Optimization;
 ///   <para>The body must come out unchanged.</para>
 /// </summary>
 [InheritsTests]
-public class PartialRedundancyMutatedInArmTest() : BaseTest<Func<int, bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class PartialRedundancyMutatedInArmTest() : BaseTestWithRandomValues<Func<int, bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, flag) =>
 	{
 		var k = n;

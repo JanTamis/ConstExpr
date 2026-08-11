@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>x / x DOES fold to 1 once a sibling comparison in the same condition proves x is non-zero.</summary>
 [InheritsTests]
-public class DivideIdempotencyProvenNonZeroTest : BaseTest<Func<int, int>>
+public class DivideIdempotencyProvenNonZeroTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

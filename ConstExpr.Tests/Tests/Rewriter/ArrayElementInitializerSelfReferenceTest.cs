@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   form must be preserved.
 /// </summary>
 [InheritsTests]
-public class ArrayElementInitializerSelfReferenceTest : BaseTest<Func<int[], int[]>>
+public class ArrayElementInitializerSelfReferenceTest : BaseTestWithRandomValues<Func<int[], int[]>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{

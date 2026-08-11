@@ -10,8 +10,12 @@ namespace ConstExpr.Tests.Rewriter;
 ///   stale pre-loop value instead of the per-iteration one.
 /// </summary>
 [InheritsTests]
-public class LoopInvariantCodeMotionRefOutWriteTests() : BaseTest<Func<string, int, int, int>>(optimizations: OptimizationFlags.LoopInvariantCodeMotion)
+public class LoopInvariantCodeMotionRefOutWriteTests() : BaseTestWithRandomValues<Func<string, int, int, int>>(optimizations: OptimizationFlags.LoopInvariantCodeMotion)
 {
+	// n is the loop bound - keep it small enough to stay under the default maxUnrollIterations (32)
+	// so RunRandomTests's known-value cases can actually fold.
+	protected override int MaxRandomMagnitudeBits => 5;
+
 	// `result = value` reads the incoming value before the loop overwrites it. `step` is read
 	// twice per iteration so the partial rewriter does not inline it away.
 	public override string TestMethod => GetString((s, n, value) =>

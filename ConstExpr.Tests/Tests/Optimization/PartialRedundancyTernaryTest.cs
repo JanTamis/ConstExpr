@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   candidate in ONE arm. In both arms nothing is forced: it already ran whichever way the branch went.
 /// </summary>
 [InheritsTests]
-public class PartialRedundancyTernaryTest() : BaseTest<Func<int[], bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class PartialRedundancyTernaryTest() : BaseTestWithRandomValues<Func<int[], bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((numbers, flag) =>
 	{
@@ -24,7 +24,5 @@ public class PartialRedundancyTernaryTest() : BaseTest<Func<int[], bool, int>>(o
 
 			return flag ? numbersLength + 2 : numbersLength + 1;
 		}),
-		CreateFolded(new[] { 3, 5 }, true),
-		CreateFolded(new[] { 3, 5 }, false)
 	];
 }

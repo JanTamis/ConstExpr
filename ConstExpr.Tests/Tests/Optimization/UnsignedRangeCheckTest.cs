@@ -5,17 +5,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   x &gt;= 2 &amp;&amp; x &lt;= 10 => (uint)(x - 2) &lt;= 8U.
 /// </summary>
 [InheritsTests]
-public class UnsignedRangeCheckTest : BaseTest<Func<int, bool>>
+public class UnsignedRangeCheckTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x >= 2 && x <= 10);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (uint) (x - 2) <= 8U),
-		CreateFolded(2),
-		CreateFolded(10),
-		CreateFolded(1),
-		CreateFolded(11),
-		CreateFolded(-5)
 	];
 }

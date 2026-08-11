@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitPrefixUnaryExpression - negation, !, ++, -- folding
 /// </summary>
 [InheritsTests]
-public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, int, bool, int, int, int, bool)>>
+public class VisitPrefixUnaryExpressionTests : BaseTestWithRandomValues<Func<int, bool, (int, int, bool, int, int, int, bool)>>
 {
 	public override string TestMethod => GetString((x, b) =>
 	{
@@ -22,9 +22,5 @@ public class VisitPrefixUnaryExpressionTests : BaseTest<Func<int, bool, (int, in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, b) => (-5, 10, false, -5, -x, 0, !b)),
-		CreateFolded(10, true),
-		CreateFolded(-20, false),
-		CreateFolded(0, false),
-		CreateFolded(100, true)
 	];
 }

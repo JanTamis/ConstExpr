@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class CommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class CommonSubexpressionEliminationTest() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -19,6 +19,5 @@ public class CommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>
 			var sum = x * y + 1;
 			return sum * sum;
 		}),
-		CreateFolded(2, 5)
 	];
 }

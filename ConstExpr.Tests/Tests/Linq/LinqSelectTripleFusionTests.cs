@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Additional Select lambda-fusion scenarios not covered by LinqSelectOptimizationTests.
 /// </summary>
 [InheritsTests]
-public class LinqSelectTripleFusionTests : BaseTest<Func<IEnumerable<int>, int>>
+public class LinqSelectTripleFusionTests : BaseTestWithRandomValues<Func<IEnumerable<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -14,8 +14,6 @@ public class LinqSelectTripleFusionTests : BaseTest<Func<IEnumerable<int>, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateFolded(new[] { 1 }), // ((1*2)+1)*3 = 9
-		CreateFolded(Enumerable.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 3 }) // 9 + ((2*2)+1)*3=15 + ((3*2)+1)*3=21 = 45
+		Create("return Sum_un6RoA(x);"),
 	];
 }

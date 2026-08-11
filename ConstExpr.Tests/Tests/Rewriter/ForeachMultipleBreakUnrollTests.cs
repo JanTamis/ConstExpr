@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   guards per iteration with the same jump target collapse into a single "a || b" condition.
 /// </summary>
 [InheritsTests]
-public class ForeachMultipleBreakUnrollTests : BaseTest<Func<char, char, int>>
+public class ForeachMultipleBreakUnrollTests : BaseTestWithRandomValues<Func<char, char, int>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -54,9 +54,5 @@ public class ForeachMultipleBreakUnrollTests : BaseTest<Func<char, char, int>>
 			__unroll_break_0:
 			return index;
 		}),
-		// Constant args fold to the index of the first char matching either target.
-		CreateFolded('a', 'z'),
-		CreateFolded('z', 'b'),
-		CreateFolded('y', 'z')
 	];
 }

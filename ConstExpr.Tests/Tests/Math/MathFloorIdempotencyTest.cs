@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathFloorIdempotencyTest : BaseTest<Func<double, double>>
+public class MathFloorIdempotencyTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Floor(System.Math.Floor(x)));
 

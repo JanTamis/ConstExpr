@@ -13,6 +13,7 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class ConditionalBitCastKeepsCastInArgumentPositionTest : BaseTest<Func<double, double, int>>
 {
+
 	public override string TestMethod => """
 		int TestMethod(double x, double y)
 		{

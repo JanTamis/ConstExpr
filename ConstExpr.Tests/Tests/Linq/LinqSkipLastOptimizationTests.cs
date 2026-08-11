@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for SkipLast() optimization - verify SkipLast(0) removal
 /// </summary>
 [InheritsTests]
-public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSkipLastOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,7 +19,5 @@ public class LinqSkipLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return x.Length + Count_89mObA(x);"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

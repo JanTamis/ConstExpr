@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for ToList() optimization - verify redundant materialization removal and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToListOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -28,7 +28,5 @@ public class LinqToListOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (xLength << 1) + xLength;
 		}),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

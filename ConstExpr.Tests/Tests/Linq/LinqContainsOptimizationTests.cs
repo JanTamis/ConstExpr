@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and that Contains is optimized for specific collection types
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqContainsOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -54,8 +54,5 @@ public class LinqContainsOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Unsafe.BitCast<bool, byte>(Contains__KFndQ(x)) * 10 + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x));"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 4, 5, 6 }) // No 3, all tests fail
 	];
 }

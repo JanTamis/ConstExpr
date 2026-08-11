@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Linq;
 ///   ElementAt(0) becomes First()
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqElementAtOptimizationListTests : BaseTestWithRandomValues<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -35,7 +35,5 @@ public class LinqElementAtOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 			return (xRef << 1) + (Unsafe.Add(ref xRef, 1) << 1);
 		}),
-		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }), // 1 + 2 + 1 + 2 = 6
-		CreateFolded(new List<int> { 0, 0, 0, 0, 0 })
 	];
 }

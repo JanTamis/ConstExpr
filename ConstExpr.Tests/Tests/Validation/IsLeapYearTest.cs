@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.All)
+public class IsLeapYearTest() : BaseTestWithRandomValues<Func<int, bool>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision, optimizations: OptimizationFlags.All)
 {
 	public override string TestMethod => GetString(year =>
 	{
@@ -29,7 +29,5 @@ public class IsLeapYearTest() : BaseTest<Func<int, bool>>(FastMathFlags.All | Fa
 
 			return (year & 3) == 0 && year - ((castVal >> 5) - rshift) * 100 != 0 && year - ((castVal >> 7) - rshift) * 400 == 0;
 		}),
-		CreateFolded(2000),
-		CreateFolded(1900)
 	];
 }

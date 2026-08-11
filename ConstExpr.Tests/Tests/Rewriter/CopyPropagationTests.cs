@@ -10,8 +10,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   always-on partial rewriter, so multi-use is the shape this pass exists for.
 /// </summary>
 [InheritsTests]
-public class CopyPropagationTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
+public class CopyPropagationTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x) =>
 	{
 		var y = x;

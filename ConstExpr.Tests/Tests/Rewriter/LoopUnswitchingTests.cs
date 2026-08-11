@@ -12,8 +12,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   survives partial evaluation.
 /// </summary>
 [InheritsTests]
-public class LoopUnswitchingTests() : BaseTest<Func<int, bool, int>>(optimizations: OptimizationFlags.LoopUnswitching)
+public class LoopUnswitchingTests() : BaseTestWithRandomValues<Func<int, bool, int>>(optimizations: OptimizationFlags.LoopUnswitching)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	/// <summary>
 	///   The loop body is a single if whose condition (<c>flag</c>) is invariant across iterations.
 	/// </summary>

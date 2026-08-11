@@ -6,8 +6,10 @@ namespace ConstExpr.Tests.Optimization;
 ///   is always true and disappears along with its nesting.
 /// </summary>
 [InheritsTests]
-public class ValueRangeLoopCounterFoldTest : BaseTest<Func<int, int>>
+public class ValueRangeLoopCounterFoldTest : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;

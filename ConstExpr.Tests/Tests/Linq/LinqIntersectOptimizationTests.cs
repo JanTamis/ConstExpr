@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Intersect() optimization - verify that redundant operations and special cases are optimized
 /// </summary>
 [InheritsTests]
-public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqIntersectOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -56,9 +56,5 @@ public class LinqIntersectOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (Count_AEkyLw(x) << 1) + (Count_FQoOgw(x) << 1) + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + Unsafe.BitCast<bool, byte>(Contains_FVnsrQ(x)) + Count_N_W_CA(x) + Count_0S7iQA(x);"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 10, 20, 30 }),
-		CreateFolded(new[] { 1, 1, 2, 2, 3 })
 	];
 }

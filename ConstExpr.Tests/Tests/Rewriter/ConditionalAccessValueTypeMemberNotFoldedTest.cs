@@ -6,18 +6,16 @@ namespace ConstExpr.Tests.Rewriter;
 ///   static type from int? to int (Length returns a value type).
 /// </summary>
 [InheritsTests]
-public class ConditionalAccessValueTypeMemberNotFoldedTest : BaseTest<Func<string, int?>>
+public class ConditionalAccessValueTypeMemberNotFoldedTest : BaseTestWithRandomValues<Func<string, int?>>
 {
 	public override string TestMethod => GetString(s => s?.Length);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		Create("""
-			return "hello".Length;
-			""", "hello"),
-		Create("""
-			return "".Length;
-			""", "")
+		// s is KNOWN here (not merely annotated), so the whole expression - including .Length -
+		// folds straight through to the literal int, implicitly converted to int?.
+		CreateFolded("hello"),
+		CreateFolded("")
 	];
 }

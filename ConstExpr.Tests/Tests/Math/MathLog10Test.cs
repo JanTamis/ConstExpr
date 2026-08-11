@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Log10(double) → FastLog10(x) in FastMath mode, constant-folds when input is known.</summary>
 [InheritsTests]
-public class MathLog10Test : BaseTest<Func<double, double>>
+public class MathLog10Test : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Log10(x));
 

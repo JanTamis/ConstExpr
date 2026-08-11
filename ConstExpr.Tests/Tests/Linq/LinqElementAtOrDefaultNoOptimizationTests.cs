@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests that operations which affect element positions are NOT optimized for ElementAtOrDefault
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOrDefaultNoOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -39,7 +39,5 @@ public class LinqElementAtOrDefaultNoOptimizationTests : BaseTest<Func<int[], in
 
 			return (gt ? xRef * 3 : 0) + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + (gt ? Unsafe.Add(ref xRef, xLength - 1) : 0) + Array.Find(x, v => v > 2);
 			"""),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // 1 + 5 + 5 + 3 + 2 + 1 = 17
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

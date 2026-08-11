@@ -10,8 +10,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   unknown (not unrolled) and both loops survive partial evaluation.
 /// </summary>
 [InheritsTests]
-public class LoopFusionTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	/// <summary>
 	///   Two adjacent loops over the same range with disjoint accumulators — no cross-body
 	///   dependence, so the bodies are simply concatenated.

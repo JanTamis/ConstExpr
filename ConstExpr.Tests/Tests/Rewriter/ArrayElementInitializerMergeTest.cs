@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   (<c>new T[] { ..., ... }</c>).
 /// </summary>
 [InheritsTests]
-public class ArrayElementInitializerMergeTest : BaseTest<Func<int[], int, int[]>>
+public class ArrayElementInitializerMergeTest : BaseTestWithRandomValues<Func<int[], int, int[]>>
 {
 	public override string TestMethod => GetString((numbers, positions) =>
 	{

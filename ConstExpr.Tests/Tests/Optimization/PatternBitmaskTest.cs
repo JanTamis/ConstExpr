@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   into efficient bitmask checks.
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskTest : BaseTest<Func<int, bool>>
+public class PatternBitmaskTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -20,15 +20,6 @@ public class PatternBitmaskTest : BaseTest<Func<int, bool>>
 			var diff = n - 1;
 
 			return (uint) diff <= 19U && (0x84211u >> diff & 1) != 0;
-		}), // Unknown value
-		CreateFolded(1), // Match
-		CreateFolded(5), // Match
-		CreateFolded(10), // Match
-		CreateFolded(15), // Match
-		CreateFolded(20), // Match
-		CreateFolded(0), // No match
-		CreateFolded(3), // No match
-		CreateFolded(7), // No match
-		CreateFolded(21) // No match
+		}),
 	];
 }

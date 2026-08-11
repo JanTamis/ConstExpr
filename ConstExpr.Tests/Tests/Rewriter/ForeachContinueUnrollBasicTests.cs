@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   single trailing label (see <see cref="ForeachBreakUnrollBasicTests" />).
 /// </summary>
 [InheritsTests]
-public class ForeachContinueUnrollBasicTests : BaseTest<Func<char, int>>
+public class ForeachContinueUnrollBasicTests : BaseTestWithRandomValues<Func<char, int>>
 {
 	public override string TestMethod => GetString(skip =>
 	{
@@ -55,10 +55,5 @@ public class ForeachContinueUnrollBasicTests : BaseTest<Func<char, int>>
 			__unroll_continue_2:
 			return index;
 		}),
-		// Constant skip still folds to a plain result.
-		CreateFolded('a'),
-		CreateFolded('b'),
-		CreateFolded('c'),
-		CreateFolded('z')
 	];
 }

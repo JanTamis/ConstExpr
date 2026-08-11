@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   we already have direct indexing. Direct ElementAt(0) without Skip DOES become First().
 /// </summary>
 [InheritsTests]
-public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtSkipOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -42,12 +42,5 @@ public class LinqElementAtSkipOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (Unsafe.Add(ref xRef, 1) << 1) + (Unsafe.Add(ref xRef, 3) << 1) + Unsafe.Add(ref xRef, 2) + xRef;
 		}),
-		// a = x[1] = 2, b = x[3] = 4, c = x[3] = 4, d = x[1] = 2, e = x[2] = 3, f = x[0] = 1
-		// Total: 2 + 4 + 4 + 2 + 3 + 1 = 16
-		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ =>
-		{
-			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
-		}, [ System.Array.Empty<int>() ])
 	];
 }

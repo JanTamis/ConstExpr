@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsValidEmailTest : BaseTest<Func<string, bool>>
+public class IsValidEmailTest : BaseTestWithRandomValues<Func<string, bool>>
 {
 	public override string TestMethod => GetString(email =>
 	{
@@ -74,11 +74,6 @@ public class IsValidEmailTest : BaseTest<Func<string, bool>>
 			}
 
 			return atCount == 1 && dotCount >= 1 && atIndex > 0 && atIndex < emailLength - 1 && lastDotIndex > atIndex + 1 && lastDotIndex < emailLength - 1;
-		}), // Unknown input → body unchanged
-		CreateFolded(System.String.Empty), // Empty string → guard fires
-		CreateFolded("a@b"), // Too short (length < 5) → guard fires
-		CreateFolded("invalid"), // No @ or dot → returns false
-		CreateFolded("@test.com"), // @ at start (atIndex == 0) → returns false
-		CreateFolded("test@com.") // Dot at end (lastDotIndex == length - 1) → returns false
+		}),
 	];
 }

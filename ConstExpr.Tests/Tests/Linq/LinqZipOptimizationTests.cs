@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Zip() optimization - verify empty collection handling
 /// </summary>
 [InheritsTests]
-public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqZipOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -28,7 +28,5 @@ public class LinqZipOptimizationTests : BaseTest<Func<int[], int>>
 
 			return xLength + Int32.Min(xLength, Count_Pdf8bA(x));
 			"""),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

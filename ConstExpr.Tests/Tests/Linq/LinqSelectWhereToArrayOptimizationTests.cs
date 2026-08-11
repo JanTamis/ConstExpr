@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for arr.Select(f).Where(p).ToArray() => Array.FindAll(arr, x => p(f(x)))
 /// </summary>
 [InheritsTests]
-public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSelectWhereToArrayOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -17,7 +17,5 @@ public class LinqSelectWhereToArrayOptimizationTests : BaseTest<Func<int[], int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Array.FindAll(x, v => v << 1 > 4).Length;"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

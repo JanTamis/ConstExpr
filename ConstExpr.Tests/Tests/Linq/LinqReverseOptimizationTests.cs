@@ -12,7 +12,7 @@ namespace ConstExpr.Tests.Linq;
 ///   - OrderByDescending(k).Reverse() => OrderBy(k)
 /// </summary>
 [InheritsTests]
-public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqReverseOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -42,7 +42,5 @@ public class LinqReverseOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (TensorPrimitives.Max(x) << 1) + (TensorPrimitives.Min(x) << 1) + xRef;
 		}),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(new[] { 5 })
 	];
 }

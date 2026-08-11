@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   non-negative — -3 % 2 == -1 in C#, so -3 % 2 == 1 is false even though -3 is odd.
 /// </summary>
 [InheritsTests]
-public class EqualsModuloOddSignedNotRewrittenTest : BaseTest<Func<int, bool>>
+public class EqualsModuloOddSignedNotRewrittenTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x % 2 == 1);
 

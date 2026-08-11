@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   sides of the strategy's flip decision.
 /// </summary>
 [InheritsTests]
-public class ComparisonCoefficientDivisionEqualsTest : BaseTest<Func<float, (bool, bool)>>
+public class ComparisonCoefficientDivisionEqualsTest : BaseTestWithRandomValues<Func<float, (bool, bool)>>
 {
 	// ReSharper disable CompareOfFloatsByEqualityOperator — testing exactly that comparison.
 	public override string TestMethod => GetString(x => (x * 6 == 1, x * 6 != 1));
@@ -14,8 +14,5 @@ public class ComparisonCoefficientDivisionEqualsTest : BaseTest<Func<float, (boo
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 0.16666667f, x != 0.16666667f)),
-		// ReSharper restore CompareOfFloatsByEqualityOperator
-		CreateFolded(0f),
-		CreateFolded(1f)
 	];
 }

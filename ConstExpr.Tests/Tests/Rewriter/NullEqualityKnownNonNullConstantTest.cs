@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   test of the new check's own logic.
 /// </summary>
 [InheritsTests]
-public class NullEqualityKnownNonNullConstantTest : BaseTest<Func<bool>>
+public class NullEqualityKnownNonNullConstantTest : BaseTestWithRandomValues<Func<bool>>
 {
 	public override string TestMethod => GetString(() =>
 	{

@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   can drop the cast here without any risk of silently rebinding to a different overload.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastImplicitWideningInBinaryOperandTest : BaseTest<Func<double, double, int>>
+public class ConditionalBitCastImplicitWideningInBinaryOperandTest : BaseTestWithRandomValues<Func<double, double, int>>
 {
 	public override string TestMethod => GetString((x, y) => (x < y ? 1 : 0) + 5);
 

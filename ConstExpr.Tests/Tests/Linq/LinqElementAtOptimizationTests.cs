@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Note: ElementAt(0) is optimized to First() which is more idiomatic
 /// </summary>
 [InheritsTests]
-public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -45,7 +45,5 @@ public class LinqElementAtOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (xRef << 1) + (Unsafe.Add(ref xRef, 1) << 1) + (Unsafe.Add(ref xRef, 2) << 1) + Unsafe.Add(ref xRef, 3);
 		}),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }), // 1 + 2 + 3 + 1 + 2 + 3 + 4 = 16
-		CreateFolded(new[] { 0, 0, 0, 0, 0 })
 	];
 }

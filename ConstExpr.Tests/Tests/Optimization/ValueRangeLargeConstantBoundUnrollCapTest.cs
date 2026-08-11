@@ -13,7 +13,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   being resolved to <c>7</c>.
 /// </summary>
 [InheritsTests]
-public class ValueRangeLargeConstantBoundUnrollCapTest() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.None)
+public class ValueRangeLargeConstantBoundUnrollCapTest() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.None, maxUnrollIterations: 100)
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -28,18 +28,19 @@ public class ValueRangeLargeConstantBoundUnrollCapTest() : BaseTest<Func<int, in
 		return sum;
 	});
 
+	// With maxUnrollIterations raised to 100 (see constructor above), the 100-iteration loop no
+	// longer hits the unroll cap - even with n Unknown, every iteration's bonus-plus-i part still
+	// folds per-iteration, so the loop unrolls into 100 flat `sum += n + <constant>;` statements
+	// instead of staying a compact for loop.
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n =>
-		{
-			var sum = 0;
-
-			for (var i = 0; i < 100; i++)
-			{
-				sum += i + n + 7;
-			}
-
-			return sum;
-		}, [ Unknown ])
+		Create(BuildUnrolledExpectedBody(), Unknown)
 	];
+
+	private static string BuildUnrolledExpectedBody()
+	{
+		var statements = string.Join("\n", Enumerable.Range(7, 100).Select(v => $"sum += n + {v};"));
+
+		return $"var sum = 0;\n{statements}\nreturn sum;";
+	}
 }

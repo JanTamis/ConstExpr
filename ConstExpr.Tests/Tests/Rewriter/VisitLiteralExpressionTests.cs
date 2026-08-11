@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitLiteralExpression - literal passthrough
 /// </summary>
 [InheritsTests]
-public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, double, string, char, bool, int)>>
+public class VisitLiteralExpressionTests : BaseTestWithRandomValues<Func<int, double, (int, double, string, char, bool, int)>>
 {
 	public override string TestMethod => GetString((x, _) =>
 	{
@@ -23,9 +23,5 @@ public class VisitLiteralExpressionTests : BaseTest<Func<int, double, (int, doub
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, _) => (42, 3.14, "hello", 'x', true, x + 42)),
-		CreateFolded(10, 1.5),
-		CreateFolded(100, 2.5),
-		CreateFolded(-10, 0.0),
-		CreateFolded(0, 5.0)
 	];
 }

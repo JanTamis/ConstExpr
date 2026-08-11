@@ -6,8 +6,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Loop Fusion must NOT fire when the iteration spaces differ (<c>i &lt; n</c> vs <c>i &lt; m</c>).
 /// </summary>
 [InheritsTests]
-public class LoopFusionDifferentBoundsTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionDifferentBoundsTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, m) =>
 	{
 		var sum = 0;

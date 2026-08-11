@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   must skip an array that is written to.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationReassignedArrayTests : BaseTest<Func<int[], int[], int>>
+public class BoundsCheckEliminationReassignedArrayTests : BaseTestWithRandomValues<Func<int[], int[], int>>
 {
 	public override string TestMethod => GetString((numbers, other) =>
 	{

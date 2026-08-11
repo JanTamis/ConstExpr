@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   must be left on the heap — converting it would risk a stack overflow.
 /// </summary>
 [InheritsTests]
-public class StackAllocConversionSkipsLargeArrayTest : BaseTest<Func<int, int>>
+public class StackAllocConversionSkipsLargeArrayTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -31,6 +31,6 @@ public class StackAllocConversionSkipsLargeArrayTest : BaseTest<Func<int, int>>
 			Unsafe.Add(ref bigRef, mod)++;
 
 			return Unsafe.Add(ref bigRef, mod);
-		}, [ Unknown ])
+		})
 	];
 }

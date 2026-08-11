@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitTupleExpression - fold to tuple literal or visit args
 /// </summary>
 [InheritsTests]
-public class VisitTupleExpressionTests : BaseTest<Func<int, int, string, ((int, int), (int, int), (int, string), (int, int))>>
+public class VisitTupleExpressionTests : BaseTestWithRandomValues<Func<int, int, string, ((int, int), (int, int), (int, string), (int, int))>>
 {
 	public override string TestMethod => GetString((x, y, s) =>
 	{
@@ -21,9 +21,5 @@ public class VisitTupleExpressionTests : BaseTest<Func<int, int, string, ((int, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y, s) => ((1, 2), (3, 12), (x + y, s), (15, x << 1))),
-		CreateFolded(10, 5, "hello"),
-		CreateFolded(-5, 20, "test"),
-		CreateFolded(0, 0, System.String.Empty),
-		CreateFolded(100, 50, "world")
 	];
 }

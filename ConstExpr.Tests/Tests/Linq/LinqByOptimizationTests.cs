@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 [InheritsTests]
-public class LinqByOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqByOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -16,7 +16,5 @@ public class LinqByOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_BgXwWg(x) + Count_A_x9WQ(x, v) + Count_GdwhZA(x, v) + Count_0yIQSg(x);", Unknown),
-		CreateFolded(new[] { 1, 2, 2, 3, 4 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

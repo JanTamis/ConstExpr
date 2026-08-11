@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   <c>n</c> really can be 50 or more by the time the second comparison runs, so it must survive.
 /// </summary>
 [InheritsTests]
-public class ValueRangeEarlyExitWriteTest : BaseTest<Func<int, int>>
+public class ValueRangeEarlyExitWriteTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -39,12 +39,6 @@ public class ValueRangeEarlyExitWriteTest : BaseTest<Func<int, int>>
 			var prod = n * 100;
 
 			return prod < 50 ? prod : 0;
-		}, [ Unknown ]),
-
-		// n = 0 is the one value in range that still passes the second guard; n = 4 is the one that
-		// proves it was not folded to true.
-		CreateFolded(0),
-		CreateFolded(4),
-		CreateFolded(40)
+		}),
 	];
 }

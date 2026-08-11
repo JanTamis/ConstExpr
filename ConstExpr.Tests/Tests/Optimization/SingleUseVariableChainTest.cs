@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   Tests chained single-use variable inlining.
 /// </summary>
 [InheritsTests]
-public class SingleUseVariableChainTest : BaseTest<Func<int, int>>
+public class SingleUseVariableChainTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	/// <summary>
 	///   var a = n + 1; var b = a * 2; return b;
@@ -20,7 +20,6 @@ public class SingleUseVariableChainTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => n + 1 << 1, [ Unknown ]), // Both a and b inlined; * 2 → << 1
-		CreateFolded(5) // (5 + 1) * 2 = 12
+		Create(n => n + 1 << 1, [ Unknown ]),
 	];
 }

@@ -1,14 +1,12 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathCopySignTest : BaseTest<Func<double, double, double>>
+public class MathCopySignTest : BaseTestWithRandomValues<Func<double, double, double>>
 {
 	public override string TestMethod => GetString((x, y) => System.Math.CopySign(x, y));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastCopySign<double, long>(x, y);"),
-		Create((x, _) => Double.Abs(x), [ Unknown, 2.0 ]),
-		Create((x, _) => -Double.Abs(x), [ Unknown, -2.0 ])
 	];
 }

@@ -4,8 +4,9 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Distinct() optimization - verify that unnecessary operations before Distinct() are removed
 /// </summary>
 [InheritsTests]
-public class LinqDistinctOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqDistinctOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
+
 	public override string TestMethod => GetString(x =>
 	{
 		// Distinct().Distinct() => Distinct() (redundant)

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ClampTest : BaseTest<Func<int, int, int, int>>
+public class ClampTest : BaseTestWithRandomValues<Func<int, int, int, int>>
 {
 	public override string TestMethod => GetString((value, min, max) =>
 	{
@@ -21,8 +21,5 @@ public class ClampTest : BaseTest<Func<int, int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((value, min, max) => Int32.Clamp(value, min, max)),
-		CreateFolded(5, 0, 10),
-		CreateFolded(-5, 0, 10),
-		CreateFolded(15, 0, 10)
 	];
 }

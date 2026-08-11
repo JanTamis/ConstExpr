@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>Bound widening: x &lt; 10 || x &lt; 20 => x &lt; 20 (the wider bound subsumes the narrower one).</summary>
 [InheritsTests]
-public class ConditionalOrBoundWideningTest : BaseTest<Func<int, bool>>
+public class ConditionalOrBoundWideningTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x < 10 || x < 20);
 

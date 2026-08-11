@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Count() &lt;= 0 → !(source.Any()) and Count(predicate) &lt;= 0 → !(source.Any(predicate)).
 /// </summary>
 [InheritsTests]
-public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
+public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTestWithRandomValues<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -16,7 +16,5 @@ public class LinqCountLessThanOrEqualZeroToAnyTests() : BaseTest<Func<IEnumerabl
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => !x.Any()),
-		CreateFolded(Enumerable.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 3 })
 	];
 }

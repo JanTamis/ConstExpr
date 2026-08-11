@@ -6,8 +6,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pass must leave the loop unchanged.
 /// </summary>
 [InheritsTests]
-public class StrengthReductionMutatedIvTests : BaseTest<Func<int, int>>
+public class StrengthReductionMutatedIvTests : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;

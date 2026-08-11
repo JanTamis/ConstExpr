@@ -8,8 +8,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   left operand IS the assignment target, the compound conversion is valid and must still happen.
 /// </summary>
 [InheritsTests]
-public class CompoundAssignmentElementAccessMatchTest : BaseTest<Func<int[], int[], int[]>>
+public class CompoundAssignmentElementAccessMatchTest : BaseTestWithRandomValues<Func<int[], int[], int[]>>
 {
+
 	public override string TestMethod => GetString((result, numbers) =>
 	{
 		result[1] += numbers[1];

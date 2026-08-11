@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Validation;
 ///   as the parenthesized versions, so all patterns should still be recognized.
 /// </summary>
 [InheritsTests]
-public class AsciiCharRangeNoBracketsTest : BaseTest<Func<char, bool>>
+public class AsciiCharRangeNoBracketsTest : BaseTestWithRandomValues<Func<char, bool>>
 {
 	// No parentheses — &&-precedence groups identically to the parenthesized form.
 	// ReSharper disable ArrangeRedundantParentheses
@@ -16,9 +16,5 @@ public class AsciiCharRangeNoBracketsTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiHexDigit(c)),
-		CreateFolded('5'),
-		CreateFolded('b'),
-		CreateFolded('E'),
-		CreateFolded('z')
 	];
 }

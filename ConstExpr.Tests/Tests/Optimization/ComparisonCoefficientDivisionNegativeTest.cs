@@ -5,16 +5,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   v OP' k / -c, where OP' is the reversed relation.
 /// </summary>
 [InheritsTests]
-public class ComparisonCoefficientDivisionNegativeTest : BaseTest<Func<float, bool>>
+public class ComparisonCoefficientDivisionNegativeTest : BaseTestWithRandomValues<Func<float, bool>>
 {
 	public override string TestMethod => GetString(x => x * -6 < 1);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x > -0.16666667f),
-		CreateFolded(0f),
-		CreateFolded(-1f),
-		CreateFolded(-0.1f),
-		CreateFolded(-0.2f)
 	];
 }

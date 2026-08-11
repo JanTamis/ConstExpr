@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   the compiler would already accept without a cast.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastImplicitWideningToIntTest : BaseTest<Func<double, double, int>>
+public class ConditionalBitCastImplicitWideningToIntTest : BaseTestWithRandomValues<Func<double, double, int>>
 {
 	public override string TestMethod => GetString((x, y) => x < y ? 1 : 0);
 

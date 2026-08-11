@@ -21,8 +21,10 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ValueRangeEarlyExitLoopWriteTest : BaseTest<Func<int, int, int>>
+public class ValueRangeEarlyExitLoopWriteTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, count) =>
 	{
 		if (n > 5)

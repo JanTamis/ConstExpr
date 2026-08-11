@@ -8,9 +8,11 @@ namespace ConstExpr.Tests.Rewriter;
 ///   introduces one local for both uses.
 /// </summary>
 [InheritsTests]
-public class LoopFusionCommonSubexpressionTests() : BaseTest<Func<int, int, int, int>>(
+public class LoopFusionCommonSubexpressionTests() : BaseTestWithRandomValues<Func<int, int, int, int>>(
 	optimizations: OptimizationFlags.LoopFusion | OptimizationFlags.CommonSubexpressionElimination)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x, y) =>
 	{
 		var sum = 0;

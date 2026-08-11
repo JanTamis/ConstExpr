@@ -6,15 +6,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   flip even though the outcome (a flip) looks the same.
 /// </summary>
 [InheritsTests]
-public class ComparisonReverseSubtractionDivisionTest : BaseTest<Func<float, (bool, bool)>>
+public class ComparisonReverseSubtractionDivisionTest : BaseTestWithRandomValues<Func<float, (bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (3 - x < 1, 3 - x >= 1));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x > 2f, x <= 2f)),
-		CreateFolded(0f),
-		CreateFolded(5f),
-		CreateFolded(2f)
 	];
 }

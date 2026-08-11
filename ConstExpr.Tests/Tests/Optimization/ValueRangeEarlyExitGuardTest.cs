@@ -13,7 +13,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ValueRangeEarlyExitGuardTest : BaseTest<Func<int, int>>
+public class ValueRangeEarlyExitGuardTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -33,10 +33,6 @@ public class ValueRangeEarlyExitGuardTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => (uint) n > 9U ? -1 : n << 1, [ Unknown ]),
-
-		// Inside the guarded range, and outside it.
-		CreateFolded(4),
-		CreateFolded(40)
+		Create(n => (uint) n > 9U ? -1 : n << 1),
 	];
 }

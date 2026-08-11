@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Asinh(float) -> FastAsinh(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFAsinhTest : BaseTest<Func<float, float>>
+public class MathFAsinhTest : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Asinh(x));
 

@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Validation;
 ///   known-argument fold must produce false, not true.
 /// </summary>
 [InheritsTests]
-public class HasBalancedParenthesesTest : BaseTest<Func<string?, bool>>
+public class HasBalancedParenthesesTest : BaseTestWithRandomValues<Func<string?, bool>>
 {
 	public override string TestMethod => GetString(input =>
 	{

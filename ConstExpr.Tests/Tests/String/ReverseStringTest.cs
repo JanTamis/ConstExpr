@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class ReverseStringTest : BaseTest<Func<string, string>>
+public class ReverseStringTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -44,8 +44,5 @@ public class ReverseStringTest : BaseTest<Func<string, string>>
 
 			return new string(chars);
 		}),
-		CreateFolded("hello"),
-		CreateFolded(System.String.Empty),
-		CreateFolded("a")
 	];
 }

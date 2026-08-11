@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   cast must be kept here even though it is dropped for int/long/etc.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastKeepsCastForSByteTest : BaseTest<Func<double, double, sbyte>>
+public class ConditionalBitCastKeepsCastForSByteTest : BaseTestWithRandomValues<Func<double, double, sbyte>>
 {
 	public override string TestMethod => GetString((x, y) => x < y ? (sbyte) 1 : (sbyte) 0);
 

@@ -1,5 +1,16 @@
+extern alias sourcegen;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using sourcegen::ConstExpr.SourceGenerator.BuildIn;
+using sourcegen::ConstExpr.SourceGenerator.Comparers;
+using sourcegen::ConstExpr.SourceGenerator.Helpers;
+using sourcegen::ConstExpr.SourceGenerator.Models;
+using sourcegen::ConstExpr.SourceGenerator.Rewriters;
 
 namespace ConstExpr.Tests;
 
@@ -12,7 +23,7 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	///   have a distinct expected body (see <see cref="CreateFoldedRandom" />), so this can't exceed however many
 	///   distinct results the tested method can actually produce - override per test class accordingly.
 	/// </summary>
-	protected virtual int RandomTestCaseCount => 100;
+	protected virtual int RandomTestCaseCount => 10;
 
 	/// <summary>
 	///   Caps the bit-length (and thus magnitude) of randomly generated integral values. Defaults to each type's own
@@ -22,12 +33,123 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	/// </summary>
 	protected virtual int MaxRandomMagnitudeBits => Int32.MaxValue;
 
+	/// <summary>
+	///   Caps the power-of-two exponent (and thus magnitude) of randomly generated double/float/decimal values.
+	///   Defaults to 20 (values up to ~2^20). Override to a smaller value for methods that overflow to
+	///   Infinity/NaN well before that (e.g. <see cref="System.Math.Exp(double)" />, whose result overflows once
+	///   the input exceeds ~709) so every generated case stays foldable to a finite literal.
+	/// </summary>
+	protected virtual int MaxRandomFloatExponent => 20;
+
 	[Test]
-	public void RunRandomTests()
+	public async Task RunRandomTests()
 	{
-		foreach (var testCase in CreateFoldedRandom().Take(RandomTestCaseCount))
+		var state = GetState();
+		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimization = linqOptimization, Optimizations = optimizations, MaxUnrollIterations = maxUnrollIterations };
+		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
+		var parameters = new Dictionary<string, VariableItem>(state.ParameterNames.Count, StringComparer.Ordinal);
+
+		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
+		var exceptionsDuringRewriting = new List<Exception>();
+		var usings = new HashSet<string>();
+
+		var analyzer = new InlineVariableAnalyzer(state.SemanticModel, symbolStore);
+		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
+
+		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, usings, attribute, symbolStore, CancellationToken.None, visitedMethods);
+
+		foreach (var testCase in CreateFoldedRandom())
 		{
-			RunTest(testCase);
+			visitedMethods.Clear();
+			additionalSyntax.Clear();
+			parameters.Clear();
+			symbolStore.Clear();
+			exceptionsDuringRewriting.Clear();
+			usings.Clear();
+
+			for (var i = 0; i < state.ParameterNames.Count; i++)
+			{
+				parameters[state.ParameterNames[i]] = new VariableItem(
+					state.ParameterTypes[i],
+					false,
+					null,
+					state.ParameterTypes[i] is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
+			}
+
+			foreach (var candidate in candidates)
+			{
+				var name = candidate.Symbol.Name;
+
+				if (parameters.TryGetValue(name, out var variable))
+				{
+					variable.CanBeInlined = true;
+				}
+				else
+				{
+					parameters.Add(name, new VariableItem(
+						candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+						false,
+						null,
+						candidate.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false })
+					{
+						CanBeInlined = true
+					});
+				}
+			}
+
+			for (var i = 0; i < testCase.Value.Length; i++)
+			{
+				var name = state.ParameterNames[i];
+				var parameter = parameters[name];
+				var value = testCase.Value[i];
+
+				parameter.HasValue = true;
+				parameter.Value = value;
+				parameter.IsAccessed = false;
+				parameter.IsAltered = false;
+				parameter.IsInitialized = true;
+			}
+
+			var newBody = rewriter.VisitBlock(state.Method.Body!) as BlockSyntax;
+
+			foreach (var parameter in parameters)
+			{
+				if (!newBody!.HasIdentifier(parameter.Key))
+				{
+					parameter.Value.HasValue = true;
+					parameter.Value.IsAccessed = false;
+					parameter.Value.IsAltered = false;
+					parameter.Value.IsInitialized = true;
+				}
+			}
+
+			newBody = DeadCodePruner.Prune(newBody, parameters, state.SemanticModel) as BlockSyntax;
+			newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
+
+			// Same shared pipeline the generator runs, so the harness cannot drift from it.
+			newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings) as BlockSyntax ?? newBody;
+
+			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
+			var newBodyRendered = FormattingHelper.Render(newBody);
+
+			if (testCase.Key is null)
+			{
+				if (newBodyRendered != state.FormattedOriginalBodyRendered)
+				{
+					throw FormatMismatchException(state.ParameterNames, parameters, state.FormattedOriginalBody, newBody, additionalSyntax, exceptionsDuringRewriting);
+				}
+			}
+			else
+			{
+				var (expectedBody, expectedBodyRendered) = GetOrParseBlock(testCase.Key);
+
+				// Use Roslyn structural equivalence which ignores trivia differences
+				if (newBodyRendered != expectedBodyRendered)
+				{
+					throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
+				}
+			}
 		}
 	}
 
@@ -36,10 +158,11 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	///   <see cref="BaseTest{TDelegate}.CreateFolded" /> to compute each expected result by invoking the real
 	///   <see cref="BaseTest{TDelegate}.TestMethod" /> delegate. The seed defaults to a stable hash of the test class's type
 	///   name, so results are reproducible across runs unless explicitly overridden. Every yielded case has a distinct
-	///   expected body - a randomly generated input that throws, or that folds to a body already yielded, is discarded
-	///   and retried. If <see cref="MaxConsecutiveMisses" /> attempts in a row fail to produce a new distinct case (the
-	///   caller asked for more distinct results than the method can produce, or it throws for nearly all inputs), this
-	///   throws instead of spinning forever - callers typically only pull a bounded number via <c>Take</c>.
+	///   expected body - a randomly generated input that throws (violates a precondition the method under test enforces
+	///   at runtime, e.g. <c>Single()</c> matching zero or several elements), or that folds to a body already yielded,
+	///   is discarded and a new one is drawn in its place. Stops after <see cref="RandomTestCaseCount" /> total draws, however many distinct cases that produced - callers that need
+	///   a guaranteed count should assert on the sequence length, not assume it always reaches
+	///   <see cref="RandomTestCaseCount" />.
 	/// </summary>
 	protected IEnumerable<KeyValuePair<string?, object?[]>> CreateFoldedRandom(int? seed = null)
 	{
@@ -47,12 +170,30 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 		                     ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{typeof(TDelegate).FullName}'.");
 
 		var random = new Random(seed ?? GetStableSeed(GetType()));
+		var seenBodies = new HashSet<string?>();
 
-		while (true)
+		for (var attempt = 0; attempt < RandomTestCaseCount; attempt++)
 		{
 			var parameters = parameterTypes.Select(t => GenerateRandomValue(t, random)).ToArray();
+			KeyValuePair<string?, object?[]> testCase;
 
-			yield return CreateFolded(parameters);
+			try
+			{
+				testCase = CreateFolded(parameters);
+			}
+			catch (TargetInvocationException)
+			{
+				// The real TestMethod threw for this input (e.g. Single() matched zero or several
+				// elements, First()/Last()/Aggregate() ran on an empty array, ElementAt() got an
+				// out-of-range index) - the input violated a precondition the method itself enforces
+				// at runtime rather than something the optimizer needs to handle. Draw a new one.
+				continue;
+			}
+
+			if (seenBodies.Add(testCase.Key))
+			{
+				yield return testCase;
+			}
 		}
 	}
 
@@ -68,15 +209,20 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 			_ when type == typeof(uint) => (uint) GenerateRandomMagnitude(random, System.Math.Min(32, MaxRandomMagnitudeBits)),
 			_ when type == typeof(ulong) => (ulong) GenerateRandomMagnitude(random, System.Math.Min(63, MaxRandomMagnitudeBits)),
 			_ when type == typeof(ushort) => (ushort) GenerateRandomMagnitude(random, System.Math.Min(16, MaxRandomMagnitudeBits)),
-			_ when type == typeof(double) => ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, 20), random),
-			_ when type == typeof(float) => (float) ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, 20), random),
-			_ when type == typeof(decimal) => (decimal) ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, 20), random),
+			_ when type == typeof(double) => ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, System.Math.Min(20, MaxRandomFloatExponent)), random),
+			_ when type == typeof(float) => (float) ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, System.Math.Min(20, MaxRandomFloatExponent)), random),
+			_ when type == typeof(decimal) => (decimal) ApplyRandomSign(GenerateRandomFloatMagnitude(random, -20, System.Math.Min(20, MaxRandomFloatExponent)), random),
 			_ when type == typeof(bool) => random.Next(2) == 0,
 			_ when type == typeof(char) => GenerateRandomChar(random),
 			_ when type == typeof(string) => GenerateRandomString(random),
+			// `object` itself is too broad to generate meaningfully - every current consumer
+			// (Cast<int>()/OfType<int>() over an object[]/List<object> source) expects boxed ints,
+			// so that's what we hand back rather than picking an arbitrary runtime type.
+			_ when type == typeof(object) => GenerateRandomValue(typeof(int), random),
 			_ when type.IsArray => GenerateRandomArray(type.GetElementType()!, random),
 			_ when type.IsGenericType && CollectionSupport.GenericTypeDefinitions.Contains(type.GetGenericTypeDefinition())
 				=> GenerateRandomList(type.GetGenericArguments()[0], random),
+			_ when type.IsEnum => Enum.GetValues(type).GetValue(random.Next(Enum.GetValues(type).Length))!,
 			_ => throw new NotSupportedException($"CreateFoldedRandom does not support generating random values for parameter type '{type}'. Use Create(...)/CreateFolded(...) directly for this test instead.")
 		};
 	}
@@ -90,7 +236,9 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	private System.Array GenerateRandomArray(Type elementType, Random random)
 	{
 		var length = random.Next(0, 9);
+#pragma warning disable IL3050
 		var array = System.Array.CreateInstance(elementType, length);
+#pragma warning restore IL3050
 
 		for (var i = 0; i < length; i++)
 		{

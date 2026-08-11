@@ -6,13 +6,12 @@ namespace ConstExpr.Tests.Rewriter;
 ///   test fails while IsNullPatternNonNullableTest ("is null") passes.
 /// </summary>
 [InheritsTests]
-public class IsNotNullPatternNonNullableTest : BaseTest<Func<string, bool>>
+public class IsNotNullPatternNonNullableTest : BaseTestWithRandomValues<Func<string, bool>>
 {
 	public override string TestMethod => GetString(s => s is not null);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(_ => true),
-		CreateFolded("hello")
 	];
 }

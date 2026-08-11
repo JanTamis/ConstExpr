@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexMatchesTests : BaseTest<Func<string, string, int>>
+public class RegexMatchesTests : BaseTestWithRandomValues<Func<string, string, int>>
 {
 	public override string TestMethod => GetString((input, pattern) =>
 	{
@@ -12,6 +12,9 @@ public class RegexMatchesTests : BaseTest<Func<string, string, int>>
 	[
 		CreateDefault(),
 		Create("return Regex_ab3uPQ.Matches(input).Count;", Unknown, @"^\d+$"),
-		Create("return Regex_ab3uPQ.Matches(\"1234\").Count;", "1234", @"^\d+$")
+		// Matches(input, pattern).Count now folds all the way to a literal when input is also known
+		// (see ConstExprPartialRewriter.TryFoldRegexPropertyAccess), so this no longer stops at the
+		// `Regex_xxx.Matches("1234").Count` intermediate shape.
+		Create("return 1;", "1234", @"^\d+$")
 	];
 }

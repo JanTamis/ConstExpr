@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and the order in which the accumulator is applied).
 /// </summary>
 [InheritsTests]
-public class LinqAggregateByOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAggregateByOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

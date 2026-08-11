@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for list.Select(f).Where(p).ToList() => list.FindAll(x => p(f(x)))
 /// </summary>
 [InheritsTests]
-public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, int>>
+public class LinqSelectWhereToListOptimizationTests : BaseTestWithRandomValues<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -17,7 +17,5 @@ public class LinqSelectWhereToListOptimizationTests : BaseTest<Func<List<int>, i
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.FindAll(v => v << 1 > 4).Count),
-		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }),
-		CreateFolded(new List<int>())
 	];
 }

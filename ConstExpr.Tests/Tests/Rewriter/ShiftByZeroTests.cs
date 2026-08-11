@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 
 /// <summary>Tests for binary shift strategies.</summary>
 [InheritsTests]
-public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.AssociativeMath)
+public class ShiftByZeroTests() : BaseTestWithRandomValues<Func<int, int>>(FastMathFlags.AssociativeMath)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -17,7 +17,5 @@ public class ShiftByZeroTests() : BaseTest<Func<int, int>>(FastMathFlags.Associa
 	[
 		// x << 0 = x, x >> 0 = x → x + x → x << 1
 		Create(x => x << 1),
-		CreateFolded(5),
-		CreateFolded(-3)
 	];
 }

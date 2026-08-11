@@ -54,7 +54,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		                                                                                                ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{delegateType.FullName}'."));
 	}
 
-	private BaseTestClassState GetState()
+	private static bool IsVoidDelegate()
+	{
+		return (typeof(TDelegate).GetMethod("Invoke")?.ReturnType ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{typeof(TDelegate).FullName}'.")) == typeof(void);
+	}
+
+	protected BaseTestClassState GetState()
 	{
 		return BaseTestShared.StateByType[GetType()];
 	}
@@ -250,28 +255,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			// Use Roslyn structural equivalence which ignores trivia differences
 			if (newBodyRendered != expectedBodyRendered)
 			{
-				// Debug: find which statement differs
-				var debugInfo = new StringBuilder();
-
-				if (expectedBody != null && newBody != null)
-				{
-					var visitor = DeteministicHashVisitor.Instance;
-
-					for (var si = 0; si < System.Math.Min(expectedBody.Statements.Count, newBody.Statements.Count); si++)
-					{
-						var expHash = visitor.Visit(expectedBody.Statements[si]);
-						var genHash = visitor.Visit(newBody.Statements[si]);
-
-						if (expHash != genHash)
-						{
-							debugInfo.AppendLine($"Statement {si} differs:");
-							debugInfo.AppendLine($"  Expected ({expHash}): {expectedBody.Statements[si]}");
-							debugInfo.AppendLine($"  Generated ({genHash}): {newBody.Statements[si]}");
-						}
-					}
-				}
-
-				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting, debugInfo.ToString());
+				throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 	}
@@ -435,8 +419,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		// "known" input to fold from - if the real invocation mutated the same array/list object in
 		// place, the rewriter would start folding from the post-mutation state instead of the original.
 		var result = _capturedMethod!.DynamicInvoke(parameters.Select(CloneParameterForInvocation).ToArray());
-		var literal = SyntaxHelpers.CreateLiteral(result);
-		var expectedBody = $"return {FormattingHelper.Render(literal)};";
+
+		// A void delegate's DynamicInvoke result is always null - that's "no return value", not "the
+		// method returned the literal null". Wrapping it in `return null;` regardless produces invalid
+		// C# for a void method (CS0127) and can never match a fully-folded void body, which - once
+		// every statement has folded away - renders as an empty block, not one with a return.
+		var expectedBody = IsVoidDelegate() ? "" : $"return {FormattingHelper.Render(SyntaxHelpers.CreateLiteral(result))};";
 
 		return KeyValuePair.Create<string?, object?[]>(expectedBody, parameters);
 	}
@@ -466,7 +454,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return GetOrParseBlock(code).Block;
 	}
 
-	private static (BlockSyntax Block, string Rendered) GetOrParseBlock(string code)
+	protected static (BlockSyntax Block, string Rendered) GetOrParseBlock(string code)
 	{
 		return BaseTestShared.ParsedBlockCache.GetOrAdd(code, static key =>
 		{
@@ -498,14 +486,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		};
 	}
 
-	private InvalidOperationException FormatMismatchException(
+	protected InvalidOperationException FormatMismatchException(
 		List<string> parameterNames,
 		Dictionary<string, VariableItem> parameters,
 		BlockSyntax? expectedBody,
 		BlockSyntax? newBody,
 		Dictionary<SyntaxNode, bool> additionalMethods,
-		List<Exception> exceptionsDuringRewriting,
-		string debugInfo = "")
+		List<Exception> exceptionsDuringRewriting)
 	{
 		var parametersStr = System.String.Join(", ", parameterNames.Select(p =>
 			$"{p} = {(parameters[p].HasValue ? ParseValue(parameters[p].Value) : "Unknown")}"));
@@ -528,9 +515,6 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 			Generated body:
 			{generatedStr}
-
-			Debug:
-			{debugInfo}
 			""";
 
 		if (additionalMethods.Count > 0)
@@ -563,13 +547,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	///   Placing static fields here ensures they are initialized exactly once regardless of how many
 	///   distinct TDelegate type arguments are used.
 	/// </summary>
-	internal static class BaseTestShared
+	protected static class BaseTestShared
 	{
 		private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
 
-		internal static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
-		internal static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
-		internal static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
+		public static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
+		public static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
+		public static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
 
 		internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
 			{
@@ -604,7 +588,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			true);
 	}
 
-	internal sealed class BaseTestClassState
+	protected sealed class BaseTestClassState
 	{
 		public Compilation Compilation { get; init; } = null!;
 		public List<string> ParameterNames { get; init; } = null!;

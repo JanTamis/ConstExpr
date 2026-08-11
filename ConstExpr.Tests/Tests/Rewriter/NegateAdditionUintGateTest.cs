@@ -3,8 +3,9 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class NegateAdditionUintGateTest() : BaseTest<Func<uint, long>>(FastMathFlags.NoSignedZero)
+public class NegateAdditionUintGateTest() : BaseTestWithRandomValues<Func<uint, long>>(FastMathFlags.NoSignedZero)
 {
+
 	public override string TestMethod => GetString(n => -(5 + n));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>

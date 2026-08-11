@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitParenthesizedExpression - unwrap parens to inner expression
 /// </summary>
 [InheritsTests]
-public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, int, int, int, int, int, int, string)>>
+public class VisitParenthesizedExpressionTests : BaseTestWithRandomValues<Func<int, int, (int, int, int, int, int, int, int, string)>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -51,9 +51,5 @@ public class VisitParenthesizedExpressionTests : BaseTest<Func<int, int, (int, i
 
 			return (3, 9, 5, sum, sum, 1, 6, x.ToString());
 		}),
-		CreateFolded(10, 5),
-		CreateFolded(-10, 5),
-		CreateFolded(0, 0),
-		CreateFolded(20, 22)
 	];
 }

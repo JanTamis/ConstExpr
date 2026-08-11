@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Single() optimization - verify Where fusion and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSingleOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -20,7 +20,5 @@ public class LinqSingleOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Single_nJEiIg(x) + Single_A6_ZQQ(x);"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(new[] { 2, 3 })
 	];
 }

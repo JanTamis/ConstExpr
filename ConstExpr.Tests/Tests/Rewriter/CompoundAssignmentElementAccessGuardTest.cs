@@ -12,7 +12,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   because <c>result[0]</c> and <c>result[1]</c> are different elements.
 /// </summary>
 [InheritsTests]
-public class CompoundAssignmentElementAccessGuardTest : BaseTest<Func<int[], int[], int[]>>
+public class CompoundAssignmentElementAccessGuardTest : BaseTestWithRandomValues<Func<int[], int[], int[]>>
 {
 	public override string TestMethod => GetString((result, numbers) =>
 	{

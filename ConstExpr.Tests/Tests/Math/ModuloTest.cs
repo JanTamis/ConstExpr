@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class ModuloTest : BaseTest<Func<int, int, int>>
+public class ModuloTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((dividend, divisor) =>
 	{
@@ -23,8 +23,5 @@ public class ModuloTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(13, 10),
-		CreateFolded(-8, 5),
-		CreateFolded(10, 0)
 	];
 }

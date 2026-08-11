@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   only the surviving branch's type matters, mirroring how real C# types <c>cond ? n : throw ex</c>.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastElidesCastNextToTernaryWithThrowTest : BaseTest<Func<bool, int, int>>
+public class ConditionalBitCastElidesCastNextToTernaryWithThrowTest : BaseTestWithRandomValues<Func<bool, int, int>>
 {
 	public override string TestMethod => GetString((flag, n) => (flag ? n : throw new Exception()) + (flag ? 1 : 0));
 

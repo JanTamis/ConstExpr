@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   it should be inlined at the usage site and its declaration removed.
 /// </summary>
 [InheritsTests]
-public class SingleUseVariableSimpleTest : BaseTest<Func<int, int>>
+public class SingleUseVariableSimpleTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	/// <summary>
 	///   var temp = n + 1; return temp;
@@ -20,7 +20,6 @@ public class SingleUseVariableSimpleTest : BaseTest<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => n + 1, [ Unknown ]), // Unknown n → temp is inlined
-		CreateFolded(5) // Constant 5 → folded to 6
+		Create(n => n + 1, [ Unknown ]),
 	];
 }

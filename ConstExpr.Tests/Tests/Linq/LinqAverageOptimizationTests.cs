@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Average() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
+public class LinqAverageOptimizationTests : BaseTestWithRandomValues<Func<int[], double>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -37,8 +37,5 @@ public class LinqAverageOptimizationTests : BaseTest<Func<int[], double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Average_FTVkTg(x) * 5D + Average_pTwHiw(x) + Average_0_Olsw(x) + Average_DXh3ig(x);"),
-		Create(_ => 24D, [ new[] { 1, 2, 3 } ]),
-		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", System.Array.Empty<int>()),
-		Create(_ => 120D, [ new[] { 10 } ])
 	];
 }

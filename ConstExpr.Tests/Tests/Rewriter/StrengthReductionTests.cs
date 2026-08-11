@@ -8,8 +8,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   for this pass.
 /// </summary>
 [InheritsTests]
-public class StrengthReductionTests : BaseTest<Func<int, int>>
+public class StrengthReductionTests : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;

@@ -5,15 +5,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   Uses c = 4 so the isolated threshold (4) is an exact integer despite the float division.
 /// </summary>
 [InheritsTests]
-public class ComparisonDivisionTest : BaseTest<Func<float, (bool, bool, bool, bool)>>
+public class ComparisonDivisionTest : BaseTestWithRandomValues<Func<float, (bool, bool, bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x / 4 < 1, x / 4 > 1, x / 4 <= 1, x / 4 >= 1));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 4f, x > 4f, x <= 4f, x >= 4f)),
-		CreateFolded(0f),
-		CreateFolded(8f),
-		CreateFolded(4f)
 	];
 }

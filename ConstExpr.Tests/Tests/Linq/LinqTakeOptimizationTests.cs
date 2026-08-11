@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Take() optimization - verify Take(0) returns Empty
 /// </summary>
 [InheritsTests]
-public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqTakeOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,7 +19,5 @@ public class LinqTakeOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => Int32.Min(1, x.Length)),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

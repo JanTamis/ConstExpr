@@ -8,8 +8,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   list is only indexed and read — see the negative test below for what invalidates that.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationListTests : BaseTest<Func<List<int>, int, int>>
+public class BoundsCheckEliminationListTests : BaseTestWithRandomValues<Func<List<int>, int, int>>
 {
+
 	public override string TestMethod => GetString((values, i) =>
 	{
 		values[i] = i;

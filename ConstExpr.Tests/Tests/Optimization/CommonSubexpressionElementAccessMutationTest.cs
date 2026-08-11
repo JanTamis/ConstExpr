@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 // The two reads are NOT the same value, so CSE must not merge them. A buggy pass tracks only plain
 // identifier assignments as mutations and misses the indexer write, hoisting a single `arr[k]`.
 [InheritsTests]
-public class CommonSubexpressionElementAccessMutationTest : BaseTest<Func<int[], int, int>>
+public class CommonSubexpressionElementAccessMutationTest : BaseTestWithRandomValues<Func<int[], int, int>>
 {
 	public override string TestMethod => GetString((arr, k) =>
 	{

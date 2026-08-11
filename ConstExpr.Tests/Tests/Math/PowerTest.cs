@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PowerTest : BaseTest<Func<int, int, long>>
+public class PowerTest : BaseTestWithRandomValues<Func<int, int, long>>
 {
 	public override string TestMethod => GetString((baseNum, exponent) =>
 	{
@@ -58,9 +58,5 @@ public class PowerTest : BaseTest<Func<int, int, long>>
 
 			return result;
 		}),
-		CreateFolded(2, 5),
-		CreateFolded(5, 0),
-		CreateFolded(2, -3),
-		CreateFolded(2, 10)
 	];
 }

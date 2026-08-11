@@ -58,8 +58,14 @@ namespace ConstExpr.Tests.Linq;
 ///   When all arguments are constant, all expressions fold to a single numeric literal.
 /// </summary>
 [InheritsTests]
-public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
+public class LinqRangeOptimizationTests : BaseTestWithRandomValues<Func<int, int, double>>
 {
+	// `count` drives a REAL Enumerable.Range(...).Sum()/.../.All(...) invocation in CreateFolded
+	// (the optimizer's closed-form rewrite doesn't apply to the plain-LINQ expected-value computation) -
+	// with the default full 31-bit magnitude, count can land in the billions, making a single random
+	// test case take seconds and occasionally minutes. Cap it so every draw stays fast.
+	protected override int MaxRandomMagnitudeBits => 8;
+
 	public override string TestMethod => GetString((start, count) =>
 	{
 		// Range(start, count).Count() => count
@@ -114,7 +120,6 @@ public class LinqRangeOptimizationTests : BaseTest<Func<int, int, double>>
 
 			return count + count * (start * 2 + count - 1) / 2 + Unsafe.BitCast<bool, byte>(gt) + Unsafe.BitCast<bool, byte>(start <= 5 && sum > 5) + start + diff + (count > 2 ? start + 2 : ThrowArgumentOutOfRangeException<int>("")) + (gt ? start + Double.MultiplyAddEstimate(count, 0.5, -0.5) : ThrowInvalidOperationException<double>("Sequence contains no elements")) + (gt ? start : ThrowInvalidOperationException<int>("Sequence contains no elements")) + (gt ? diff : ThrowInvalidOperationException<int>("Sequence contains no elements")) + Int32.Max(0, count - 2) + Int32.Min(2, count) + Unsafe.BitCast<bool, byte>(Enumerable.Range(start, count).All(x => x >= 0));
 		}),
-		CreateFolded(2, 5)
 	];
 
 	// Local stand-ins for the private helpers the generator extracts throw-expressions into (see

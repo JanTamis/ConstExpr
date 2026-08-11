@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   condition must be `A && B`, not `A || B`.
 /// </summary>
 [InheritsTests]
-public class VisitIfStatementNestedMergeTests : BaseTest<Func<int, int, int>>
+public class VisitIfStatementNestedMergeTests : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{

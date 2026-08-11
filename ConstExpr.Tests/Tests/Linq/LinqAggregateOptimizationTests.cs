@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and Aggregate patterns are optimized to Sum when appropriate
 /// </summary>
 [InheritsTests]
-public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAggregateOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -60,7 +60,5 @@ public class LinqAggregateOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 12 + Sum_dcMRsA(x) + Sum_GrzDbA(x) + Sum_CY7UDw(x) + Aggregate_sv6FOA(x) + 10;"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 })
 	];
 }

@@ -1,8 +1,10 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class SumOfDivisorsTest : BaseTest<Func<int, int>>
+public class SumOfDivisorsTest : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		if (n <= 0)

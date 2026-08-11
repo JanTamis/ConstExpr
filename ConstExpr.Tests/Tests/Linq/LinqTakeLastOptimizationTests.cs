@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for TakeLast() optimization - verify TakeLast(0) returns Empty
 /// </summary>
 [InheritsTests]
-public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqTakeLastOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,7 +19,5 @@ public class LinqTakeLastOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_XgBl1Q(x);"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Linq;
 
 [InheritsTests]
-public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
+public class LinqSelectCastToLongTests : BaseTestWithRandomValues<Func<IEnumerable<int>, long>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -11,8 +11,6 @@ public class LinqSelectCastToLongTests : BaseTest<Func<IEnumerable<int>, long>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(Enumerable.Empty<int>()),
-		CreateFolded(new[] { 42 })
+		Create("return Sum_vjIGww(x);"),
 	];
 }

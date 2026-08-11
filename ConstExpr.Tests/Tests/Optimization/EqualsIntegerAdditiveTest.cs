@@ -8,15 +8,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   combining them here would collide under CSE into a single shared local, obscuring the golden.)
 /// </summary>
 [InheritsTests]
-public class EqualsIntegerAdditiveTest : BaseTest<Func<int, (bool, bool, bool)>>
+public class EqualsIntegerAdditiveTest : BaseTestWithRandomValues<Func<int, (bool, bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x + 3 == 10, x - 3 == 10, 3 - x == 10));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x == 7, x == 13, x == -7)),
-		CreateFolded(7),
-		CreateFolded(13),
-		CreateFolded(-7)
 	];
 }

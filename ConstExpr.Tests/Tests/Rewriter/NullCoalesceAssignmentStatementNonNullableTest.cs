@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   instead. Also asserts the generated body no longer references b.
 /// </summary>
 [InheritsTests]
-public class NullCoalesceAssignmentStatementNonNullableTest : BaseTest<Func<string, string, string>>
+public class NullCoalesceAssignmentStatementNonNullableTest : BaseTestWithRandomValues<Func<string, string, string>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -16,15 +16,7 @@ public class NullCoalesceAssignmentStatementNonNullableTest : BaseTest<Func<stri
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			;
-
-			return a;
-			"""),
-		Create("""
-			;
-
-			return "hello";
-			""", "hello", "world")
+		Create("return a;"),
+		Create("return \"hello\";", "hello", "world")
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Rewriter;
 
 [InheritsTests]
-public class NullCoalesceAssignmentExpressionNonNullableTest : BaseTest<Func<string, string, string>>
+public class NullCoalesceAssignmentExpressionNonNullableTest : BaseTestWithRandomValues<Func<string, string, string>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -12,6 +12,5 @@ public class NullCoalesceAssignmentExpressionNonNullableTest : BaseTest<Func<str
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return a;"),
-		CreateFolded("hello", "world")
 	];
 }

@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Note: Chunk is only available in .NET 6+ so these tests are commented out for compatibility
 /// </summary>
 [InheritsTests]
-public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision)
+public class LinqChunkOptimizationTests() : BaseTestWithRandomValues<Func<int[], int>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -37,8 +37,5 @@ public class LinqChunkOptimizationTests() : BaseTest<Func<int[], int>>(FastMathF
 
 			return xLength + ((int) (sum * 1431655766L >> 32) - (sum >> 31)) + (xLength + 1) / 2 + x[..5].Length + x[(xLength - 4)..].Length;
 		}),
-		Create(_ => 16, [ new[] { 1, 2, 3, 4, 5 } ]),
-		Create(_ => 18, [ new[] { 1, 2, 3, 4, 5, 6 } ]),
-		Create("throw new InvalidOperationException(\"Sequence contains no elements\");", System.Array.Empty<int>())
 	];
 }

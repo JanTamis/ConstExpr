@@ -9,8 +9,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   refusal. The body must come out unchanged.
 /// </summary>
 [InheritsTests]
-public class CopyPropagationMutatedSourceTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
+public class CopyPropagationMutatedSourceTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x) =>
 	{
 		var y = x;

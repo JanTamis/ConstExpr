@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   to the invalid `null.Trim()` instead.
 /// </summary>
 [InheritsTests]
-public class ConditionalAccessKnownNullTest : BaseTest<Func<string?, string?>>
+public class ConditionalAccessKnownNullTest : BaseTestWithRandomValues<Func<string?, string?>>
 {
 	public override string TestMethod => GetString(s => s?.Trim());
 

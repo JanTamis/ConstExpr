@@ -157,6 +157,33 @@ public abstract class BaseFunctionOptimizer
 				return TryGetLiteralValue(paren.Expression, context, typeSymbol, out value, visitedVariables)
 				       || TryGetLiteralValue(context.Visit(paren.Expression), context, typeSymbol, out value, visitedVariables);
 			}
+			// -n => numeric negation. A negative numeric literal is never a single lexed token in C#
+			// (the lexer only ever produces non-negative numeric tokens) - it's this unary-minus node
+			// wrapping a positive literal operand, so without this case every array/collection literal
+			// containing a negative element (extremely common with random test values) silently failed
+			// to fold: the LiteralExpressionSyntax case a few lines up never even got a chance to match.
+			case PrefixUnaryExpressionSyntax negation when negation.OperatorToken.IsKind(SyntaxKind.MinusToken):
+			{
+				if (TryGetLiteralValue(negation.Operand, context, typeSymbol, out var operand, visitedVariables))
+				{
+					value = operand switch
+					{
+						int i => -i,
+						long l => -l,
+						short s => -s,
+						sbyte sb => -sb,
+						double d => -d,
+						float f => -f,
+						decimal m => -m,
+						_ => null
+					};
+
+					return value is not null;
+				}
+
+				value = null;
+				return false;
+			}
 			// ^n => System.Index(n, fromEnd: true)
 			case PrefixUnaryExpressionSyntax prefix when prefix.OperatorToken.IsKind(SyntaxKind.CaretToken):
 			{
@@ -860,13 +887,25 @@ public abstract class BaseFunctionOptimizer
 
 	protected bool CanBeNull(FunctionOptimizerContext context, ExpressionSyntax expressionSyntax)
 	{
+		if (expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression))
+		{
+			return true;
+		}
+
+		// A non-null literal (e.g. a folded string constant) is provably non-null independent of
+		// nullable-annotation tracking - there's no annotation to consult on a literal, so this check
+		// must happen before the UseNullableAnnotations gate below, not be subject to it.
+		if (TryGetLiteralValue(expressionSyntax, context, out _))
+		{
+			return false;
+		}
+
 		if (!context.Optimizations.HasFlag(OptimizationFlags.UseNullableAnnotations))
 		{
 			return true;
 		}
 
-		return expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression)
-		       || expressionSyntax is IdentifierNameSyntax identifierNameSyntax
+		return expressionSyntax is IdentifierNameSyntax identifierNameSyntax
 		       && context.Variables.TryGetValue(identifierNameSyntax.Identifier.Text, out var variable)
 		       && variable.CanBeNull;
 	}

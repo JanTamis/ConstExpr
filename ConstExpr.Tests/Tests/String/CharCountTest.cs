@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class CharCountTest : BaseTest<Func<string?, char, int>>
+public class CharCountTest : BaseTestWithRandomValues<Func<string?, char, int>>
 {
 	public override string TestMethod => GetString((text, target) =>
 	{
@@ -39,8 +39,5 @@ public class CharCountTest : BaseTest<Func<string?, char, int>>
 
 			return count;
 			"""),
-		CreateFolded("ababa", 'a'),
-		CreateFolded("aaXXa", 'X'),
-		CreateFolded(System.String.Empty, 'a')
 	];
 }

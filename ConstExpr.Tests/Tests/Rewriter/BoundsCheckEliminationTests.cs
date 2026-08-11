@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   <c>Unsafe.Add</c> offset. <c>.Length</c> is left alone.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationTests : BaseTest<Func<int[], int>>
+public class BoundsCheckEliminationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{
@@ -36,7 +36,7 @@ public class BoundsCheckEliminationTests : BaseTest<Func<int[], int>>
 			}
 
 			return sum;
-		}, [ Unknown ]),
+		}),
 
 		// Known input folds through the interpreter before the pass ever sees an array.
 		CreateFolded(new[] { 1, 2, 3, 4, 5 })

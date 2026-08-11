@@ -4,8 +4,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitForStatement - loop unrolling and condition evaluation
 /// </summary>
 [InheritsTests]
-public class VisitForStatementTests : BaseTest<Func<int, int>>
+public class VisitForStatementTests : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(x =>
 	{
 		var sum = 0;

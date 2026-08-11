@@ -9,9 +9,11 @@ namespace ConstExpr.Tests.Rewriter;
 ///   existed. With LICM also enabled, that local should be hoisted out of the loop entirely.
 /// </summary>
 [InheritsTests]
-public class LoopFusionCommonSubexpressionLicmTests() : BaseTest<Func<int, int, int, int>>(
+public class LoopFusionCommonSubexpressionLicmTests() : BaseTestWithRandomValues<Func<int, int, int, int>>(
 	optimizations: OptimizationFlags.LoopFusion | OptimizationFlags.CommonSubexpressionElimination | OptimizationFlags.LoopInvariantCodeMotion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x, y) =>
 	{
 		var sum = 0;

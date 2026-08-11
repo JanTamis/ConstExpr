@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Contains() with string values - verify optimization works with different types
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
+public class LinqContainsOptimizationStringTests : BaseTestWithRandomValues<Func<string[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -26,8 +26,5 @@ public class LinqContainsOptimizationStringTests : BaseTest<Func<string[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (Unsafe.BitCast<bool, byte>(Array.IndexOf(x, \"hello\") >= 0) << 1) + Unsafe.BitCast<bool, byte>(Array.IndexOf(x, \"world\") >= 0) + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => String.Equals(v, \"HELLO\", StringComparison.CurrentCultureIgnoreCase)));", Unknown),
-		CreateFolded(new object?[] { new[] { "hello", "world", "foo" } }),
-		CreateFolded(new object?[] { System.Array.Empty<string>() }),
-		CreateFolded(new object?[] { new[] { "hi", "world", "test" } }) // Only b matches ("world")
 	];
 }

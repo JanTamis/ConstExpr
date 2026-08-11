@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for SequenceEqual() optimization - verify same sequence returns true
 /// </summary>
 [InheritsTests]
-public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
+public class LinqSequenceEqualOptimizationTests : BaseTestWithRandomValues<Func<int[], bool>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -21,7 +21,5 @@ public class LinqSequenceEqualOptimizationTests : BaseTest<Func<int[], bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Length <= 0),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class PowTenToExpTest : BaseTest<Func<double, double>>
+public class PowTenToExpTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(n => System.Math.Pow(10.0, n));
 

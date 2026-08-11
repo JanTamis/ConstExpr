@@ -16,7 +16,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class PartialRedundancyIfElseTest() : BaseTest<Func<int[], bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class PartialRedundancyIfElseTest() : BaseTestWithRandomValues<Func<int[], bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((numbers, flag) =>
 	{
@@ -62,7 +62,5 @@ public class PartialRedundancyIfElseTest() : BaseTest<Func<int[], bool, int>>(op
 
 			return sum;
 		}),
-		CreateFolded(new[] { 3, 5 }, true),
-		CreateFolded(new[] { 3, 5 }, false)
 	];
 }

@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   by the existing local-declaration simplification, since the initializer makes the type obvious.
 /// </summary>
 [InheritsTests]
-public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[], int, int[]>>
+public class ArrayElementInitializerExplicitTypeMergeTest : BaseTestWithRandomValues<Func<int[], int, int[]>>
 {
 	public override string TestMethod => GetString((numbers, positions) =>
 	{
@@ -34,6 +34,6 @@ public class ArrayElementInitializerExplicitTypeMergeTest : BaseTest<Func<int[],
 				Unsafe.Add(ref numbersRef, (positions + 1) % 3),
 				Unsafe.Add(ref numbersRef, (positions + 2) % 3)
 			];
-		}, [ Unknown, Unknown ])
+		})
 	];
 }

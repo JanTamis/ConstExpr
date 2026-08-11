@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 // once. Uses FastMathFlags.Strict on purpose — commutation (a 2-operand swap) is exact for both
 // integers and IEEE-754 floats, so this must NOT depend on fast-math being enabled.
 [InheritsTests]
-public class CommutativeCommonSubexpressionTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class CommutativeCommonSubexpressionTest() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -22,6 +22,5 @@ public class CommutativeCommonSubexpressionTest() : BaseTest<Func<int, int, int>
 			var sum = x + y;
 			return sum * sum;
 		}),
-		CreateFolded(2, 3)
 	];
 }

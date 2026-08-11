@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Contains() optimization with complex lambda expressions
 /// </summary>
 [InheritsTests]
-public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
+public class LinqContainsOptimizationComplexTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -30,8 +30,5 @@ public class LinqContainsOptimizationComplexTests : BaseTest<Func<int[], int>>
 
 			return (Unsafe.BitCast<bool, byte>(contains_FVnsrQVal) << 1) + Unsafe.BitCast<bool, byte>(contains_FVnsrQVal || Contains_ehiMwg(x)) + Unsafe.BitCast<bool, byte>(Contains_0o_2rA(x));
 			""", Unknown),
-		CreateFolded(new[] { 1, 2, 3, 4, 5, 6, 7, 8 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 5, 10, 15 }) // a=1 (5>0 && 5==5), b=1 (5+10==15), c=0 (no 4), d=1 (5<10 && 5==5)
 	];
 }

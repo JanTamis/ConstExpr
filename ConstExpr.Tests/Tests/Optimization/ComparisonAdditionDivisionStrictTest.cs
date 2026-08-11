@@ -14,7 +14,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ComparisonAdditionDivisionStrictTest() : BaseTest<Func<float, (bool, bool)>>(FastMathFlags.Strict)
+public class ComparisonAdditionDivisionStrictTest() : BaseTestWithRandomValues<Func<float, (bool, bool)>>(FastMathFlags.Strict)
 {
 	// ReSharper disable once CompareOfFloatsByEqualityOperator — testing exactly that comparison.
 	public override string TestMethod => GetString(x => (x + 3 < 1, x + x == 1));
@@ -23,7 +23,5 @@ public class ComparisonAdditionDivisionStrictTest() : BaseTest<Func<float, (bool
 	[
 		// ReSharper disable once CompareOfFloatsByEqualityOperator
 		Create(x => (x + 3F < 1F, x + x == 1F)),
-		CreateFolded(0f),
-		CreateFolded(-5f)
 	];
 }

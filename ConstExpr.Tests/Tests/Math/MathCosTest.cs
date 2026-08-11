@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>Math.Cos(double) → FastCos(x) in FastMath mode (polynomial approximation).</summary>
 [InheritsTests]
-public class MathCosTest : BaseTest<Func<double, double>>
+public class MathCosTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => System.Math.Cos(x));
 

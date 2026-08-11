@@ -9,8 +9,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   must stay a <c>while</c> — locks in that the pass does not over-fire.
 /// </summary>
 [InheritsTests]
-public class WhileToDoWhileConversionNotProvenTest() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
+public class WhileToDoWhileConversionNotProvenTest() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var i = 1;

@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   looser than !=), so this also pins NotEqualsBitwiseAndEvenStrategy's paren-unwrapping.
 /// </summary>
 [InheritsTests]
-public class NotEqualsBitwiseAndEvenTest : BaseTest<Func<int, bool>>
+public class NotEqualsBitwiseAndEvenTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => (x & 1) != 1);
 

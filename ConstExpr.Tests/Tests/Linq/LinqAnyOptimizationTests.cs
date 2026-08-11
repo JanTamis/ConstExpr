@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Any() optimization - verify that unnecessary operations before Any() are removed
 /// </summary>
 [InheritsTests]
-public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAnyOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -65,7 +65,5 @@ public class LinqAnyOptimizationTests : BaseTest<Func<int[], int>>
 
 			return Unsafe.BitCast<bool, byte>(gt) * 9 + Unsafe.BitCast<bool, byte>(callVal || gt) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(x)) + Unsafe.BitCast<bool, byte>(callVal) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));
 			"""),
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(x)) + 14 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));", new[] { 1, 2, 3, 4, 5 }),
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(x)) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));", System.Array.Empty<int>())
 	];
 }

@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 [InheritsTests]
-public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
+public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTestWithRandomValues<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -13,8 +13,5 @@ public class LinqCountGreaterOrEqualOneWithPredicateToAnyTests() : BaseTest<Func
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Any(v => v > 5)),
-		CreateFolded(Enumerable.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(new[] { 6 })
 	];
 }

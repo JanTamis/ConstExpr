@@ -8,7 +8,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   has no indexer setter — and <c>.Length</c> stays untouched.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationStringTests : BaseTest<Func<string, int>>
+public class BoundsCheckEliminationStringTests : BaseTestWithRandomValues<Func<string, int>>
 {
 	public override string TestMethod => GetString(text =>
 	{
@@ -35,6 +35,6 @@ public class BoundsCheckEliminationStringTests : BaseTest<Func<string, int>>
 			}
 
 			return sum;
-		}, [ Unknown ])
+		})
 	];
 }

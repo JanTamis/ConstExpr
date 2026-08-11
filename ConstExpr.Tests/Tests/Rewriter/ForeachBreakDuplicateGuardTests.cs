@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   surviving increments collapse into a single compound assignment (index += 2).
 /// </summary>
 [InheritsTests]
-public class ForeachBreakDuplicateGuardTests : BaseTest<Func<char, int>>
+public class ForeachBreakDuplicateGuardTests : BaseTestWithRandomValues<Func<char, int>>
 {
 	public override string TestMethod => GetString(target =>
 	{
@@ -55,9 +55,5 @@ public class ForeachBreakDuplicateGuardTests : BaseTest<Func<char, int>>
 			__unroll_break_0:
 			return index;
 		}),
-		// The first 'l' still wins (index 2), and a miss still counts the whole string.
-		CreateFolded('l'),
-		CreateFolded('o'),
-		CreateFolded('x')
 	];
 }

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitIdentifierName - resolve variable to constant value
 /// </summary>
 [InheritsTests]
-public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, int, int)>>
+public class VisitIdentifierNameTests : BaseTestWithRandomValues<Func<int, int, (int, int, int, int, int)>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -20,9 +20,5 @@ public class VisitIdentifierNameTests : BaseTest<Func<int, int, (int, int, int, 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y) => (x, x, x + 1, y, x + y)),
-		CreateFolded(5, 10),
-		CreateFolded(100, 200),
-		CreateFolded(-10, 25),
-		CreateFolded(0, 0)
 	];
 }

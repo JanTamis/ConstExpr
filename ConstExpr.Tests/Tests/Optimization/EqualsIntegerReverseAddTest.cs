@@ -7,14 +7,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   would collide under CSE into one shared local, obscuring the golden.
 /// </summary>
 [InheritsTests]
-public class EqualsIntegerReverseAddTest : BaseTest<Func<int, bool>>
+public class EqualsIntegerReverseAddTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => 3 + x == 10);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x == 7),
-		CreateFolded(7),
-		CreateFolded(0)
 	];
 }

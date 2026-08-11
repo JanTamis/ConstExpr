@@ -10,6 +10,7 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class TailRecursionTests : BaseTest<Func<int, int, int>>
 {
+
 	/// <summary>
 	///   Tail-recursive countdown accumulator.
 	///   Uses a raw string here because a lambda cannot call itself by name.
@@ -46,6 +47,6 @@ public class TailRecursionTests : BaseTest<Func<int, int, int>>
 				n = _tre_tmp_n;
 				acc = _tre_tmp_acc;
 			}
-			""", Unknown, Unknown)
+			""")
 	];
 }

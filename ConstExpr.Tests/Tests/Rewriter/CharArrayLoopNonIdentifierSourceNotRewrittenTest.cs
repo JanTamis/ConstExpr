@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   otherwise need to be evaluated twice (once for its length, once as the state argument).
 /// </summary>
 [InheritsTests]
-public class CharArrayLoopNonIdentifierSourceNotRewrittenTest : BaseTest<Func<string, string>>
+public class CharArrayLoopNonIdentifierSourceNotRewrittenTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -41,6 +41,5 @@ public class CharArrayLoopNonIdentifierSourceNotRewrittenTest : BaseTest<Func<st
 
 			return new string(result);
 		}),
-		CreateFolded("hello world")
 	];
 }

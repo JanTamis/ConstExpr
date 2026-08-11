@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   Test with byte values
 /// </summary>
 [InheritsTests]
-public class PatternBitmaskByteTest : BaseTest<Func<byte, bool>>
+public class PatternBitmaskByteTest : BaseTestWithRandomValues<Func<byte, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -19,10 +19,5 @@ public class PatternBitmaskByteTest : BaseTest<Func<byte, bool>>
 
 			return diff <= 6 && (0x45u >> diff & 1) != 0;
 		}),
-		CreateFolded((byte) 1),
-		CreateFolded((byte) 3),
-		CreateFolded((byte) 7),
-		CreateFolded((byte) 0),
-		CreateFolded((byte) 4)
 	];
 }

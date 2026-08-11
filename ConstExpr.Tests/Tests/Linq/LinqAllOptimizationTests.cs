@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Linq;
 ///   and Where predicates are combined with All predicates
 /// </summary>
 [InheritsTests]
-public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAllOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -63,8 +63,5 @@ public class LinqAllOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorF8nEFw>(x)) << 3) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoronoWMw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoriNrkaQ>(x)) + Unsafe.BitCast<bool, byte>(callVal && callVal) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorJtMU7Q>(x));
 			"""),
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 11;", new[] { 1, 2, 3, 4, 5 }),
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 12;", System.Array.Empty<int>()),
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + 9;", new[] { 1, 2, 3, 4, 5, 100 })
 	];
 }

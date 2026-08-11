@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   instead of Array.IndexOf for better JIT optimization opportunities.
 /// </summary>
 [InheritsTests]
-public class LinqContainsLiteralCollectionTests : BaseTest<Func<int[], int, bool>>
+public class LinqContainsLiteralCollectionTests : BaseTestWithRandomValues<Func<int[], int, bool>>
 {
 	public override string TestMethod => GetString((values, x) =>
 	{

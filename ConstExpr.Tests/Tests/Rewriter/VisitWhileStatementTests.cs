@@ -4,8 +4,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitWhileStatement - loop unrolling with constant condition
 /// </summary>
 [InheritsTests]
-public class VisitWhileStatementTests : BaseTest<Func<int, bool, (int, int, int, int)>>
+public class VisitWhileStatementTests : BaseTestWithRandomValues<Func<int, bool, (int, int, int, int)>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 4;
 	public override string TestMethod => GetString((limit, condition) =>
 	{
 		var a = 0;

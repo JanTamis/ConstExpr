@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Append() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqAppendOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -37,8 +37,5 @@ public class LinqAppendOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => TensorPrimitives.Sum(x) * 5 + (x.Length << 1) + 159),
-		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 183, [ new[] { 1, 2, 3 } ]),
-		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 159, [ System.Array.Empty<int>() ]),
-		Create(x => (x.Length << 1) + TensorPrimitives.Sum(x) + 199, [ new[] { 10 } ])
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsEvenTest : BaseTest<Func<int, bool>>
+public class IsEvenTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -16,7 +16,5 @@ public class IsEvenTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Int32.IsEvenInteger(FastAbs(n));"),
-		CreateFolded(4),
-		CreateFolded(5)
 	];
 }

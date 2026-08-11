@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   same condition proves x is non-negative.
 /// </summary>
 [InheritsTests]
-public class ModuloByPowerOfTwoSignedProvenNonNegativeTest : BaseTest<Func<int, int>>
+public class ModuloByPowerOfTwoSignedProvenNonNegativeTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{

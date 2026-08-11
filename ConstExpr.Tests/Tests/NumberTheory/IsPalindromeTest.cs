@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPalindromeTest : BaseTest<Func<int, bool>>
+public class IsPalindromeTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -33,7 +33,5 @@ public class IsPalindromeTest : BaseTest<Func<int, bool>>
 
 			return original == reversed;
 			"""),
-		CreateFolded(121),
-		CreateFolded(123)
 	];
 }

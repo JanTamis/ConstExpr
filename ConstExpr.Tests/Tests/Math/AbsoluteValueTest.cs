@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class AbsoluteValueTest : BaseTest<Func<int, int>>
+public class AbsoluteValueTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -16,8 +16,5 @@ public class AbsoluteValueTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastAbs(n);"),
-		CreateFolded(-42),
-		CreateFolded(10),
-		CreateFolded(0)
 	];
 }

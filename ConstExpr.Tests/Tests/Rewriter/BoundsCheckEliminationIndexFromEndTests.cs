@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   pass can hand to <c>Unsafe.Add</c>. It must be left untouched.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationIndexFromEndTests : BaseTest<Func<int[], int>>
+public class BoundsCheckEliminationIndexFromEndTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(numbers => numbers[^1]);
 

@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   not bind tighter than the arithmetic.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationLocalArrayTests : BaseTest<Func<int, int>>
+public class BoundsCheckEliminationLocalArrayTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -32,7 +32,7 @@ public class BoundsCheckEliminationLocalArrayTests : BaseTest<Func<int, int>>
 			Unsafe.Add(ref bufRef, mod) = n;
 
 			return Unsafe.Add(ref bufRef, mod) + bufRef;
-		}, [ Unknown ]),
+		}),
 
 		CreateFolded(3)
 	];

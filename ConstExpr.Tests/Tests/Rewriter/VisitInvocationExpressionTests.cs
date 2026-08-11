@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitInvocationExpression - constant method call evaluation
 /// </summary>
 [InheritsTests]
-public class VisitInvocationExpressionTests : BaseTest<Func<(string, string, int)>>
+public class VisitInvocationExpressionTests : BaseTestWithRandomValues<Func<(string, string, int)>>
 {
 	public override string TestMethod => GetString(() =>
 	{

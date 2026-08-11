@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class BetterNamesTest : BaseTest<Func<int, int, int>>
+public class BetterNamesTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -13,6 +13,5 @@ public class BetterNamesTest : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y) => x * x + y * y << 1),
-		CreateFolded(3, 4)
 	];
 }

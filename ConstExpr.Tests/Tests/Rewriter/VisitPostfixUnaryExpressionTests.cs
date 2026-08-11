@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitPostfixUnaryExpression - ++ and -- folding
 /// </summary>
 [InheritsTests]
-public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
+public class VisitPostfixUnaryExpressionTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -18,9 +18,5 @@ public class VisitPostfixUnaryExpressionTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		CreateFolded(7),
-		CreateFolded(1),
-		CreateFolded(-1),
-		CreateFolded(0)
 	];
 }

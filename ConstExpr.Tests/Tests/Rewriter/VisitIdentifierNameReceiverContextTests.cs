@@ -7,8 +7,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Ensures identifier receivers are not inlined into invalid collection expressions.
 /// </summary>
 [InheritsTests]
-public class VisitIdentifierNameReceiverContextTests : BaseTest<Func<double[], int[]>>
+public class VisitIdentifierNameReceiverContextTests : BaseTestWithRandomValues<Func<double[], int[]>>
 {
+
 	public override string TestMethod => GetString(data =>
 	{
 		var outliers = new List<int>();

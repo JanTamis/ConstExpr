@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   with the frame), so returning the local is not a span-safe use and the conversion is refused.
 /// </summary>
 [InheritsTests]
-public class StackAllocConversionSkipsEscapeTest : BaseTest<Func<int, int[]>>
+public class StackAllocConversionSkipsEscapeTest : BaseTestWithRandomValues<Func<int, int[]>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -31,6 +31,6 @@ public class StackAllocConversionSkipsEscapeTest : BaseTest<Func<int, int[]>>
 			Unsafe.Add(ref arrRef, n % 8)++;
 
 			return arr;
-		}, [ Unknown ])
+		})
 	];
 }

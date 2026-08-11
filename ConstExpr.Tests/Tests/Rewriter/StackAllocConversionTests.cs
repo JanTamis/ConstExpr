@@ -10,7 +10,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   (it cannot fold to a collection expression), so the sized-form conversion path is exercised.
 /// </summary>
 [InheritsTests]
-public class StackAllocConversionTests : BaseTest<Func<int, int>>
+public class StackAllocConversionTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -37,9 +37,6 @@ public class StackAllocConversionTests : BaseTest<Func<int, int>>
 			Unsafe.Add(ref countsRef, (n + 1) % 8)++;
 
 			return Unsafe.Add(ref countsRef, mod) + countsRef;
-		}, [ Unknown ]),
-
-		// Known input folds through the interpreter: counts[3]=1, counts[4]=1, counts[3]+counts[0]=1.
-		CreateFolded(3)
+		}),
 	];
 }

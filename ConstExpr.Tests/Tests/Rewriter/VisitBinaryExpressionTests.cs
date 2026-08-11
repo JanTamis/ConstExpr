@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitBinaryExpression - arithmetic/comparison/logical folding
 /// </summary>
 [InheritsTests]
-public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (int, int, int, int, int, bool, bool, bool)>>
+public class VisitBinaryExpressionTests : BaseTestWithRandomValues<Func<int, int, bool, bool, (int, int, int, int, int, bool, bool, bool)>>
 {
 	public override string TestMethod => GetString((x, y, b1, b2) =>
 	{
@@ -23,9 +23,5 @@ public class VisitBinaryExpressionTests : BaseTest<Func<int, int, bool, bool, (i
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y, b1, b2) => (x + y, x - y, x * y, x / y, x % y, x > y, b1 && b2, b1 || b2)),
-		CreateFolded(1, 2, true, false),
-		CreateFolded(8, 5, false, false),
-		CreateFolded(15, 10, true, true),
-		CreateFolded(-10, 10, false, true)
 	];
 }

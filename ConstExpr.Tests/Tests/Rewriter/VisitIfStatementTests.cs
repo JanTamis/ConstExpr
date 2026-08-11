@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitIfStatement - constant condition branch elimination
 /// </summary>
 [InheritsTests]
-public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, int, int)>>
+public class VisitIfStatementTests : BaseTestWithRandomValues<Func<bool, int, int, (int, int, int, int)>>
 {
 	public override string TestMethod => GetString((condition, x, y) =>
 	{
@@ -37,9 +37,5 @@ public class VisitIfStatementTests : BaseTest<Func<bool, int, int, (int, int, in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((condition, x, y) => (1, 4, condition ? x : y, Int32.Max(x, y))),
-		CreateFolded(true, 10, 5),
-		CreateFolded(false, 20, 30),
-		CreateFolded(true, 100, 200),
-		CreateFolded(false, 15, 15)
 	];
 }

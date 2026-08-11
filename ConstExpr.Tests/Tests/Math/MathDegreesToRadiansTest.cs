@@ -1,13 +1,12 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MathDegreesToRadiansTest : BaseTest<Func<double, double>>
+public class MathDegreesToRadiansTest : BaseTestWithRandomValues<Func<double, double>>
 {
 	public override string TestMethod => GetString(x => Double.DegreesToRadians(x));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 0.017453292519943295),
-		CreateFolded(0.0)
 	];
 }

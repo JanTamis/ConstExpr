@@ -183,6 +183,22 @@ public static class SyntaxHelpers
 				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(ui));
 				return true;
 			}
+			// Same reasoning as the double cases below: Single has no numeric-literal syntax for these.
+			case float f when Single.IsNaN(f):
+			{
+				result = MemberAccessExpression(IdentifierName("Single"), IdentifierName(nameof(Single.NaN)));
+				return true;
+			}
+			case float f when Single.IsPositiveInfinity(f):
+			{
+				result = MemberAccessExpression(IdentifierName("Single"), IdentifierName(nameof(Single.PositiveInfinity)));
+				return true;
+			}
+			case float f when Single.IsNegativeInfinity(f):
+			{
+				result = MemberAccessExpression(IdentifierName("Single"), IdentifierName(nameof(Single.NegativeInfinity)));
+				return true;
+			}
 			case float f and < 0:
 			{
 				result = PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
@@ -192,6 +208,25 @@ public static class SyntaxHelpers
 			case float f:
 			{
 				result = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal($"{f.ToString(CultureInfo.InvariantCulture)}F", f));
+				return true;
+			}
+			// C# has no numeric-literal syntax for these - Literal(double) can't represent them, and
+			// silently falling through to it produces token text that isn't valid C# at all (there is
+			// no digit sequence for "not a number" or "bigger than every finite double"). Emit the
+			// well-known static fields instead, same as the Enum case below.
+			case double d when Double.IsNaN(d):
+			{
+				result = MemberAccessExpression(IdentifierName("Double"), IdentifierName(nameof(Double.NaN)));
+				return true;
+			}
+			case double d when Double.IsPositiveInfinity(d):
+			{
+				result = MemberAccessExpression(IdentifierName("Double"), IdentifierName(nameof(Double.PositiveInfinity)));
+				return true;
+			}
+			case double d when Double.IsNegativeInfinity(d):
+			{
+				result = MemberAccessExpression(IdentifierName("Double"), IdentifierName(nameof(Double.NegativeInfinity)));
 				return true;
 			}
 			case double d and < 0:

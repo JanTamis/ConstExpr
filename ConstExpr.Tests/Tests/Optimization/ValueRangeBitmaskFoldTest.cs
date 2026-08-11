@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   unknown parameter does not stop it — contrast <see cref="ValueRangeUnknownOperandTest" />.
 /// </summary>
 [InheritsTests]
-public class ValueRangeBitmaskFoldTest : BaseTest<Func<int, int>>
+public class ValueRangeBitmaskFoldTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -30,9 +30,6 @@ public class ValueRangeBitmaskFoldTest : BaseTest<Func<int, int>>
 			var lane = n & 15;
 
 			return lane;
-		}, [ Unknown ]),
-
-		// A known input folds through the interpreter before the pass sees anything.
-		CreateFolded(21)
+		}),
 	];
 }

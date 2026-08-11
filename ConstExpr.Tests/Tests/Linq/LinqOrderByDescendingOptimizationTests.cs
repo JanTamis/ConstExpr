@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for OrderByDescending() optimization - verify identity lambda conversion
 /// </summary>
 [InheritsTests]
-public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqOrderByDescendingOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -17,7 +17,5 @@ public class LinqOrderByDescendingOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Max(x);"),
-		CreateFolded(new[] { 3, 1, 2 }),
-		CreateFolded(new[] { 5 })
 	];
 }

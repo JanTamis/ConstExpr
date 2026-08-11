@@ -10,15 +10,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   even-coefficient decline path directly.
 /// </summary>
 [InheritsTests]
-public class EqualsIntegerMultiplyEvenDeclineTest : BaseTest<Func<int, bool>>
+public class EqualsIntegerMultiplyEvenDeclineTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x => x * 6 == 12);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 6 == 12),
-		CreateFolded(2),
-		CreateFolded(3),
-		CreateFolded(Int32.MinValue + 2)
 	];
 }

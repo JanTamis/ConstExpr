@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for OfType() optimization - verify duplicate OfType removal
 /// </summary>
 [InheritsTests]
-public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
+public class LinqOfTypeOptimizationTests : BaseTestWithRandomValues<Func<object[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -20,7 +20,5 @@ public class LinqOfTypeOptimizationTests : BaseTest<Func<object[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Length << 1),
-		Create(_ => 6, [ new[] { 1, 2, 3 } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

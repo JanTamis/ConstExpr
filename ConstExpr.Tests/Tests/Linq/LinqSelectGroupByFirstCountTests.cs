@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Linq;
 
 [InheritsTests]
-public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimizationMode.Optimize)
+public class LinqSelectGroupByFirstCountTests() : BaseTestWithRandomValues<Func<IEnumerable<int>, int>>(FastMathFlags.Strict, LinqOptimizationMode.Optimize)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -15,7 +15,5 @@ public class LinqSelectGroupByFirstCountTests() : BaseTest<Func<IEnumerable<int>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.DistinctBy(v => v % 3).Count()),
-		CreateFolded(new[] { 1, 2, 3, 4, 5, 6 }),
-		CreateFolded(new[] { 3, 6, 9 })
 	];
 }

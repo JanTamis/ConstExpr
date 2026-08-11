@@ -11,7 +11,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ValueRangeMutatedCounterTest : BaseTest<Func<int, int>>
+public class ValueRangeMutatedCounterTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -34,9 +34,5 @@ public class ValueRangeMutatedCounterTest : BaseTest<Func<int, int>>
 	[
 		// Unchanged: the guard stays exactly where it was.
 		CreateDefault(),
-
-		// n = 5 advances i to 5 in the body and 6 in the incrementor, so the second test of i < n
-		// already fails. One pass, sum 5.
-		CreateFolded(5)
 	];
 }

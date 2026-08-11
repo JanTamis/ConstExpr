@@ -7,8 +7,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   first loop ends only that loop, but in a fused loop it would also cut the second body short.
 /// </summary>
 [InheritsTests]
-public class LoopFusionBreakInBodyTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionBreakInBodyTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, limit) =>
 	{
 		var sum = 0;

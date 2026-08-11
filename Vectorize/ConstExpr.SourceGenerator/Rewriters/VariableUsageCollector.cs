@@ -114,11 +114,30 @@ public sealed class VariableUsageCollector(IEnumerable<string> trackedVariables)
 			ArgumentSyntax { Parent: TupleExpressionSyntax { Parent: AssignmentExpressionSyntax { Left: var left } } }
 				when left.Contains(node) => true,
 
+			// A mutating call's receiver (`outliers.Add(x)`) mutates the variable's contents without
+			// reading its current value as an operand anywhere - closer to a write than a read. Without
+			// this, a local built up purely via calls like Add (never otherwise read) looks perpetually
+			// "read" by its own mutating calls, so DeadCodePruner can never prune it even once every
+			// other use of it has folded away. Matched by method name, not symbol - this is a syntax-only
+			// walker with no semantic model - mirroring ConstExprPartialRewriter.IsLikelyMutatingMethod's
+			// own name-based fallback list.
+			MemberAccessExpressionSyntax { Expression: var receiver, Name.Identifier.Text: var mutatingMemberName } member
+				when receiver == node && member.Parent is InvocationExpressionSyntax && IsLikelyMutatingMethodName(mutatingMemberName) => true,
+
 			// Declaration: var x = value (this is initialization, not really a "write" for pruning purposes)
 			// We don't count this as a write since declarations are handled separately
 
 			_ => false
 		};
+	}
+
+	private static bool IsLikelyMutatingMethodName(string methodName)
+	{
+		return methodName is "Add" or "AddRange" or "Insert" or "InsertRange" or "Remove" or "RemoveAt" or "RemoveAll"
+			or "RemoveRange" or "Clear" or "Sort" or "Enqueue" or "Dequeue" or "Push" or "Pop"
+			or "TryAdd" or "TryTake" or "UnionWith" or "IntersectWith" or "ExceptWith" or "SymmetricExceptWith"
+			or "Append" or "AppendLine" or "AppendFormat" or "AppendJoin" or "AppendLiteral"
+			or "Write" or "WriteLine" or "Flush";
 	}
 
 	public override void VisitAnonymousObjectMemberDeclarator(AnonymousObjectMemberDeclaratorSyntax node)

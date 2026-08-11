@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class IsPerfectNumberTest : BaseTest<Func<int, bool>>
+public class IsPerfectNumberTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -34,9 +34,5 @@ public class IsPerfectNumberTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(6),
-		CreateFolded(28),
-		CreateFolded(12),
-		CreateFolded(1)
 	];
 }

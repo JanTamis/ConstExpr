@@ -10,18 +10,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   including x = 0 sitting exactly on the bucket edge.
 /// </summary>
 [InheritsTests]
-public class ComparisonRightShiftIsolationTest : BaseTest<Func<int, (bool, bool, bool, bool)>>
+public class ComparisonRightShiftIsolationTest : BaseTestWithRandomValues<Func<int, (bool, bool, bool, bool)>>
 {
 	public override string TestMethod => GetString(x => (x >> 2 < 0, x >> 2 > 0, x >> 2 <= 0, x >> 2 >= 0));
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => (x < 0, x >= 4, x < 4, x >= 0)),
-		CreateFolded(-5),
-		CreateFolded(-4),
-		CreateFolded(-1),
-		CreateFolded(0),
-		CreateFolded(3),
-		CreateFolded(4)
 	];
 }

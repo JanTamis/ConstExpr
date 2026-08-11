@@ -4,8 +4,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitList - visits list elements
 /// </summary>
 [InheritsTests]
-public class VisitListTests : BaseTest<Action>
+public class VisitListTests : BaseTestWithRandomValues<Action>
 {
+
 	public override string TestMethod => GetString(() =>
 	{
 		var a = 1;

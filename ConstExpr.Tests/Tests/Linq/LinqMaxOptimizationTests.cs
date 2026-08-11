@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Max() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqMaxOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -29,7 +29,5 @@ public class LinqMaxOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (TensorPrimitives.Max(x) << 2) + Max_JcFfKg(x);"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(new[] { 5 })
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class AsciiLetterNoBracketsTest : BaseTest<Func<char, bool>>
+public class AsciiLetterNoBracketsTest : BaseTestWithRandomValues<Func<char, bool>>
 {
 	// ReSharper disable ArrangeRedundantParentheses
 	public override string TestMethod => GetString(c =>
@@ -10,8 +10,5 @@ public class AsciiLetterNoBracketsTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiLetter(c)),
-		CreateFolded('m'),
-		CreateFolded('M'),
-		CreateFolded('5')
 	];
 }

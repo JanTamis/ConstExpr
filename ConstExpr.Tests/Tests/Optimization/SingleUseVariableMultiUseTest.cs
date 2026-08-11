@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   Variables used more than once must NOT be inlined.
 /// </summary>
 [InheritsTests]
-public class SingleUseVariableMultiUseTest : BaseTest<Func<int, int>>
+public class SingleUseVariableMultiUseTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	/// <summary>
 	///   var temp = n + 1; return temp + temp;
@@ -19,6 +19,5 @@ public class SingleUseVariableMultiUseTest : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => n + 1 << 1),
-		CreateFolded(5) // (5+1)+(5+1) = 12 → constant-folded
 	];
 }

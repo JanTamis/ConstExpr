@@ -8,8 +8,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   one. The loops must be left unchanged.
 /// </summary>
 [InheritsTests]
-public class LoopFusionScalarDependenceTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
+public class LoopFusionScalarDependenceTests() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.LoopFusion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;

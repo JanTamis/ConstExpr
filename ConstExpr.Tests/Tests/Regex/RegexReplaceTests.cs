@@ -3,8 +3,9 @@ using System.Text.RegularExpressions;
 namespace ConstExpr.Tests.Regex;
 
 [InheritsTests]
-public class RegexReplaceTests : BaseTest<Func<string, string, string, RegexOptions, string>>
+public class RegexReplaceTests : BaseTestWithRandomValues<Func<string, string, string, RegexOptions, string>>
 {
+
 	public override string TestMethod => GetString((input, pattern, replacement, options) =>
 	{
 		return System.Text.RegularExpressions.Regex.Replace(input, pattern, replacement, options);

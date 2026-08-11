@@ -6,15 +6,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   one coefficient every reader expects to see handled (2) would be the one silently left alone.
 /// </summary>
 [InheritsTests]
-public class ComparisonCoefficientDivisionAdditionFormTest : BaseTest<Func<float, bool>>
+public class ComparisonCoefficientDivisionAdditionFormTest : BaseTestWithRandomValues<Func<float, bool>>
 {
 	public override string TestMethod => GetString(x => x * 2 < 1);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x < 0.5f),
-		CreateFolded(0f),
-		CreateFolded(1f),
-		CreateFolded(0.5f)
 	];
 }

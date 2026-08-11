@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 // Now backed by a SemanticModel + MethodPurityAnalyzer: string.Length is on the known-pure type
 // whitelist, so two reads of the same expression collapse into one hoisted local.
 [InheritsTests]
-public class CommonSubexpressionMemberAccessTest() : BaseTest<Func<string, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class CommonSubexpressionMemberAccessTest() : BaseTestWithRandomValues<Func<string, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -24,6 +24,5 @@ public class CommonSubexpressionMemberAccessTest() : BaseTest<Func<string, int>>
 
 			return sLength * sLength;
 		}),
-		CreateFolded("abc")
 	];
 }

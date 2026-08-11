@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Any() optimization on List - verify that List.Where().Any() is optimized to List.Exists()
 /// </summary>
 [InheritsTests]
-public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqAnyOptimizationListTests : BaseTestWithRandomValues<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,7 +36,5 @@ public class LinqAnyOptimizationListTests : BaseTest<Func<List<int>, int>>
 
 			return Unsafe.BitCast<bool, byte>(x.Count > 0) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorkNzSYw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(collectionsMarshalAsSpan));
 			""", Unknown),
-		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }),
-		CreateFolded(new List<int>())
 	];
 }

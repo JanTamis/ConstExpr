@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   endpoint — so the inner comparison against 50 is settled and disappears.
 /// </summary>
 [InheritsTests]
-public class ValueRangeGuardRefinementTest : BaseTest<Func<int, int>>
+public class ValueRangeGuardRefinementTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -27,10 +27,6 @@ public class ValueRangeGuardRefinementTest : BaseTest<Func<int, int>>
 		// The outer guard has already been canonicalised into an unsigned range check and a ternary by
 		// the time this pass runs — reading `n` back out of that form is what lets the inner
 		// comparison, and the `&& true` it leaves behind, disappear.
-		Create(n => (uint) n <= 9U ? n << 1 : 0, [ Unknown ]),
-
-		// Inside the guarded range, and outside it.
-		CreateFolded(4),
-		CreateFolded(40)
+		Create(n => (uint) n <= 9U ? n << 1 : 0),
 	];
 }

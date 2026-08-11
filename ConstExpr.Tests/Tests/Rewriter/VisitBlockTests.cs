@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitBlock - visits statements in block, handles nested scopes and variable folding
 /// </summary>
 [InheritsTests]
-public class VisitBlockTests : BaseTest<Func<int, int, int>>
+public class VisitBlockTests : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{
@@ -25,9 +25,5 @@ public class VisitBlockTests : BaseTest<Func<int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, y) => (y << 1) + (x << 1) + 5),
-		CreateFolded(5, 3),
-		CreateFolded(10, 5),
-		CreateFolded(0, 1),
-		CreateFolded(-10, 10)
 	];
 }

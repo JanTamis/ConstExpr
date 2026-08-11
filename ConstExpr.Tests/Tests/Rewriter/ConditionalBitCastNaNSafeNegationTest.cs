@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   FastMathFlags.All (NoNaN included), flipping the operator is the intended, opted-in behavior.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastNaNSafeNegationTest() : BaseTest<Func<double, double, int>>(FastMathFlags.Strict)
+public class ConditionalBitCastNaNSafeNegationTest() : BaseTestWithRandomValues<Func<double, double, int>>(FastMathFlags.Strict)
 {
 	public override string TestMethod => GetString((x, y) => x < y ? 0 : 1);
 

@@ -15,8 +15,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   hoisted; the expected body reflects this shape.
 /// </summary>
 [InheritsTests]
-public class LoopInvariantCodeMotionTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopInvariantCodeMotion)
+public class LoopInvariantCodeMotionTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.LoopInvariantCodeMotion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	/// <summary>
 	///   An invariant expression used twice per iteration: not inlined by the partial
 	///   rewriter, so LICM hoists it out of the loop.

@@ -817,7 +817,18 @@ public partial class ConstExprPartialRewriter
 				var isFloating = !semanticModel.TryGetTypeSymbol(node, symbolStore, out var negAddType)
 				                 || !IsBuiltInInteger(negAddType.SpecialType);
 
+				// Unsigned is a third case, distinct from both: negating an unsigned constant promotes
+				// its type (uint -> long, per C#'s unary-minus rules, same ones NegateValue/Negate()
+				// follow), so `-(n + 5U)` (uint addition, the enclosing negate promotes the WHOLE
+				// result to long) is not the same value shape as `-5L - n` (a long constant folded
+				// in place, mixed with a uint operand) - this rewrite only preserves the original
+				// arithmetic when negation doesn't also change the constant's type. Checked on the
+				// boxed constant's own runtime type, not via the semantic model: negAddExpr can be a
+				// synthetic node (e.g. after a commutative reorder), which the model can't resolve.
+				var isUnsigned = constValue is byte or ushort or uint or ulong;
+
 				if (otherExpr is not null
+				    && !isUnsigned
 				    && (!isFloating || attribute.MathOptimizations.HasFlag(FastMathFlags.NoSignedZero))
 				    && NegateValue(constValue) is { } negatedConst
 				    && TryCreateLiteral(negatedConst, out var negatedConstLit))
@@ -979,28 +990,15 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Negates a numeric value.
+	///   Negates a numeric value, following C#'s unary minus promotion rules (byte/sbyte/short/ushort
+	///   -> int, uint -> long, ulong unsupported). Delegates to <see cref="ObjectExtensions.Negate" />
+	///   rather than reimplementing this: an earlier, narrower switch here omitted byte/ushort/uint/char,
+	///   so e.g. `-21U` (a uint operand) fell through to null and was left unfolded as syntax instead of
+	///   evaluating to the long -21 real C# produces.
 	/// </summary>
 	private static object? NegateValue(object? value)
 	{
-		try
-		{
-			return value switch
-			{
-				int i => -i,
-				long l => -l,
-				float f => -f,
-				double d => -d,
-				decimal dec => -dec,
-				short s => -s,
-				sbyte sb => -sb,
-				_ => null
-			};
-		}
-		catch
-		{
-			return null;
-		}
+		return value.Negate();
 	}
 
 	public override SyntaxNode? VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
@@ -1215,24 +1213,38 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   True only for a tracked identifier whose nullable annotation proves it can't be null right now
-	///   (gated by UseNullableAnnotations — flag off means "never provably non-null", the conservative
-	///   default). Any other expression shape (a call, an indexer, a member access) returns false: we
-	///   haven't proven anything about it, so it's treated as possibly null. This is deliberately NOT
-	///   `!CanBeNull(...)` — `BaseFunctionOptimizer.CanBeNull` treats "not a null literal and not a
-	///   tracked identifier" as *not* possibly-null, an existing, shipped asymmetry in the two string
-	///   optimizers that this leaves as-is. Negating it here would import that hole into these call
-	///   sites instead of leaving it where it already shipped.
+	///   True for a tracked identifier that's provably non-null right now, either because its actual
+	///   value is known and isn't null (independent of any flag - a known value IS the proof, there's
+	///   no annotation left to consult), or because its nullable annotation proves it (gated by
+	///   UseNullableAnnotations — flag off means "not provably non-null via annotation", the
+	///   conservative default, but doesn't affect the known-value case above it). Any other expression
+	///   shape (a call, an indexer, a member access) returns false: we haven't proven anything about
+	///   it, so it's treated as possibly null. This is deliberately NOT `!CanBeNull(...)` —
+	///   `BaseFunctionOptimizer.CanBeNull` treats "not a null literal and not a tracked identifier" as
+	///   *not* possibly-null, an existing, shipped asymmetry in the two string optimizers that this
+	///   leaves as-is. Negating it here would import that hole into these call sites instead of leaving
+	///   it where it already shipped.
 	/// </summary>
 	private bool IsProvablyNonNull(ExpressionSyntax expressionSyntax)
 	{
+		if (expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression))
+		{
+			return false;
+		}
+
+		if (expressionSyntax is IdentifierNameSyntax knownIdentifier
+		    && variables.TryGetValue(knownIdentifier.Identifier.Text, out var knownVariable)
+		    && knownVariable.HasValue)
+		{
+			return knownVariable.Value is not null;
+		}
+
 		if (!attribute.Optimizations.HasFlag(OptimizationFlags.UseNullableAnnotations))
 		{
 			return false;
 		}
 
-		return !expressionSyntax.IsKind(SyntaxKind.NullLiteralExpression)
-		       && expressionSyntax is IdentifierNameSyntax identifierNameSyntax
+		return expressionSyntax is IdentifierNameSyntax identifierNameSyntax
 		       && variables.TryGetValue(identifierNameSyntax.Identifier.Text, out var variable)
 		       && !variable.CanBeNull;
 	}
@@ -1269,6 +1281,15 @@ public partial class ConstExprPartialRewriter
 				{
 					var memberAccess = MemberAccessExpression(expression as ExpressionSyntax ?? node.Expression, memberBinding.Name);
 
+					// Same synthetic-node problem as the invocation case below, but for a plain
+					// property/field access (e.g. `s?.Length`) - carry the resolved symbol (an
+					// IPropertySymbol here, not an IMethodSymbol) forward so VisitMemberAccessExpression
+					// can still evaluate it once the receiver is a known constant.
+					if (semanticModel.TryGetSymbol(memberBinding, symbolStore, out ISymbol? memberSymbol))
+					{
+						memberAccess = memberAccess.WithSymbolAnnotation(memberSymbol, symbolStore);
+					}
+
 					return Visit(memberAccess);
 				}
 				case ElementBindingExpressionSyntax elementBinding:
@@ -1282,6 +1303,18 @@ public partial class ConstExprPartialRewriter
 				{
 					var memberAccess = MemberAccessExpression(expression as ExpressionSyntax ?? node.Expression, methodBinding.Name);
 					var newInvocation = InvocationExpression(memberAccess, invocation.ArgumentList);
+
+					// newInvocation is synthetic (built via SyntaxFactory, not part of the original
+					// tree), so VisitInvocationExpression's semanticModel.TryGetSymbol lookup can't
+					// resolve it and falls through to the no-op fallback path - the method call never
+					// gets folded even when the receiver is now a known constant. The original
+					// `invocation` node IS part of the tree though, so carry its resolved method symbol
+					// forward via the same annotation mechanism optimizers use for their own synthetic
+					// nodes (see SymbolAnnotation.cs).
+					if (semanticModel.TryGetSymbol(invocation, symbolStore, out IMethodSymbol? targetMethod))
+					{
+						newInvocation = newInvocation.WithMethodSymbolAnnotation(targetMethod, symbolStore);
+					}
 
 					return Visit(newInvocation);
 				}

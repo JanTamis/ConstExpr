@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Optimization;
 // implies it, so folding a repeat inside the branch into the same hoist as an unconditional
 // Condition occurrence is safe.
 [InheritsTests]
-public class IfConditionCommonSubexpressionTest() : BaseTest<Func<int[], int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class IfConditionCommonSubexpressionTest() : BaseTestWithRandomValues<Func<int[], int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString(numbers =>
 	{
@@ -48,7 +48,5 @@ public class IfConditionCommonSubexpressionTest() : BaseTest<Func<int[], int>>(o
 
 			return sum;
 		}),
-		CreateFolded(new[] { 7 }),
-		CreateFolded(new[] { 3, 5 })
 	];
 }

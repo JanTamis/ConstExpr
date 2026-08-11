@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitSwitchStatement - constant folding of switch expression
 /// </summary>
 [InheritsTests]
-public class VisitSwitchStatementTests : BaseTest<Func<int, int>>
+public class VisitSwitchStatementTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(value =>
 	{
@@ -34,8 +34,5 @@ public class VisitSwitchStatementTests : BaseTest<Func<int, int>>
 			2 => 20,
 			_ => 30
 		}),
-		CreateFolded(1),
-		CreateFolded(2),
-		CreateFolded(3)
 	];
 }

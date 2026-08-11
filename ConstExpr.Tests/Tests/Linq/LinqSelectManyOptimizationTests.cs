@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for SelectMany() optimization - verify empty collection handling
 /// </summary>
 [InheritsTests]
-public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
+public class LinqSelectManyOptimizationTests : BaseTestWithRandomValues<Func<int[][], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -23,7 +23,5 @@ public class LinqSelectManyOptimizationTests : BaseTest<Func<int[][], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_TMdy0g(x);"),
-		Create(_ => 3, [ new[] { new[] { 1, 2, 3 } } ]),
-		Create(_ => 0, [ System.Array.Empty<int>() ])
 	];
 }

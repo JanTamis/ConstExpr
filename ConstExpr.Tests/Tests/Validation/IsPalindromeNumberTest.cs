@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Validation;
 
 [InheritsTests]
-public class IsPalindromeNumberTest : BaseTest<Func<int, bool>>
+public class IsPalindromeNumberTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -25,7 +25,5 @@ public class IsPalindromeNumberTest : BaseTest<Func<int, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(121),
-		CreateFolded(123)
 	];
 }

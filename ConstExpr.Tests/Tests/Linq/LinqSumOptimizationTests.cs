@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Sum() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSumOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -31,7 +31,5 @@ public class LinqSumOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return TensorPrimitives.Sum(x) * 9 + Sum_dcMRsA(x);"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(new[] { 5 })
 	];
 }

@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Linq;
 ///   the binary optimizer can match the x.Count() syntax.
 /// </summary>
 [InheritsTests]
-public class LinqCountEqualsZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
+public class LinqCountEqualsZeroToAnyTests() : BaseTestWithRandomValues<Func<IEnumerable<int>, bool>>(FastMathFlags.Strict, LinqOptimizationMode.None)
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -19,7 +19,5 @@ public class LinqCountEqualsZeroToAnyTests() : BaseTest<Func<IEnumerable<int>, b
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => !x.Any()),
-		CreateFolded(Enumerable.Empty<int>()),
-		CreateFolded(new[] { 1, 2, 3 })
 	];
 }

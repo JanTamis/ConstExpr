@@ -8,14 +8,12 @@ namespace ConstExpr.Tests.Optimization;
 ///   multiply-then-compare) and must not happen under Strict.
 /// </summary>
 [InheritsTests]
-public class ComparisonCoefficientDivisionStrictTest() : BaseTest<Func<float, bool>>(FastMathFlags.Strict)
+public class ComparisonCoefficientDivisionStrictTest() : BaseTestWithRandomValues<Func<float, bool>>(FastMathFlags.Strict)
 {
 	public override string TestMethod => GetString(x => x * 6 < 1);
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x * 6F < 1F),
-		CreateFolded(0f),
-		CreateFolded(1f)
 	];
 }

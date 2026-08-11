@@ -9,7 +9,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   values into an initializer could change evaluation order.
 /// </summary>
 [InheritsTests]
-public class ArrayElementInitializerOutOfOrderTest : BaseTest<Func<int[], int[]>>
+public class ArrayElementInitializerOutOfOrderTest : BaseTestWithRandomValues<Func<int[], int[]>>
 {
 	public override string TestMethod => GetString(numbers =>
 	{

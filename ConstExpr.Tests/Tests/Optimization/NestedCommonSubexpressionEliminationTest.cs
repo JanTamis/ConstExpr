@@ -3,7 +3,7 @@ using ConstExpr.Core.Enumerators;
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
+public class NestedCommonSubexpressionEliminationTest() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
 	public override string TestMethod => GetString((x, _) =>
 	{
@@ -34,6 +34,5 @@ public class NestedCommonSubexpressionEliminationTest() : BaseTest<Func<int, int
 
 			return result;
 		}),
-		CreateFolded(1, 5)
 	];
 }

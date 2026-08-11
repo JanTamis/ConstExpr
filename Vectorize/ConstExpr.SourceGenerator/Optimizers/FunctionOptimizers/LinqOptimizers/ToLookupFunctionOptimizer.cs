@@ -217,10 +217,12 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			context.AdditionalSyntax.TryAdd(lookupStruct, true);
 
-			// Return new StructName() as the replacement expression
+			// Return new StructName() as the replacement expression, annotated with its known Count so
+			// a later `.Count` read on it can fold to a literal without reflecting on this not-yet-compiled struct.
 			result = ObjectCreationExpression(
 					IdentifierName(lookupStruct.Identifier.Text))
-				.WithArgumentList(ArgumentList());
+				.WithArgumentList(ArgumentList())
+				.WithLookupCountAnnotation(groups.Count);
 
 			return true;
 		}

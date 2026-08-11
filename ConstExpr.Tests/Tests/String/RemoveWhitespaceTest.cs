@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class RemoveWhitespaceTest : BaseTest<Func<string, string>>
+public class RemoveWhitespaceTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(input =>
 	{
@@ -45,9 +45,5 @@ public class RemoveWhitespaceTest : BaseTest<Func<string, string>>
 
 			return new string(result, 0, index);
 		}),
-		CreateFolded("Hello World"),
-		CreateFolded("  Test  String  "),
-		CreateFolded("   "),
-		CreateFolded("abc")
 	];
 }

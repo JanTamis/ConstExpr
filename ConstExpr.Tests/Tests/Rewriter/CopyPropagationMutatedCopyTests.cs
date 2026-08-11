@@ -7,8 +7,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   it is not a pure alias of the source. The pass must refuse and leave the body unchanged.
 /// </summary>
 [InheritsTests]
-public class CopyPropagationMutatedCopyTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
+public class CopyPropagationMutatedCopyTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.CopyPropagation)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, x) =>
 	{
 		var y = x;

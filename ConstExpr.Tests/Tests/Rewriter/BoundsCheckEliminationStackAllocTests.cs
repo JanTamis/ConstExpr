@@ -11,8 +11,9 @@ namespace ConstExpr.Tests.Rewriter;
 ///   produces exactly this shape.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationStackAllocTests : BaseTest<Func<int, int>>
+public class BoundsCheckEliminationStackAllocTests : BaseTestWithRandomValues<Func<int, int>>
 {
+
 	public override string TestMethod => GetString(n =>
 	{
 		Span<int> buf = stackalloc int[4];

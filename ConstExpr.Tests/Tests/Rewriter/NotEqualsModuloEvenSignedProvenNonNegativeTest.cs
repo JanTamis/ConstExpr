@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   folds that to IsEvenInteger(x).
 /// </summary>
 [InheritsTests]
-public class NotEqualsModuloEvenSignedProvenNonNegativeTest : BaseTest<Func<int, bool>>
+public class NotEqualsModuloEvenSignedProvenNonNegativeTest : BaseTestWithRandomValues<Func<int, bool>>
 {
 	public override string TestMethod => GetString(x =>
 	{

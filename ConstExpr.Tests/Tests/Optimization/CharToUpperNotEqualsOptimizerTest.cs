@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Optimization;
 
 [InheritsTests]
-public class CharToUpperNotEqualsOptimizerTest : BaseTest<Func<char, char, bool>>
+public class CharToUpperNotEqualsOptimizerTest : BaseTestWithRandomValues<Func<char, char, bool>>
 {
 	public override string TestMethod => GetString((left, right) =>
 	{
@@ -11,7 +11,5 @@ public class CharToUpperNotEqualsOptimizerTest : BaseTest<Func<char, char, bool>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((left, right) => !left.Equals(right, StringComparison.CurrentCultureIgnoreCase)),
-		CreateFolded('a', 'A'),
-		CreateFolded('a', 'B')
 	];
 }

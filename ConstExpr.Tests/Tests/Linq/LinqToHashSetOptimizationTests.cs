@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for ToHashSet() optimization - verify redundant operations removal and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqToHashSetOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -23,7 +23,5 @@ public class LinqToHashSetOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return ToHashSet_JgdI5A(x).Count * 3;"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

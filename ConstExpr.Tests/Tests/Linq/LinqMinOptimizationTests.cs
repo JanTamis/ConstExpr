@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Min() optimization - verify identity lambda removal, Select fusion, and chain optimization
 /// </summary>
 [InheritsTests]
-public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqMinOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +33,5 @@ public class LinqMinOptimizationTests : BaseTest<Func<int[], int>>
 
 			return (tensorPrimitivesMin << 2) + Int32.Min(Min_lB3pdg(x), tensorPrimitivesMin);
 			"""),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(new[] { 5 })
 	];
 }

@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class LCMTest : BaseTest<Func<int, int, int>>
+public class LCMTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -46,8 +46,5 @@ public class LCMTest : BaseTest<Func<int, int, int>>
 
 			return FastAbs(a * b) / aa;
 			"""),
-		CreateFolded(4, 6),
-		CreateFolded(0, 5),
-		CreateFolded(21, 6)
 	];
 }

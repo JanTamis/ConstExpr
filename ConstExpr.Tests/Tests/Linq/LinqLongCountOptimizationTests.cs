@@ -4,8 +4,9 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for LongCount() optimization - verify that unnecessary operations before LongCount() are removed
 /// </summary>
 [InheritsTests]
-public class LinqLongCountOptimizationTests : BaseTest<Func<int[], long>>
+public class LinqLongCountOptimizationTests : BaseTestWithRandomValues<Func<int[], long>>
 {
+
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(...).LongCount() => LongCount(predicate)

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Union() optimization - verify empty collection handling and same source removal
 /// </summary>
 [InheritsTests]
-public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqUnionOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -20,7 +20,5 @@ public class LinqUnionOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_w6J_9Q(x) << 1;"),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

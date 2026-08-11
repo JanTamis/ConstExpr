@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitConditionalExpression - fold by constant condition, optimizer pass
 /// </summary>
 [InheritsTests]
-public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (int, int, int, int, int)>>
+public class VisitConditionalExpressionTests : BaseTestWithRandomValues<Func<bool, int, int, (int, int, int, int, int)>>
 {
 	public override string TestMethod => GetString((condition, x, y) =>
 	{
@@ -20,9 +20,5 @@ public class VisitConditionalExpressionTests : BaseTest<Func<bool, int, int, (in
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((condition, x, y) => (10, 40, 50, condition ? x : y, Int32.Max(x, y))),
-		CreateFolded(true, 100, 50),
-		CreateFolded(false, 25, 75),
-		CreateFolded(true, -10, 20),
-		CreateFolded(false, 15, 15)
 	];
 }

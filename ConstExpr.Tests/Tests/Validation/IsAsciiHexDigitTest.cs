@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Validation;
 ///   <c>Char.IsAsciiLetterOrDigit(c)</c> by the binary optimizer.
 /// </summary>
 [InheritsTests]
-public class IsAsciiHexDigitTest : BaseTest<Func<char, bool>>
+public class IsAsciiHexDigitTest : BaseTestWithRandomValues<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F');
@@ -14,13 +14,5 @@ public class IsAsciiHexDigitTest : BaseTest<Func<char, bool>>
 	[
 		// Unknown char → three-range check collapsed into Char.IsAsciiHexDigit
 		Create(c => Char.IsAsciiHexDigit(c)),
-		// Known char constants: char comparisons bypass full constant folding
-		// (implicit char→int conversion causes the per-range &&s to fall back to
-		// Char.IsAsciiDigit / Char.IsBetween, which are then combined by this optimizer)
-		CreateFolded('5'),
-		CreateFolded('a'),
-		CreateFolded('F'),
-		CreateFolded('g'),
-		CreateFolded('Z')
 	];
 }

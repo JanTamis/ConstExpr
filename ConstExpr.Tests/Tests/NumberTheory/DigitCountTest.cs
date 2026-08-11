@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class DigitCountTest : BaseTest<Func<int, int>>
+public class DigitCountTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -40,8 +40,5 @@ public class DigitCountTest : BaseTest<Func<int, int>>
 
 			return count;
 			"""),
-		CreateFolded(123),
-		CreateFolded(0),
-		CreateFolded(-1234)
 	];
 }

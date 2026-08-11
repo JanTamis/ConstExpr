@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class GCDTest : BaseTest<Func<int, int, int>>
+public class GCDTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
 	public override string TestMethod => GetString((a, b) =>
 	{
@@ -34,8 +34,5 @@ public class GCDTest : BaseTest<Func<int, int, int>>
 
 			return a;
 			"""),
-		CreateFolded(48, 18),
-		CreateFolded(17, 19),
-		CreateFolded(45, 60)
 	];
 }

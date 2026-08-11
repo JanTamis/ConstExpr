@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.String;
 
 /// <summary>s.TrimStart().TrimStart() → s.TrimStart(): idempotency.</summary>
 [InheritsTests]
-public class StringTrimStartIdempotencyTest : BaseTest<Func<string, string>>
+public class StringTrimStartIdempotencyTest : BaseTestWithRandomValues<Func<string, string>>
 {
 	public override string TestMethod => GetString(s => s.TrimStart().TrimStart());
 

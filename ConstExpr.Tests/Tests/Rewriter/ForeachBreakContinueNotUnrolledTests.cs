@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   — it falls back to a real foreach rather than emit an orphaned continue.
 /// </summary>
 [InheritsTests]
-public class ForeachBreakContinueNotUnrolledTests : BaseTest<Func<char, char, int>>
+public class ForeachBreakContinueNotUnrolledTests : BaseTestWithRandomValues<Func<char, char, int>>
 {
 	public override string TestMethod => GetString((skip, stop) =>
 	{

@@ -1,8 +1,10 @@
 namespace ConstExpr.Tests.NumberTheory;
 
 [InheritsTests]
-public class CountPrimeFactorsTest : BaseTest<Func<int, int>>
+public class CountPrimeFactorsTest : BaseTestWithRandomValues<Func<int, int>>
 {
+
+	protected override int MaxRandomMagnitudeBits => 4;
 	public override string TestMethod => GetString(n =>
 	{
 		var count = 0;

@@ -12,7 +12,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   BitCast-creation time.
 /// </summary>
 [InheritsTests]
-public class ConditionalBitCastElidesCastAfterSingleUseInliningTest : BaseTest<Func<double, double, int>>
+public class ConditionalBitCastElidesCastAfterSingleUseInliningTest : BaseTestWithRandomValues<Func<double, double, int>>
 {
 	public override string TestMethod => GetString((x, y) =>
 	{

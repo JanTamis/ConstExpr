@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitExpressionStatement - visit expression in statement
 /// </summary>
 [InheritsTests]
-public class VisitExpressionStatementTests : BaseTest<Func<int, int>>
+public class VisitExpressionStatementTests : BaseTestWithRandomValues<Func<int, int>>
 {
 	// Using lambda expression for type-safe, refactorable test method definition
 	public override string TestMethod => GetString(x =>
@@ -18,6 +18,5 @@ public class VisitExpressionStatementTests : BaseTest<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x),
-		CreateFolded(6)
 	];
 }

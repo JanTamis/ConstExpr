@@ -6,7 +6,7 @@ namespace ConstExpr.Tests.Validation;
 ///   is collapsed into <c>Char.IsAsciiLetterOrDigit(c)</c>.
 /// </summary>
 [InheritsTests]
-public class IsAsciiLetterOrDigitTest : BaseTest<Func<char, bool>>
+public class IsAsciiLetterOrDigitTest : BaseTestWithRandomValues<Func<char, bool>>
 {
 	public override string TestMethod => GetString(c =>
 		c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
@@ -14,9 +14,5 @@ public class IsAsciiLetterOrDigitTest : BaseTest<Func<char, bool>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(c => Char.IsAsciiLetterOrDigit(c)),
-		CreateFolded('4'),
-		CreateFolded('q'),
-		CreateFolded('Q'),
-		CreateFolded('!')
 	];
 }

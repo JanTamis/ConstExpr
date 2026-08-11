@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Exp2(float) → FastExp2(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFExp2Test : BaseTest<Func<float, float>>
+public class MathFExp2Test : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => Single.Exp2(x));
 

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for TakeWhile() optimization - verify constant predicate handling
 /// </summary>
 [InheritsTests]
-public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqTakeWhileOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -20,7 +20,5 @@ public class LinqTakeWhileOptimizationTests : BaseTest<Func<int[], int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => x.Length),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

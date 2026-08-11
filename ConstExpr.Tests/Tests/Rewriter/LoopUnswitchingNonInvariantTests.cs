@@ -8,8 +8,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   between iterations. The loop must be left unchanged (no hoisting, no duplication).
 /// </summary>
 [InheritsTests]
-public class LoopUnswitchingNonInvariantTests() : BaseTest<Func<int, int, int>>(optimizations: OptimizationFlags.LoopUnswitching)
+public class LoopUnswitchingNonInvariantTests() : BaseTestWithRandomValues<Func<int, int, int>>(optimizations: OptimizationFlags.LoopUnswitching)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString((n, seed) =>
 	{
 		var result = seed;

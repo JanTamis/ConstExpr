@@ -429,13 +429,22 @@ public static class CompilationExtensions
 
 		var isExtension = methodSymbol.IsExtensionMethod;
 
-		var originalParameterTypes = methodSymbol.Parameters
-			.Select(s => s.Type)
-			.Prepend(methodSymbol.IsExtensionMethod ? methodSymbol.ReceiverType : null)
+		// TryOptimizeByOptimizer synthesizes UNREDUCED extension-method symbols (the static
+		// Enumerable.Xxx(source, ...) form: ReducedFrom is null, Parameters[0] IS the receiver, and
+		// ReceiverType - despite being non-null - incorrectly reports the declaring type, e.g.
+		// System.Linq.Enumerable, not the real receiver parameter type). A normally-visited call site
+		// instead gets Roslyn's REDUCED form from the semantic model (ReducedFrom set, ReceiverType
+		// correct, Parameters excludes the receiver). Only the reduced form needs the receiver
+		// prepended/added back in below - for the unreduced form Parameters already has it.
+		var isUnreducedExtension = isExtension && methodSymbol.ReducedFrom is null;
+
+		var originalParameterTypes = (isUnreducedExtension
+				? methodSymbol.Parameters.Select(s => s.Type)
+				: methodSymbol.Parameters.Select(s => s.Type).Prepend(isExtension ? methodSymbol.ReceiverType : null))
 			.Where(w => w != null)
 			.ToImmutableArray();
 
-		var expectedParameterLength = methodSymbol.IsExtensionMethod
+		var expectedParameterLength = isExtension && !isUnreducedExtension
 			? methodSymbol.Parameters.Length + 1
 			: methodSymbol.Parameters.Length;
 
@@ -521,6 +530,22 @@ public static class CompilationExtensions
 
 	public static bool TryExecuteMethod(this MetadataLoader loader, [NotNullWhen(true)] IMethodSymbol? methodSymbol, object? instance, IDictionary<string, object?>? arguments, IEnumerable<object?> parameters, out object? value)
 	{
+		return loader.TryExecuteMethod(methodSymbol, instance, arguments, parameters, out value, out _);
+	}
+
+	/// <summary>
+	///   Same as <see cref="TryExecuteMethod(MetadataLoader,IMethodSymbol?,object?,IDictionary{string,object?}?,IEnumerable{object?},out object?)" />,
+	///   additionally exposing the parameter array as it stood right after <c>Invoke</c> returned. For a
+	///   ref/out parameter, the CLR writes the by-ref result back into that same array slot as part of
+	///   <c>MethodBase.Invoke</c> - <paramref name="executedParameters" /> is how a caller (e.g. a ref/out
+	///   argument's write-back into a tracked <c>VariableItem</c>) recovers that value, since it's otherwise
+	///   only visible on <paramref name="parameters" />'s own array instance, which the caller may not have
+	///   passed as an array in the first place (a `List&lt;object&gt;` gets copied via `.ToArray()` below).
+	/// </summary>
+	public static bool TryExecuteMethod(this MetadataLoader loader, [NotNullWhen(true)] IMethodSymbol? methodSymbol, object? instance, IDictionary<string, object?>? arguments, IEnumerable<object?> parameters, out object? value, out IReadOnlyList<object?>? executedParameters)
+	{
+		executedParameters = null;
+
 		if (methodSymbol is null)
 		{
 			value = null;
@@ -641,7 +666,14 @@ public static class CompilationExtensions
 					continue;
 				}
 
-				if (!reflParam.ParameterType.IsGenericParameter && !reflParam.ParameterType.IsAssignableFrom(symbolParamType))
+				// A ref/out parameter's reflected type is a ByRef type (e.g. `System.Int32&`), which
+				// never matches the underlying symbol type directly - unwrap to the element type for
+				// both the assignability and provided-value checks below, or every candidate with a
+				// ref/out parameter (e.g. Int32.TryParse(string, out int)) gets rejected here and
+				// TryExecuteMethod always returns false for such methods.
+				var reflParamType = reflParam.ParameterType.IsByRef ? reflParam.ParameterType.GetElementType()! : reflParam.ParameterType;
+
+				if (!reflParamType.IsGenericParameter && !reflParamType.IsAssignableFrom(symbolParamType))
 				{
 					compatible = false;
 					break;
@@ -650,10 +682,10 @@ public static class CompilationExtensions
 				// Also validate provided runtime value if present
 				var providedVal = paramArray[i];
 
-				if (providedVal != null && !reflParam.ParameterType.IsInstanceOfType(providedVal))
+				if (providedVal != null && !reflParamType.IsInstanceOfType(providedVal))
 				{
 					// Try implicit conversion for numeric primitives
-					if (!TryChangeNumericType(providedVal, reflParam.ParameterType, out var converted))
+					if (!TryChangeNumericType(providedVal, reflParamType, out var converted))
 					{
 						compatible = false;
 						break;
@@ -674,12 +706,14 @@ public static class CompilationExtensions
 				if (invokeBase is ConstructorInfo ctor)
 				{
 					value = ctor.Invoke(paramArray);
+					executedParameters = paramArray;
 					return true;
 				}
 			}
 			else if (invokeBase.IsStatic)
 			{
 				value = invokeBase.Invoke(null, paramArray);
+				executedParameters = paramArray;
 				return true;
 			}
 			else
@@ -690,6 +724,7 @@ public static class CompilationExtensions
 				}
 
 				value = invokeBase.Invoke(instance, paramArray);
+				executedParameters = paramArray;
 				return true;
 			}
 		}
@@ -1362,6 +1397,14 @@ public static class CompilationExtensions
 		if (node is not null && node.TryGetMethodSymbolAnnotation(symbolStore, out var fallbackMethod) && fallbackMethod is TSymbol fallbackSymbol)
 		{
 			value = fallbackSymbol;
+			return true;
+		}
+
+		// Same idea, but for a synthetic node annotated with a non-method symbol (e.g. an
+		// IPropertySymbol) via WithSymbolAnnotation - the method-specific check above can't find it.
+		if (node is not null && node.TryGetSymbolAnnotation(symbolStore, out var fallbackGeneral) && fallbackGeneral is TSymbol fallbackGeneralSymbol)
+		{
+			value = fallbackGeneralSymbol;
 			return true;
 		}
 

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitLocalDeclarationStatement - visit and remove if unused
 /// </summary>
 [InheritsTests]
-public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int, int, int, int)>>
+public class VisitLocalDeclarationStatementTests : BaseTestWithRandomValues<Func<int, int, (int, int, int, int)>>
 {
 	public override string TestMethod => GetString((x, _) =>
 	{
@@ -19,9 +19,5 @@ public class VisitLocalDeclarationStatementTests : BaseTest<Func<int, int, (int,
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((x, _) => (1, 2, 3, x + 6)),
-		CreateFolded(10, 5),
-		CreateFolded(-5, 0),
-		CreateFolded(0, 100),
-		CreateFolded(42, 7)
 	];
 }

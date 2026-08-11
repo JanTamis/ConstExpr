@@ -268,7 +268,14 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				// turns `ref var r = ref x;` into `var r = ref x;` — CS8172, with no diagnostic from
 				// this pass. BoundsCheckRewriter.ReferenceDeclaration emits exactly that shape, and so
 				// does any user source that declares a ref local inside a [ConstExpr] method.
+				//
+				// Span<T>/ReadOnlySpan<T> is the same problem again: `Span<int> buf = array;` goes
+				// through an implicit reference conversion, so `var` would infer `array`'s own type -
+				// and once the initializer folds to a literal collection, `var buf = [1, 2, 3];` does
+				// not even compile. See ConstExprPartialRewriter.SimplifiedTypeOf, which needed the
+				// identical guard.
 				if (node.Type is not RefTypeSyntax
+				    && !IsSpanType(node.Type)
 				    && remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
 				{
 					node = node.WithType(ParseTypeName("var"));
@@ -279,6 +286,19 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 		}
 
 		return node.WithVariables(SeparatedList(remainingVariables));
+	}
+
+	// Ponytail: matches the type name only, not the namespace - the same trade-off BoundsCheckRewriter's
+	// own Classify makes, since a user type of the same name would fail loudly as a compile error rather
+	// than silently misbehave. Mirrors ConstExprPartialRewriter.IsSpanType.
+	private static bool IsSpanType(TypeSyntax type)
+	{
+		return type switch
+		{
+			GenericNameSyntax { Identifier.Text: "Span" or "ReadOnlySpan", TypeArgumentList.Arguments.Count: 1 } => true,
+			QualifiedNameSyntax qualified => IsSpanType(qualified.Right),
+			_ => false
+		};
 	}
 
 	public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
@@ -302,6 +322,21 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			{
 				return null;
 			}
+			// A mutating call (`outliers.Add(2);`) on a receiver that is itself dead - a local whose
+			// entire lifetime (including this call) is visible in this scope, with no remaining reads
+			// - is prunable exactly like a dead assignment to that receiver would be. Only when every
+			// argument is side-effect-free: an argument that isn't (e.g. a call still standing there)
+			// would lose that side effect along with the statement. Does not apply to a mutating call
+			// on a parameter - CanBePruned already refuses those via IsAltered/HasValue, since a
+			// parameter's receiver can be aliased by the caller and the mutation must reach it.
+			case InvocationExpressionSyntax
+			{
+				Expression: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax mutatingCallReceiver },
+				ArgumentList.Arguments: var mutatingCallArguments
+			} when CanBePruned(mutatingCallReceiver.Identifier.Text) && mutatingCallArguments.All(a => IsConstantExpression(a.Expression)):
+			{
+				return null;
+			}
 			default:
 			{
 				var visited = Visit(node.Expression);
@@ -322,6 +357,15 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 
 			switch (terminalReached)
 			{
+				// A bare empty statement (`;`) left behind by folding a statement down to a no-op
+				// (e.g. `a ??= b;` when `a` is provably non-null - see ConstExprPartialRewriter's
+				// VisitExpressionStatement) carries no meaning on its own and is safe to drop
+				// unconditionally. Doesn't touch LabeledStatementSyntax wrapping an EmptyStatementSyntax
+				// (goto continue-labels use that shape deliberately) - that's a different node type.
+				case false when visited is EmptyStatementSyntax:
+				{
+					break;
+				}
 				case false when visited is StatementSyntax stmt:
 				{
 					statements.Add(stmt);

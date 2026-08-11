@@ -7,7 +7,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   guaranteed bit-exact for float/double.
 /// </summary>
 [InheritsTests]
-public class EqualsReciprocalStrictTest() : BaseTest<Func<float, bool>>(FastMathFlags.Strict)
+public class EqualsReciprocalStrictTest() : BaseTestWithRandomValues<Func<float, bool>>(FastMathFlags.Strict)
 {
 	// ReSharper disable CompareOfFloatsByEqualityOperator — testing exactly that comparison.
 	public override string TestMethod => GetString(x => 6 / x == 2);
@@ -15,8 +15,5 @@ public class EqualsReciprocalStrictTest() : BaseTest<Func<float, bool>>(FastMath
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => 6F / x == 2F),
-		// ReSharper restore CompareOfFloatsByEqualityOperator
-		CreateFolded(3f),
-		CreateFolded(4f)
 	];
 }

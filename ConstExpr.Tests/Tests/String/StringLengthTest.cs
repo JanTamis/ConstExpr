@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.String;
 
 [InheritsTests]
-public class StringLengthTest : BaseTest<Func<string?, int>>
+public class StringLengthTest : BaseTestWithRandomValues<Func<string?, int>>
 {
 	public override string TestMethod => GetString(s =>
 	{
@@ -16,8 +16,5 @@ public class StringLengthTest : BaseTest<Func<string?, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(s => s?.Length ?? -1),
-		CreateFolded(System.String.Empty),
-		CreateFolded("hello world"),
-		CreateFolded((object?) null)
 	];
 }

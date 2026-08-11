@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   flat sequence of guarded gotos plus a trailing label, instead of falling back to a real loop.
 /// </summary>
 [InheritsTests]
-public class ForeachBreakUnrollBasicTests : BaseTest<Func<char, int>>
+public class ForeachBreakUnrollBasicTests : BaseTestWithRandomValues<Func<char, int>>
 {
 	public override string TestMethod => GetString(target =>
 	{
@@ -49,8 +49,5 @@ public class ForeachBreakUnrollBasicTests : BaseTest<Func<char, int>>
 			__unroll_break_0:
 			return index;
 		}),
-		// Constant target still folds to a plain result.
-		CreateFolded('b'),
-		CreateFolded('z')
 	];
 }

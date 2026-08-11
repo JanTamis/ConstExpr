@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitQualifiedName - qualified name evaluation
 /// </summary>
 [InheritsTests]
-public class VisitQualifiedNameTests : BaseTest<Func<string>>
+public class VisitQualifiedNameTests : BaseTestWithRandomValues<Func<string>>
 {
 	public override string TestMethod => GetString(() => System.String.Empty);
 

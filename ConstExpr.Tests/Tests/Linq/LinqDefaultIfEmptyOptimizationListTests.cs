@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for DefaultIfEmpty() optimization on List
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, int>>
+public class LinqDefaultIfEmptyOptimizationListTests : BaseTestWithRandomValues<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -33,7 +33,5 @@ public class LinqDefaultIfEmptyOptimizationListTests : BaseTest<Func<List<int>, 
 
 			return Int32.Max(xCount, 1) * 3 + Int32.Max(Count_w6J_9Q(x), 1) + (xCount > 0 ? x[0] : 100);
 			"""),
-		CreateFolded(new List<int> { 1, 2, 3, 4, 5 }), // Non-empty: 5+5+5+5+1 = 21
-		CreateFolded(new List<int>()) // Empty: 1+1+1+1+100 = 104
 	];
 }

@@ -4,8 +4,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitObjectCreationExpression - constant constructor evaluation
 /// </summary>
 [InheritsTests]
-public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (string, string)>>
+public class VisitObjectCreationExpressionTests : BaseTestWithRandomValues<Func<int, char[], (string, string)>>
 {
+	protected override int MaxRandomMagnitudeBits => 8;
+
 	public override string TestMethod => GetString((amount, chars) =>
 	{
 		var s1 = new string('a', amount);
@@ -18,10 +20,5 @@ public class VisitObjectCreationExpressionTests : BaseTest<Func<int, char[], (st
 	[
 		// When values are unknown, keep the original code unchanged
 		Create((amount, chars) => (new string('a', amount), new string(chars))),
-		// When values are known and constant, they get inlined into the return statement
-		CreateFolded(5, new[] { 'h', 'e', 'l', 'l', 'o' }),
-		CreateFolded(0, System.Array.Empty<char>()),
-		CreateFolded(3, new[] { 'c', 'a', 't' }),
-		CreateFolded(0, new[] { 'x', 'y', 'z' })
 	];
 }

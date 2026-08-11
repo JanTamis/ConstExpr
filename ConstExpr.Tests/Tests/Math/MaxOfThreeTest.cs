@@ -1,7 +1,7 @@
 namespace ConstExpr.Tests.Math;
 
 [InheritsTests]
-public class MaxOfThreeTest : BaseTest<Func<int, int, int, int>>
+public class MaxOfThreeTest : BaseTestWithRandomValues<Func<int, int, int, int>>
 {
 	public override string TestMethod => GetString((a, b, c) =>
 	{
@@ -23,7 +23,5 @@ public class MaxOfThreeTest : BaseTest<Func<int, int, int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create((a, b, c) => Int32.Max(c, Int32.Max(b, a))),
-		CreateFolded(5, 10, 3),
-		CreateFolded(5, 5, 5)
 	];
 }

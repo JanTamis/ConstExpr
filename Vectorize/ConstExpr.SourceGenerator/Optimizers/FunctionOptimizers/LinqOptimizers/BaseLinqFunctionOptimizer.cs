@@ -942,21 +942,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 			foreach (var element in elements)
 			{
-				if (element is not ExpressionElementSyntax expressionElement)
+				if (element is not ExpressionElementSyntax expressionElement
+				    || !TryGetConstantElementValue(expressionElement.Expression, out var elementValue))
 				{
 					values = null;
 					return false;
 				}
 
-				if (expressionElement.Expression is LiteralExpressionSyntax literal)
-				{
-					constantValues.Add(literal.Token.Value);
-				}
-				else
-				{
-					values = null;
-					return false;
-				}
+				constantValues.Add(elementValue);
 			}
 
 			values = constantValues;
@@ -975,15 +968,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 			foreach (var expression in arrayCreation.Initializer.Expressions)
 			{
-				if (expression is LiteralExpressionSyntax literal)
-				{
-					constantValues.Add(literal.Token.Value);
-				}
-				else
+				if (!TryGetConstantElementValue(expression, out var elementValue))
 				{
 					values = null;
 					return false;
 				}
+
+				constantValues.Add(elementValue);
 			}
 
 			values = constantValues;
@@ -996,15 +987,13 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 			foreach (var expression in implicitArrayCreation.Initializer.Expressions)
 			{
-				if (expression is LiteralExpressionSyntax literal)
-				{
-					constantValues.Add(literal.Token.Value);
-				}
-				else
+				if (!TryGetConstantElementValue(expression, out var elementValue))
 				{
 					values = null;
 					return false;
 				}
+
+				constantValues.Add(elementValue);
 			}
 
 			values = constantValues;
@@ -1012,6 +1001,33 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 		}
 
 		values = null;
+		return false;
+	}
+
+	/// <summary>
+	///   A negative numeric element (e.g. <c>-31983260</c>) is never a single <see cref="LiteralExpressionSyntax" />
+	///   token at the syntax level - C# always represents it as unary minus applied to the positive literal
+	///   (<see cref="SyntaxHelpers.TryCreateLiteral{T}(T,bool,out ExpressionSyntax)" /> emits exactly this shape
+	///   for negative folded values). Without unwrapping that here, any array/collection literal containing a
+	///   negative element made <see cref="TryGetValues" /> fail entirely, silently falling back to an
+	///   un-evaluated runtime call (e.g. <c>[-1, 2].Distinct().Count()</c> left unfolded instead of becoming 2).
+	/// </summary>
+	private static bool TryGetConstantElementValue(ExpressionSyntax expression, out object? value)
+	{
+		if (expression is LiteralExpressionSyntax literal)
+		{
+			value = literal.Token.Value;
+			return true;
+		}
+
+		if (expression is PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.UnaryMinusExpression } negation
+		    && negation.Operand is LiteralExpressionSyntax negatedLiteral)
+		{
+			value = negatedLiteral.Token.Value.Negate();
+			return true;
+		}
+
+		value = null;
 		return false;
 	}
 
@@ -1100,8 +1116,20 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 		try
 		{
-			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
-			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
+			// TryOptimizeByOptimizer hands out an UNREDUCED extension-method symbol (ReducedFrom is
+			// null; Parameters[0] IS the receiver, and - contrary to what the "null when unreduced"
+			// docs on ReceiverType suggest - it's actually non-null but wrong here, pointing at the
+			// declaring type (e.g. System.Linq.Enumerable) rather than the real receiver parameter
+			// type) instead of the REDUCED form a normally-visited call site gets from the semantic
+			// model (ReducedFrom set, ReceiverType correct, Parameters excludes the receiver). Detect
+			// via ReducedFrom - the documented, reliable signal - and fall back to Parameters[0] for
+			// the receiver type so folding still works for synthesized invocations.
+			var isUnreducedExtension = context.Method.IsExtensionMethod && context.Method.ReducedFrom is null;
+			var methodReceiverType = isUnreducedExtension ? context.Method.Parameters.FirstOrDefault()?.Type : context.Method.ReceiverType;
+			var methodParameters = isUnreducedExtension ? context.Method.Parameters.Skip(1).ToArray() : context.Method.Parameters.ToArray();
+
+			if (context.OriginalParameters.Count <= methodParameters.Length
+			    && methodReceiverType is INamedTypeSymbol receiverType
 			    && TryGetLiteralValue(visitedSource, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
@@ -1109,17 +1137,17 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 
 				for (var i = 0; i < context.OriginalParameters.Count; i++)
 				{
-					if (TryGetLiteralValue(context.OriginalParameters[i], context, context.Method.Parameters[i].Type, out var value)
-					    || TryGetLiteralValue(context.VisitedParameters[i], context, context.Method.Parameters[i].Type, out value))
+					if (TryGetLiteralValue(context.OriginalParameters[i], context, methodParameters[i].Type, out var value)
+					    || TryGetLiteralValue(context.VisitedParameters[i], context, methodParameters[i].Type, out value))
 					{
 						parameters.Add(value);
 					}
 				}
 
 				// Fill in default values for parameters not explicitly provided in the call.
-				for (var i = context.OriginalParameters.Count; i < context.Method.Parameters.Length; i++)
+				for (var i = context.OriginalParameters.Count; i < methodParameters.Length; i++)
 				{
-					var param = context.Method.Parameters[i];
+					var param = methodParameters[i];
 
 					if (param.HasExplicitDefaultValue)
 					{
@@ -1127,7 +1155,7 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 					}
 				}
 
-				if (parameters.Count == context.Method.Parameters.Length)
+				if (parameters.Count == methodParameters.Length)
 				{
 					if (method.IsStatic
 					    && TryCreateLiteral(method.Invoke(null, [ values, .. parameters ]), out var tempResult)
@@ -1161,8 +1189,14 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 	{
 		try
 		{
-			if (context.OriginalParameters.Count <= context.Method.Parameters.Length
-			    && context.Method.ReceiverType is INamedTypeSymbol receiverType
+			// See the other TryExecutePredicates overload for why: TryOptimizeByOptimizer hands out an
+			// UNREDUCED extension-method symbol (ReducedFrom null; Parameters[0] IS the receiver).
+			var isUnreducedExtension = context.Method.IsExtensionMethod && context.Method.ReducedFrom is null;
+			var methodReceiverType = isUnreducedExtension ? context.Method.Parameters.FirstOrDefault()?.Type : context.Method.ReceiverType;
+			var methodParameters = isUnreducedExtension ? context.Method.Parameters.Skip(1).ToArray() : context.Method.Parameters.ToArray();
+
+			if (context.OriginalParameters.Count <= methodParameters.Length
+			    && methodReceiverType is INamedTypeSymbol receiverType
 			    && TryGetLiteralValue(context.Visit(source) ?? source, context, receiverType, out var values)
 			    && context.Loader.TryGetMethodByMethod(context.Method, out var method))
 			{
@@ -1171,9 +1205,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 					.ToList();
 
 				// Fill in default values for parameters not explicitly provided in the call.
-				for (var i = parameters.Count; i < context.Method.Parameters.Length; i++)
+				for (var i = parameters.Count; i < methodParameters.Length; i++)
 				{
-					var param = context.Method.Parameters[i];
+					var param = methodParameters[i];
 
 					if (param.HasExplicitDefaultValue)
 					{
@@ -1181,9 +1215,9 @@ public abstract class BaseLinqFunctionOptimizer(string name, Func<int, bool> isV
 					}
 				}
 
-				if (newParameters.Count == context.Method.Parameters.Length)
+				if (newParameters.Count == methodParameters.Length)
 				{
-					if (context.Method.ReceiverType is not null
+					if (method.IsStatic
 					    && TryCreateLiteral(method.Invoke(null, [ values, .. newParameters ]), out var tempResult)
 					    || TryCreateLiteral(method.Invoke(values, [ .. newParameters ]), out tempResult))
 					{

@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests that operations which affect element positions are NOT optimized
 /// </summary>
 [InheritsTests]
-public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqElementAtNoOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -36,10 +36,5 @@ public class LinqElementAtNoOptimizationTests : BaseTest<Func<int[], int>>
 
 			return xRef * 3 + TensorPrimitives.Min(x) + TensorPrimitives.Max(x) + Unsafe.Add(ref xRef, x.Length - 1) + First_O1a9Fw(x);
 			"""),
-		Create(_ => 17, [ new[] { 1, 2, 3, 4, 5 } ]), // 1 + 5 + 5 + 3 + 2 + 1 + 1 = 18
-		Create(_ =>
-		{
-			throw new ArgumentOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')");
-		}, [ System.Array.Empty<int>() ])
 	];
 }

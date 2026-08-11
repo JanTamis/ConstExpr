@@ -2,7 +2,7 @@ namespace ConstExpr.Tests.Math;
 
 /// <summary>MathF.Cbrt(float) → FastCbrt(x) in FastMath mode.</summary>
 [InheritsTests]
-public class MathFCbrtTest : BaseTest<Func<float, float>>
+public class MathFCbrtTest : BaseTestWithRandomValues<Func<float, float>>
 {
 	public override string TestMethod => GetString(x => MathF.Cbrt(x));
 

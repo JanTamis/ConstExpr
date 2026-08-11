@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Cast() optimization - verify that AsEnumerable, ToList, ToArray are skipped
 /// </summary>
 [InheritsTests]
-public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
+public class LinqCastOptimizationTests : BaseTestWithRandomValues<Func<List<object>, int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -29,8 +29,5 @@ public class LinqCastOptimizationTests : BaseTest<Func<List<object>, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Sum_gqdmOQ(x) * 5;"),
-		CreateFolded(new List<object> { 1, 2, 3 }), // sum=6, a=6, b=6, c=6, d=6, e=6 = 30
-		CreateFolded(new List<object>()), // Empty array
-		CreateFolded(new List<object> { 10 }) // sum=10, a=10, b=10, c=10, d=10, e=10 = 50
 	];
 }

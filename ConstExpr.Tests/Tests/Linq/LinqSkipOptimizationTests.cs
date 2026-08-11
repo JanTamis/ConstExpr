@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for Skip() optimization - verify Skip(0) removal
 /// </summary>
 [InheritsTests]
-public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
+public class LinqSkipOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -24,7 +24,5 @@ public class LinqSkipOptimizationTests : BaseTest<Func<int[], int>>
 
 			return xLength + Int32.Max(0, xLength - 4);
 		}),
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

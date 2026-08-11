@@ -9,8 +9,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   proven true on the very first check and the <c>while</c> becomes a <c>do</c>-<c>while</c>.
 /// </summary>
 [InheritsTests]
-public class WhileToDoWhileConversionTests() : BaseTest<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
+public class WhileToDoWhileConversionTests() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
 {
+
+	protected override int MaxRandomMagnitudeBits => 5;
 	public override string TestMethod => GetString(n =>
 	{
 		if (n <= 0)

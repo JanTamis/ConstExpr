@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Linq;
 ///   Tests for DefaultIfEmpty() with custom default value
 /// </summary>
 [InheritsTests]
-public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
+public class LinqDefaultIfEmptyWithValueTests : BaseTestWithRandomValues<Func<int[], int>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -31,7 +31,5 @@ public class LinqDefaultIfEmptyWithValueTests : BaseTest<Func<int[], int>>
 
 			return (gt ? xRef : 42) + (gt ? xRef : 99) + First_mA5pFw(x) + (gt ? xRef : 10);
 			"""),
-		CreateFolded(new[] { 1 }), // Non-empty: returns first element (1) four times = 1+1+1+1 = 4
-		CreateFolded(System.Array.Empty<int>()) // Empty: returns default values 42+99+77+20 = 238
 	];
 }

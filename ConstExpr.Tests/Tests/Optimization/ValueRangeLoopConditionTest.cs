@@ -18,7 +18,7 @@ namespace ConstExpr.Tests.Optimization;
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
+public class ValueRangeLoopConditionTest : BaseTestWithRandomValues<Func<int, int>>
 {
 	public override string TestMethod => GetString(n =>
 	{
@@ -50,9 +50,6 @@ public class ValueRangeLoopConditionTest : BaseTest<Func<int, int>>
 			} while (x < 10);
 
 			return count;
-		}, [ Unknown ]),
-
-		// n = 5 masks to 1, so the loop runs from 1 up to 10: nine iterations.
-		CreateFolded(5)
+		}),
 	];
 }

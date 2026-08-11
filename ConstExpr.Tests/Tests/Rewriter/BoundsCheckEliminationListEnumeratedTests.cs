@@ -5,7 +5,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   is enumerated anywhere is refused — otherwise this would stop throwing and silently mutate.
 /// </summary>
 [InheritsTests]
-public class BoundsCheckEliminationListEnumeratedTests : BaseTest<Func<List<int>, int>>
+public class BoundsCheckEliminationListEnumeratedTests : BaseTestWithRandomValues<Func<List<int>, int>>
 {
 	public override string TestMethod => GetString(values =>
 	{

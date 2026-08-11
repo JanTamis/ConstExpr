@@ -46,31 +46,69 @@ public partial class ConstExprPartialRewriter
 			return VisitInvocationExpressionFallback(node);
 		}
 
-		if (node.Expression is MemberAccessExpressionSyntax receiverMemberAccess)
-		{
-			MarkReceiverAsAlteredIfNeeded(targetMethod, receiverMemberAccess.Expression, receiverMemberAccess.Name.Identifier.Text);
-		}
-
 		var originalArguments = node.ArgumentList.Arguments;
 		var argumentExpressions = new ExpressionSyntax[originalArguments.Count];
 
 		for (var i = 0; i < originalArguments.Count; i++)
 		{
 			var originalExpression = originalArguments[i].Expression;
-			argumentExpressions[i] = Visit(originalExpression) as ExpressionSyntax ?? originalExpression;
+
+			// A ref/out argument must remain an lvalue - Visit() can fold a tracked variable straight
+			// to a literal (e.g. `-2`, itself a PrefixUnaryExpressionSyntax negation, not even a plain
+			// LiteralExpressionSyntax - so a "did it become a literal" check misses it too), which is
+			// not valid C# in an out/ref slot and silently breaks the by-ref write the call depends on.
+			// Always keep the original lvalue for these; constant-argument extraction below still reads
+			// the variable's current value straight off that same identifier.
+			argumentExpressions[i] = originalArguments[i].RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword)
+				? originalExpression
+				: Visit(originalExpression) as ExpressionSyntax ?? originalExpression;
 		}
 
 		var constantArguments = ExtractConstantArguments(argumentExpressions, originalArguments);
 
+		// IMethodSymbol.Parameters always reflects the full declaration, including trailing
+		// optional parameters the call site omitted (e.g. AggregateBy's keyComparer = null) —
+		// fill those in with their declared default so the length still lines up below.
+		if (constantArguments.Count == originalArguments.Count)
+		{
+			for (var i = constantArguments.Count; i < targetMethod.Parameters.Length; i++)
+			{
+				var parameter = targetMethod.Parameters[i];
+
+				if (!parameter.HasExplicitDefaultValue)
+				{
+					break;
+				}
+
+				constantArguments.Add(parameter.ExplicitDefaultValue!);
+			}
+		}
+
 		// Try to execute with all constant arguments
+		var executed = false;
+
 		if (constantArguments.Count == targetMethod.Parameters.Length)
 		{
-			var result = TryExecuteWithConstantArguments(node, targetMethod, constantArguments);
+			var result = TryExecuteWithConstantArguments(node, targetMethod, constantArguments, out executed);
 
 			if (result is not null)
 			{
 				return result;
 			}
+		}
+
+		// Only mark the receiver altered (wiping its tracked value) once we know reflective
+		// execution above did NOT already run: a receiver with a known value (e.g. a List<T>
+		// fuzzed by RunRandomTests) that reaches TryExecuteInstanceMethod gets its mutating call
+		// (Add, Remove, ...) actually invoked via reflection on the SAME tracked object - the
+		// mutation is already captured, and every later read of the receiver should keep folding
+		// against it. Checking this before the attempt (as this used to) meant hasLiteral inside
+		// TryExecuteInstanceMethod was always false, since the wipe had already happened -
+		// nothing could ever be reflectively executed for a receiver this pass considers likely-
+		// mutating in the first place.
+		if (!executed && node.Expression is MemberAccessExpressionSyntax receiverMemberAccess)
+		{
+			MarkReceiverAsAlteredIfNeeded(targetMethod, receiverMemberAccess.Expression, receiverMemberAccess.Name.Identifier.Text);
 		}
 
 		// Try string optimizers
@@ -130,7 +168,18 @@ public partial class ConstExprPartialRewriter
 			}
 		}
 
-		var expression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
+		// A mutating call's receiver (`values.Add(...)`) must keep its own identity rather than being
+		// visited normally: visiting would inline a fully-known receiver to its current literal value
+		// (e.g. `values` -> `[1]`), producing `[1].Add(1)` - a throwaway collection literal that gets
+		// mutated and immediately discarded instead of the real, caller-aliased object. Reads have no
+		// such concern (a snapshot read and a live read agree on a known value), so only mutating
+		// calls on a plain identifier receiver skip the visit. Must happen here, before `node` is
+		// rebound below - HandleInstanceMethodInvocation's own copy of this guard only protects
+		// against a second, redundant visit once this one has already preserved the receiver.
+		var expression = node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax } mutatingReceiverAccessOuter
+		                 && IsLikelyMutatingMethod(targetMethod, mutatingReceiverAccessOuter.Name.Identifier.Text)
+			? mutatingReceiverAccessOuter
+			: Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
 		if (expression is LambdaExpressionSyntax lambdaExpression)
 		{
@@ -186,7 +235,13 @@ public partial class ConstExprPartialRewriter
 	{
 		if (targetMethod is not null)
 		{
-			if (targetMethod.IsStatic)
+			// `IsStatic` alone doesn't catch this: Roslyn reports a REDUCED extension-method symbol
+			// (the one bound from instance-call syntax like `x.Append(10)`) as IsStatic == false, so
+			// without this an extension method sharing a name with the builder/collection-mutation
+			// list below (e.g. LINQ's non-mutating Enumerable.Append vs. StringBuilder.Append) is
+			// wrongly flagged as mutating its receiver. IsExtensionMethod is true for both the
+			// reduced and unreduced form, so it doesn't have that gap.
+			if (targetMethod.IsStatic || targetMethod.IsExtensionMethod)
 			{
 				return false;
 			}
@@ -272,10 +327,17 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Tries to execute a method with constant arguments.
+	///   Tries to execute a method with constant arguments. <paramref name="executed" /> is true when
+	///   the method actually ran via reflection - including a void-returning call that folds to
+	///   nothing (e.g. <c>List&lt;T&gt;.Add</c>) - as opposed to this method returning
+	///   <see langword="null" /> because nothing could be attempted at all. Callers use this to know
+	///   whether a mutating call already updated its receiver's tracked value in place, so they don't
+	///   also have to conservatively wipe that tracking afterward.
 	/// </summary>
-	private SyntaxNode? TryExecuteWithConstantArguments(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<object> constantArguments)
+	private SyntaxNode? TryExecuteWithConstantArguments(InvocationExpressionSyntax node, IMethodSymbol targetMethod, List<object> constantArguments, out bool executed)
 	{
+		executed = false;
+
 		try
 		{
 			// Check if the invocation target is a local lambda variable (e.g. var func = (int x) => x + 1; func(6))
@@ -295,7 +357,7 @@ public partial class ConstExprPartialRewriter
 			if (node.Expression is MemberAccessExpressionSyntax { Expression: var instanceName }
 			    && !targetMethod.ContainingType.EqualsType(semanticModel.Compilation.GetTypeByMetadataName("System.Random")))
 			{
-				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments)
+				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments, node.ArgumentList.Arguments, out executed)
 					.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
 			}
 
@@ -309,10 +371,13 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Tries to execute an instance method.
+	///   Tries to execute an instance method. See <see cref="TryExecuteWithConstantArguments" /> for
+	///   what <paramref name="executed" /> signals.
 	/// </summary>
-	private SyntaxNode? TryExecuteInstanceMethod(IMethodSymbol targetMethod, ExpressionSyntax instanceName, List<object> constantArguments)
+	private SyntaxNode? TryExecuteInstanceMethod(IMethodSymbol targetMethod, ExpressionSyntax instanceName, List<object> constantArguments, SeparatedSyntaxList<ArgumentSyntax> originalArguments, out bool executed)
 	{
+		executed = false;
+
 		var hasLiteral = TryGetLiteralValue(instanceName, out var instance)
 		                 || TryGetLiteralValue(Visit(instanceName), out instance);
 
@@ -327,18 +392,49 @@ public partial class ConstExprPartialRewriter
 
 		if ((targetMethod.IsStatic || hasLiteral
 			    && (instanceName is not IdentifierNameSyntax identifier || CanBePruned(identifier.Identifier.Text)))
-		    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value)
-		    && TryCreateLiteral(value, out var literal))
+		    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value, out var executedParameters))
 		{
+			executed = true;
+
+			WriteBackRefOutParameters(originalArguments, executedParameters);
+
 			if (targetMethod.ReturnsVoid)
 			{
 				return null;
 			}
 
-			return literal;
+			return TryCreateLiteral(value, out var literal) ? literal : null;
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	///   After a reflectively-executed call, copies each ref/out argument's post-invoke value (which
+	///   `MethodBase.Invoke` already wrote into <paramref name="executedParameters" /> as part of the
+	///   call - see the `TryExecuteMethod` overload with an `out IReadOnlyList{object?}?` parameter)
+	///   back into the tracked <see cref="VariableItem" /> it was passed as, e.g. so `Int32.TryParse(s, out value)`
+	///   actually updates `value` for the rest of the fold instead of leaving it at its stale pre-call value.
+	///   Scoped to a bare identifier naming a tracked variable - other lvalue shapes (arr[i], obj.Field)
+	///   aren't tracked per-write here and are left as an unfolded runtime call.
+	/// </summary>
+	private void WriteBackRefOutParameters(SeparatedSyntaxList<ArgumentSyntax> originalArguments, IReadOnlyList<object?>? executedParameters)
+	{
+		if (executedParameters is null)
+		{
+			return;
+		}
+
+		for (var i = 0; i < originalArguments.Count && i < executedParameters.Count; i++)
+		{
+			if (originalArguments[i].RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword)
+			    && originalArguments[i].Expression is IdentifierNameSyntax { Identifier.Text: var name }
+			    && variables.TryGetValue(name, out var variable))
+			{
+				variable.Value = executedParameters[i];
+				variable.HasValue = true;
+			}
+		}
 	}
 
 	/// <summary>
@@ -1002,7 +1098,16 @@ public partial class ConstExprPartialRewriter
 		usings.Add(targetMethod.ContainingType.ContainingNamespace.ToString());
 
 
-		var expression = Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
+		// A mutating call's receiver (`values.Add(...)`) must keep its own identity: visiting it
+		// normally would inline a fully-known receiver to its current literal value (e.g. `values` ->
+		// `[1]`), producing `[1].Add(1)` - a throwaway collection literal that gets mutated and
+		// immediately discarded instead of the real, caller-aliased object. Reads have no such
+		// concern (a snapshot read and a live read agree on a known value), so only mutating calls on
+		// a plain identifier receiver skip the visit.
+		var expression = node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax } mutatingReceiverAccess
+		                 && IsLikelyMutatingMethod(targetMethod, mutatingReceiverAccess.Name.Identifier.Text)
+			? mutatingReceiverAccess
+			: Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
 
 		// Handle collection conversion methods
 		if (expression is MemberAccessExpressionSyntax { Expression: CollectionExpressionSyntax collection }
@@ -1204,6 +1309,16 @@ public partial class ConstExprPartialRewriter
 		return operation switch
 		{
 			IArrayElementReferenceOperation arrayOp => TryEvaluateArrayAccess(instanceValue as Array, constantArguments, arrayOp.Indices.Length, type),
+			// A Span<T>/ReadOnlySpan<T> indexer is an IPropertyReferenceOperation, not an
+			// IArrayElementReferenceOperation - but when it was assigned from an already-tracked array
+			// (`Span<int> buf = array;`), TryGetLiteralValue resolved instanceValue to that same boxed
+			// Array (Span<T> aliases it, it's never copied), so reading through it directly is exactly
+			// as sound as reading the array itself. This also sidesteps the reflection path below,
+			// which cannot work here anyway: Span<T> is a ref struct, so its GetMethod can't be
+			// reflection-invoked with a boxed receiver in the first place.
+			IPropertyReferenceOperation { Property.IsIndexer: true } spanProp when instanceValue is Array shadowArray
+			                                                                       && constantArguments.Length == spanProp.Arguments.Length
+				=> TryEvaluateArrayAccess(shadowArray, constantArguments, spanProp.Arguments.Length, type),
 			IPropertyReferenceOperation { Property.IsIndexer: true } propOp when instanceValue is not null
 			                                                                     && constantArguments.Length == propOp.Arguments.Length
 			                                                                     && loader.TryExecuteMethod(propOp.Property.GetMethod, instanceValue, new VariableItemDictionary(variables), constantArguments, out var value)
@@ -1333,11 +1448,35 @@ public partial class ConstExprPartialRewriter
 	{
 		semanticModel.TryGetTypeSymbol(node, symbolStore, out var typeSymbol);
 
+		// `Regex.Match(input, pattern).Value` / `Regex.Matches(input, pattern).Count` etc. - when every
+		// argument to Match/Matches is a known constant, run the real regex directly (the source generator
+		// is itself a normal .NET assembly with access to System.Text.RegularExpressions - no need to go
+		// through the interpreter's reflection layer) and fold straight to the accessed property's literal
+		// value. MatchFunctionOptimizer/MatchesFunctionOptimizer only cache a compiled Regex as a static
+		// field and re-emit the call - they never attempt this even when the input is also fully known, so
+		// without this check `Regex.Match("1234", @"^\d+$").Value` stays an unfolded runtime call forever.
+		if (TryFoldRegexPropertyAccess(node, out var regexLiteral))
+		{
+			return regexLiteral;
+		}
+
 		var expression = Visit(node.Expression);
 
 		if (expression is ThrowExpressionSyntax)
 		{
 			return expression;
+		}
+
+		// `new Lookup_xxx().Count` (ToLookupFunctionOptimizer's compile-time-generated ILookup struct) -
+		// node's real symbol resolves fine (it's the original tree's genuine ILookup<TKey,TElement>.Count
+		// property), but the instance is a struct this same generator pass is still emitting, so neither
+		// the semantic model nor reflection can ever construct/execute against it below. The optimizer
+		// stashes the known group count directly on the object-creation node; recover it here first.
+		if (node.Name.Identifier.Text == "Count"
+		    && expression is ObjectCreationExpressionSyntax
+		    && expression.TryGetLookupCountAnnotation(out var lookupCount))
+		{
+			return CreateLiteral(lookupCount);
 		}
 
 		// Distribute the member access into both branches of an otherwise-unresolvable ternary
@@ -1493,6 +1632,66 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   Folds `Regex.Match(input, pattern[, options]).SomeProperty` / `Regex.Matches(input, pattern[, options]).SomeProperty`
+	///   to a literal when every Match/Matches argument is a known constant, by actually running the regex
+	///   (the source generator itself is a normal .NET assembly - no interpreter reflection needed) and
+	///   reading the accessed property off the real result object. Only folds when the property's value is
+	///   itself literal-representable (e.g. Value/Success/Index/Length/Count) - a property like Groups isn't,
+	///   and TryCreateLiteral failing is exactly the signal to leave the member access for normal processing.
+	/// </summary>
+	private bool TryFoldRegexPropertyAccess(MemberAccessExpressionSyntax node, out ExpressionSyntax? literal)
+	{
+		literal = null;
+
+		if (node.Expression is not InvocationExpressionSyntax regexInvocation
+		    || !semanticModel.TryGetSymbol(regexInvocation, symbolStore, out IMethodSymbol? regexMethod)
+		    || regexMethod.ContainingType.ToDisplayString() != "System.Text.RegularExpressions.Regex"
+		    || regexMethod.Name is not (nameof(System.Text.RegularExpressions.Regex.Match) or nameof(System.Text.RegularExpressions.Regex.Matches)))
+		{
+			return false;
+		}
+
+		var arguments = regexMethod.IsStatic
+			? regexInvocation.ArgumentList.Arguments
+			: default;
+
+		if (arguments.Count is not (2 or 3)
+		    || !TryGetLiteralValue(arguments[0].Expression, out var inputValue) || inputValue is not string input
+		    || !TryGetLiteralValue(arguments[1].Expression, out var patternValue) || patternValue is not string pattern)
+		{
+			return false;
+		}
+
+		var options = System.Text.RegularExpressions.RegexOptions.None;
+
+		if (arguments.Count == 3)
+		{
+			if (!TryGetLiteralValue(arguments[2].Expression, out var optionsValue) || optionsValue is not System.Text.RegularExpressions.RegexOptions o)
+			{
+				return false;
+			}
+
+			options = o;
+		}
+
+		try
+		{
+			var regex = new System.Text.RegularExpressions.Regex(pattern, options);
+			object? result = regexMethod.Name == nameof(System.Text.RegularExpressions.Regex.Match)
+				? regex.Match(input)
+				: regex.Matches(input);
+
+			var propertyValue = result?.GetType().GetProperty(node.Name.Identifier.Text)?.GetValue(result);
+
+			return TryCreateLiteral(propertyValue, out literal);
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	/// <summary>
 	///   Tries to evaluate member access at compile time.
 	/// </summary>
 	private SyntaxNode? TryEvaluateMemberAccess(ISymbol symbol, object? instanceValue)
@@ -1530,6 +1729,16 @@ public partial class ConstExprPartialRewriter
 
 	public override SyntaxNode? VisitArgument(ArgumentSyntax node)
 	{
+		// A ref/out argument must remain an lvalue - Visit() can fold a tracked variable straight to
+		// a literal (e.g. `-2`, itself a PrefixUnaryExpressionSyntax negation, not even a plain
+		// LiteralExpressionSyntax - a "did it become a literal" check misses it too), which is not
+		// valid C# in an out/ref slot and silently breaks the by-ref write the call depends on.
+		// Always keep the original lvalue for these instead of visiting at all.
+		if (node.RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword))
+		{
+			return node;
+		}
+
 		var expression = Visit(node.Expression);
 
 		return node.WithExpression(expression as ExpressionSyntax ?? node.Expression);

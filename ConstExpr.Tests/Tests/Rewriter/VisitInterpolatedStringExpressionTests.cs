@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for VisitInterpolatedStringExpression - fold to string literal when all parts constant
 /// </summary>
 [InheritsTests]
-public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string, string)>>
+public class VisitInterpolatedStringExpressionTests : BaseTestWithRandomValues<Func<int, (string, string)>>
 {
 	public override string TestMethod => GetString(x =>
 	{
@@ -17,7 +17,5 @@ public class VisitInterpolatedStringExpressionTests : BaseTest<Func<int, (string
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(x => ($"Value: {x}", "Hello  world")),
-		CreateFolded(42),
-		CreateFolded(50)
 	];
 }
