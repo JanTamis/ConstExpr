@@ -98,11 +98,11 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 				}
 			}
 
-			for (var i = 0; i < testCase.Value.Length; i++)
+			for (var i = 0; i < testCase.Parameters.Length; i++)
 			{
 				var name = state.ParameterNames[i];
 				var parameter = parameters[name];
-				var value = testCase.Value[i];
+				var value = testCase.Parameters[i];
 
 				parameter.HasValue = true;
 				parameter.Value = value;
@@ -130,32 +130,25 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 			// Same shared pipeline the generator runs, so the harness cannot drift from it.
 			newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings) as BlockSyntax ?? newBody;
 
+			// NOTE: FormattingHelper.Format is not idempotent (BlockFormattingRewriter's grouping/spacing
+			// heuristics can shift output on a second pass). testCase.ExpectedBodyRendered was produced by
+			// CreateFoldedSyntax formatting twice before rendering (matching every other rendered
+			// comparison string in this codebase), so newBody must go through the same two passes - one
+			// here, one inside FormattingHelper.Render - or the two sides can disagree despite being
+			// semantically identical.
 			newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 			var newBodyRendered = FormattingHelper.Render(newBody);
 
-			if (testCase.Key is null)
+			if (newBodyRendered != testCase.ExpectedBodyRendered)
 			{
-				if (newBodyRendered != state.FormattedOriginalBodyRendered)
-				{
-					throw FormatMismatchException(state.ParameterNames, parameters, state.FormattedOriginalBody, newBody, additionalSyntax, exceptionsDuringRewriting);
-				}
-			}
-			else
-			{
-				var (expectedBody, expectedBodyRendered) = GetOrParseBlock(testCase.Key);
-
-				// Use Roslyn structural equivalence which ignores trivia differences
-				if (newBodyRendered != expectedBodyRendered)
-				{
-					throw FormatMismatchException(state.ParameterNames, parameters, expectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
-				}
+				throw FormatMismatchException(state.ParameterNames, parameters, testCase.ExpectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
 	}
 
 	/// <summary>
 	///   Lazily generates test cases with randomly generated (fully known) parameter values, using
-	///   <see cref="BaseTest{TDelegate}.CreateFolded" /> to compute each expected result by invoking the real
+	///   <see cref="BaseTest{TDelegate}.CreateFoldedSyntax" /> to compute each expected result by invoking the real
 	///   <see cref="BaseTest{TDelegate}.TestMethod" /> delegate. The seed defaults to a stable hash of the test class's type
 	///   name, so results are reproducible across runs unless explicitly overridden. Every yielded case has a distinct
 	///   expected body - a randomly generated input that throws (violates a precondition the method under test enforces
@@ -164,22 +157,22 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	///   a guaranteed count should assert on the sequence length, not assume it always reaches
 	///   <see cref="RandomTestCaseCount" />.
 	/// </summary>
-	protected IEnumerable<KeyValuePair<string?, object?[]>> CreateFoldedRandom(int? seed = null)
+	protected IEnumerable<(object?[] Parameters, BlockSyntax ExpectedBody, string ExpectedBodyRendered)> CreateFoldedRandom(int? seed = null)
 	{
 		var parameterTypes = typeof(TDelegate).GetMethod("Invoke")?.GetParameters().Select(p => p.ParameterType).ToArray()
 		                     ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{typeof(TDelegate).FullName}'.");
 
 		var random = new Random(seed ?? GetStableSeed(GetType()));
-		var seenBodies = new HashSet<string?>();
+		var seenBodies = new HashSet<string>(StringComparer.Ordinal);
 
 		for (var attempt = 0; attempt < RandomTestCaseCount; attempt++)
 		{
 			var parameters = parameterTypes.Select(t => GenerateRandomValue(t, random)).ToArray();
-			KeyValuePair<string?, object?[]> testCase;
+			(object?[] Parameters, BlockSyntax ExpectedBody, string ExpectedBodyRendered) testCase;
 
 			try
 			{
-				testCase = CreateFolded(parameters);
+				testCase = CreateFoldedSyntax(parameters);
 			}
 			catch (TargetInvocationException)
 			{
@@ -190,7 +183,7 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 				continue;
 			}
 
-			if (seenBodies.Add(testCase.Key))
+			if (seenBodies.Add(testCase.ExpectedBodyRendered))
 			{
 				yield return testCase;
 			}

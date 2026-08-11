@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Numerics.Tensors;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using Microsoft.CodeAnalysis;
@@ -15,7 +14,6 @@ using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
 using sourcegen::ConstExpr.SourceGenerator.Models;
 using sourcegen::ConstExpr.SourceGenerator.Rewriters;
-using sourcegen::ConstExpr.SourceGenerator.Visitors;
 
 namespace ConstExpr.Tests;
 
@@ -237,6 +235,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		// Same shared pipeline the generator runs, so the harness cannot drift from it.
 		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings) as BlockSyntax ?? newBody;
 
+		// NOTE: FormattingHelper.Format is not idempotent (BlockFormattingRewriter's grouping/spacing
+		// heuristics can shift output on a second pass), and every other rendered comparison string in
+		// this file (GetOrParseBlock, BaseTestClassState.FormattedOriginalBodyRendered) is produced by
+		// formatting twice before rendering. This explicit Format call has to stay paired with the one
+		// FormattingHelper.Render performs internally, or newBodyRendered stops matching a
+		// twice-formatted expected string that happens to differ from its once-formatted form.
 		newBody = FormattingHelper.Format(newBody!) as BlockSyntax;
 		var newBodyRendered = FormattingHelper.Render(newBody);
 
@@ -400,6 +404,45 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 	/// <returns>A key-value pair representing the test case.</returns>
 	protected KeyValuePair<string?, object?[]> CreateFolded(params object?[] parameters)
 	{
+		var result = InvokeForFolding(parameters);
+
+		// A void delegate's DynamicInvoke result is always null - that's "no return value", not "the
+		// method returned the literal null". Wrapping it in `return null;` regardless produces invalid
+		// C# for a void method (CS0127) and can never match a fully-folded void body, which - once
+		// every statement has folded away - renders as an empty block, not one with a return.
+		var expectedBody = IsVoidDelegate() ? "" : $"return {FormattingHelper.Render(SyntaxHelpers.CreateLiteral(result))};";
+
+		return KeyValuePair.Create<string?, object?[]>(expectedBody, parameters);
+	}
+
+	/// <summary>
+	///   Random-case variant of <see cref="CreateFolded" />, used only by
+	///   <see cref="BaseTestWithRandomValues{TDelegate}.CreateFoldedRandom" />. Builds the expected body
+	///   directly as a <see cref="BlockSyntax" /> instead of rendering it to source text and handing that
+	///   text to <see cref="GetOrParseBlock" /> for a full Roslyn reparse - a randomly drawn expected body
+	///   is essentially never reused across iterations, so that reparse (and the extra format pass it
+	///   implies) is pure waste on this path.
+	/// </summary>
+	private protected (object?[] Parameters, BlockSyntax ExpectedBody, string ExpectedBodyRendered) CreateFoldedSyntax(object?[] parameters)
+	{
+		var result = InvokeForFolding(parameters);
+
+		var block = IsVoidDelegate()
+			? SyntaxFactory.Block()
+			: SyntaxFactory.Block(SyntaxFactory.ReturnStatement(SyntaxHelpers.CreateLiteral(result)));
+
+		var formatted = FormattingHelper.Format(block) as BlockSyntax ?? block;
+		var rendered = FormattingHelper.Render(formatted)!;
+
+		return (parameters, formatted, rendered);
+	}
+
+	/// <summary>
+	///   Shared validation + real-delegate invocation behind <see cref="CreateFolded" /> and
+	///   <see cref="CreateFoldedSyntax" />.
+	/// </summary>
+	private object? InvokeForFolding(object?[] parameters)
+	{
 		var delegateParamCount = GetDelegateParameterCount();
 
 		if (parameters.Length != delegateParamCount)
@@ -418,15 +461,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		// may mutate its argument, and `parameters` is also handed to the rewriter afterwards as the
 		// "known" input to fold from - if the real invocation mutated the same array/list object in
 		// place, the rewriter would start folding from the post-mutation state instead of the original.
-		var result = _capturedMethod!.DynamicInvoke(parameters.Select(CloneParameterForInvocation).ToArray());
-
-		// A void delegate's DynamicInvoke result is always null - that's "no return value", not "the
-		// method returned the literal null". Wrapping it in `return null;` regardless produces invalid
-		// C# for a void method (CS0127) and can never match a fully-folded void body, which - once
-		// every statement has folded away - renders as an empty block, not one with a return.
-		var expectedBody = IsVoidDelegate() ? "" : $"return {FormattingHelper.Render(SyntaxHelpers.CreateLiteral(result))};";
-
-		return KeyValuePair.Create<string?, object?[]>(expectedBody, parameters);
+		return _capturedMethod!.DynamicInvoke(parameters.Select(CloneParameterForInvocation).ToArray());
 	}
 
 	/// <summary>
