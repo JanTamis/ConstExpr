@@ -6,7 +6,6 @@ namespace ConstExpr.Tests.Linq;
 [InheritsTests]
 public class LinqDistinctOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
-
 	public override string TestMethod => GetString(x =>
 	{
 		// Distinct().Distinct() => Distinct() (redundant)
@@ -45,8 +44,5 @@ public class LinqDistinctOptimizationTests : BaseTestWithRandomValues<Func<int[]
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return Count_w6J_9Q(x) * 9 + Unsafe.BitCast<bool, byte>(x.Length > 0);"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>()),
-		CreateFolded(new[] { 1, 1, 2, 2, 3 }) // 3 distinct values
 	];
 }

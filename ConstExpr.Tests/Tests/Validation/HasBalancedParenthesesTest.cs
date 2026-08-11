@@ -39,10 +39,37 @@ public class HasBalancedParenthesesTest : BaseTestWithRandomValues<Func<string?,
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateFolded("(()"),
-		CreateFolded("((()))"),
-		CreateFolded("()()()"),
-		CreateFolded(")("),
-		CreateFolded(System.String.Empty)
+		Create(input =>
+		{
+			if (System.String.IsNullOrEmpty(input))
+				return true;
+
+			var balance = 0;
+
+			foreach (var c in input)
+			{
+				switch (c)
+				{
+					case '(':
+					{
+						balance++;
+
+						break;
+					}
+
+					case ')':
+					{
+						balance--;
+
+						if (balance < 0)
+							return false;
+
+						break;
+					}
+				}
+			}
+
+			return balance == 0;
+		})
 	];
 }

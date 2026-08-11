@@ -6,7 +6,6 @@ using ConstExpr.Core.Attributes;
 using ConstExpr.Core.Enumerators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using sourcegen::ConstExpr.SourceGenerator.BuildIn;
 using sourcegen::ConstExpr.SourceGenerator.Comparers;
 using sourcegen::ConstExpr.SourceGenerator.Helpers;
 using sourcegen::ConstExpr.SourceGenerator.Models;
@@ -54,9 +53,6 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 		var exceptionsDuringRewriting = new List<Exception>();
 		var usings = new HashSet<string>();
 
-		var analyzer = new InlineVariableAnalyzer(state.SemanticModel, symbolStore);
-		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
-
 		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, usings, attribute, symbolStore, CancellationToken.None, visitedMethods);
 
 		foreach (var testCase in CreateFoldedRandom())
@@ -77,7 +73,7 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 					state.ParameterTypes[i] is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
 			}
 
-			foreach (var candidate in candidates)
+			foreach (var candidate in state.Candidates)
 			{
 				var name = candidate.Symbol.Name;
 

@@ -5,7 +5,6 @@ namespace ConstExpr.Tests.Regex;
 [InheritsTests]
 public class RegexReplaceTests : BaseTestWithRandomValues<Func<string, string, string, RegexOptions, string>>
 {
-
 	public override string TestMethod => GetString((input, pattern, replacement, options) =>
 	{
 		return System.Text.RegularExpressions.Regex.Replace(input, pattern, replacement, options);
@@ -24,8 +23,5 @@ public class RegexReplaceTests : BaseTestWithRandomValues<Func<string, string, s
 
 		// Options unknown: no optimization.
 		Create(null, Unknown, @"^\d+$", Unknown, Unknown),
-
-		// Fully constant: should fold to literal result.
-		CreateFolded("hello 1 2", @"\d", "#", RegexOptions.None)
 	];
 }

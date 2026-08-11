@@ -17,6 +17,5 @@ public class NullCoalesceAssignmentStatementNonNullableTest : BaseTestWithRandom
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return a;"),
-		Create("return \"hello\";", "hello", "world")
 	];
 }

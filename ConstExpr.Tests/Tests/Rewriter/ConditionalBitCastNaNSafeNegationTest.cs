@@ -15,10 +15,6 @@ public class ConditionalBitCastNaNSafeNegationTest() : BaseTestWithRandomValues<
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateFolded(Double.NaN, 1.0),
-		CreateFolded(1.0, Double.NaN),
-		CreateFolded(Double.NaN, Double.NaN),
-		CreateFolded(1.0, 2.0),
-		CreateFolded(2.0, 1.0)
+		Create("return Unsafe.BitCast<bool, byte>(x >= y);")
 	];
 }

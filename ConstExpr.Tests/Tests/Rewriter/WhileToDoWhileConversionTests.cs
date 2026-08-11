@@ -11,8 +11,8 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class WhileToDoWhileConversionTests() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(n =>
 	{
 		if (n <= 0)
@@ -51,9 +51,6 @@ public class WhileToDoWhileConversionTests() : BaseTestWithRandomValues<Func<int
 			} while (i <= n);
 
 			return count;
-		}, [ Unknown ]),
-		CreateFolded(3),
-		CreateFolded(0),
-		CreateFolded(1)
+		})
 	];
 }

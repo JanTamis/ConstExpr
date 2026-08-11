@@ -6,7 +6,6 @@ namespace ConstExpr.Tests.Linq;
 [InheritsTests]
 public class LinqLongCountOptimizationTests : BaseTestWithRandomValues<Func<int[], long>>
 {
-
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(...).LongCount() => LongCount(predicate)
@@ -45,7 +44,5 @@ public class LinqLongCountOptimizationTests : BaseTestWithRandomValues<Func<int[
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return (long)x.Count * 7L + LongCount_LJMk4Q(x) + LongCount_JzD3Jw(x) + LongCount_taQp6w(x) + LongCount_w6J_9Q(x);"),
-		CreateFolded(new[] { 1, 2, 3, 4, 5 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

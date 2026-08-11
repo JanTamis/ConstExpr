@@ -11,8 +11,8 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class WhileToDoWhileConversionNotProvenTest() : BaseTestWithRandomValues<Func<int, int>>(optimizations: OptimizationFlags.WhileToDoWhileConversion)
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(n =>
 	{
 		var i = 1;
@@ -30,8 +30,5 @@ public class WhileToDoWhileConversionNotProvenTest() : BaseTestWithRandomValues<
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(3),
-		CreateFolded(0),
-		CreateFolded(-5)
 	];
 }

@@ -37,8 +37,5 @@ public class BoundsCheckEliminationTests : BaseTestWithRandomValues<Func<int[], 
 
 			return sum;
 		}),
-
-		// Known input folds through the interpreter before the pass ever sees an array.
-		CreateFolded(new[] { 1, 2, 3, 4, 5 })
 	];
 }

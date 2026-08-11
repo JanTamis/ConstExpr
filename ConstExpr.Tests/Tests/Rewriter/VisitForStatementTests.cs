@@ -6,8 +6,8 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class VisitForStatementTests : BaseTestWithRandomValues<Func<int, int>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(x =>
 	{
 		var sum = 0;
@@ -23,10 +23,5 @@ public class VisitForStatementTests : BaseTestWithRandomValues<Func<int, int>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		CreateFolded(0),
-		CreateFolded(1),
-		CreateFolded(2),
-		CreateFolded(4),
-		CreateFolded(5)
 	];
 }

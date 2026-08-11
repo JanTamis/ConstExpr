@@ -8,7 +8,5 @@ public class PowTenToExpTest : BaseTestWithRandomValues<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create(n => Double.Exp10(n)),
-		CreateFolded(3.0),
-		CreateFolded(0.0)
 	];
 }

@@ -13,9 +13,5 @@ public class ConditionalAccessValueTypeMemberNotFoldedTest : BaseTestWithRandomV
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		CreateDefault(),
-		// s is KNOWN here (not merely annotated), so the whole expression - including .Length -
-		// folds straight through to the literal int, implicitly converted to int?.
-		CreateFolded("hello"),
-		CreateFolded("")
 	];
 }

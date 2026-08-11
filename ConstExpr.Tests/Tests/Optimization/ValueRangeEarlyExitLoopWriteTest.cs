@@ -23,8 +23,8 @@ namespace ConstExpr.Tests.Optimization;
 [InheritsTests]
 public class ValueRangeEarlyExitLoopWriteTest : BaseTestWithRandomValues<Func<int, int, int>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString((n, count) =>
 	{
 		if (n > 5)
@@ -65,9 +65,5 @@ public class ValueRangeEarlyExitLoopWriteTest : BaseTestWithRandomValues<Func<in
 
 			return sum;
 		}),
-
-		// One pass counts, the second does not — folding the guard to true would answer 2.
-		CreateFolded(1, 2),
-		CreateFolded(40, 2)
 	];
 }

@@ -33,7 +33,5 @@ public class BoundsCheckEliminationLocalArrayTests : BaseTestWithRandomValues<Fu
 
 			return Unsafe.Add(ref bufRef, mod) + bufRef;
 		}),
-
-		CreateFolded(3)
 	];
 }

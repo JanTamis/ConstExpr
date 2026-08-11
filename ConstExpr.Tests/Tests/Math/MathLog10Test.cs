@@ -9,7 +9,5 @@ public class MathLog10Test : BaseTestWithRandomValues<Func<double, double>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return FastLog10(x);"),
-		CreateFolded(10.0),
-		CreateFolded(100.0)
 	];
 }

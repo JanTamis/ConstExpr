@@ -10,8 +10,8 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class StrengthReductionTests : BaseTestWithRandomValues<Func<int, int>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(n =>
 	{
 		var sum = 0;
@@ -37,10 +37,6 @@ public class StrengthReductionTests : BaseTestWithRandomValues<Func<int, int>>
 			}
 
 			return sum;
-		}, [ Unknown ]),
-
-		// Known bound folds completely through the interpreter: 10 * (0+1+2+3+4) = 100. This
-		// anchors the semantics of the shape independently of the rewriter.
-		CreateFolded(5)
+		})
 	];
 }

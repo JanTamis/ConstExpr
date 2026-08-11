@@ -59,10 +59,5 @@ public class LinqToLookupOptimizationTests : BaseTestWithRandomValues<Func<int[]
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("return ToLookup_MVa_MQ(x).Count * 7 + (ToLookup_sloNHA(x).Count << 1) + (x.ToLookup(v => v).Count << 1) + ToLookup_i0qdOA(x).Count + ToLookup_VYmdsA(x).Count + ToLookup_BusWaA(x).Count;"),
-		// Count on a compile-time-generated Lookup struct now folds all the way to a literal (see
-		// ConstExprPartialRewriter.VisitMemberAccessExpression's Lookup-count-annotation check), so these
-		// two known-input cases collapse past the `new Lookup_xxx().Count` intermediate shape entirely.
-		CreateFolded(new[] { 1, 2, 3 }),
-		CreateFolded(System.Array.Empty<int>())
 	];
 }

@@ -57,7 +57,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		return (typeof(TDelegate).GetMethod("Invoke")?.ReturnType ?? throw new InvalidOperationException($"Could not resolve Invoke on delegate type '{typeof(TDelegate).FullName}'.")) == typeof(void);
 	}
 
-	protected BaseTestClassState GetState()
+	internal BaseTestClassState GetState()
 	{
 		return BaseTestShared.StateByType[GetType()];
 	}
@@ -110,6 +110,12 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		var formattedOriginalBody = FormattingHelper.Format(method.Body!) as BlockSyntax ?? method.Body!;
 		var formattedOriginalBodyTwice = FormattingHelper.Format(formattedOriginalBody) as BlockSyntax ?? formattedOriginalBody;
 
+		// Computed once per class instead of once per RunTest/RunRandomTests invocation: candidates only
+		// depend on method.Body/semanticModel, both fixed for the rest of the class's lifetime. The
+		// symbolStore here is single-use and write-never-read by the analyzer (it's only ever consulted
+		// as a fallback for synthetic/annotated nodes, none of which exist on the freshly parsed body).
+		var candidates = new InlineVariableAnalyzer(semanticModel, new ConcurrentDictionary<ulong, ISymbol>()).FindInlineCandidates(method.Body!);
+
 		var state = new BaseTestClassState
 		{
 			Compilation = compilation,
@@ -119,7 +125,8 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			FormattedOriginalBody = formattedOriginalBody,
 			FormattedOriginalBodyRendered = FormattingHelper.Render(formattedOriginalBodyTwice)!,
 			SemanticModel = semanticModel,
-			Loader = MetadataLoader.GetLoader(compilation)
+			Loader = MetadataLoader.GetLoader(compilation),
+			Candidates = candidates
 		};
 
 		BaseTestShared.StateByType[testType] = state;
@@ -170,10 +177,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			accessVariables.Add(state.ParameterNames[i], 0);
 		}
 
-		var analyzer = new InlineVariableAnalyzer(state.SemanticModel, symbolStore);
-		var candidates = analyzer.FindInlineCandidates(state.Method.Body!);
-
-		foreach (var candidate in candidates)
+		foreach (var candidate in state.Candidates)
 		{
 			var name = candidate.Symbol.Name;
 
@@ -266,11 +270,10 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 	private static CSharpCompilation CreateCompilation(string source)
 	{
-		return CSharpCompilation.Create(
-			"TestAssembly",
-			[ CSharpSyntaxTree.ParseText(source) ],
-			BaseTestShared.MetadataReferences.Value,
-			new CSharpCompilationOptions(OutputKind.ConsoleApplication, nullableContextOptions: NullableContextOptions.Enable));
+		// Deriving from a shared seed (rather than CSharpCompilation.Create from scratch every time)
+		// reuses Roslyn's reference-binding graph across all ~539 test classes instead of re-resolving
+		// the same large MetadataReferences list once per class.
+		return BaseTestShared.SeedCompilation.Value.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
 	}
 
 	private static string BuildSourceWithMethod(string testMethod)
@@ -576,62 +579,84 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 
 		return new InvalidOperationException(errorText);
 	}
+}
+
+/// <summary>
+///   Shared infrastructure for all <see cref="BaseTest{TDelegate}" /> instantiations, regardless of
+///   <c>TDelegate</c>. Deliberately declared as a top-level type rather than nested inside
+///   <see cref="BaseTest{TDelegate}" /> - a type nested inside a generic class implicitly carries the
+///   enclosing type's generic parameters at the CLR level, so a nested version of this class would get a
+///   separate copy of these static fields per distinct closed <c>TDelegate</c> used across the test suite,
+///   defeating the "initialized exactly once" intent.
+/// </summary>
+internal static class BaseTestShared
+{
+	private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
+
+	public static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
+	public static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
+	public static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
+
+	internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
+		{
+			// Force-load assemblies needed in test compilations before scanning the AppDomain.
+			foreach (var t in ForceLoadedTypes)
+			{
+				_ = t;
+			}
+
+			var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
+				.Where(a => !a.IsDynamic && !System.String.IsNullOrWhiteSpace(a.Location))
+				.Select(a => a.Location)
+				.ToHashSet(StringComparer.Ordinal);
+
+			var result = appDomainRefs
+				.Select(MetadataReference (path) => MetadataReference.CreateFromFile(path))
+				.ToList();
+
+			// Explicitly add force-loaded assemblies by location in case they were filtered out.
+			foreach (var t in ForceLoadedTypes)
+			{
+				var location = t.Assembly.Location;
+
+				if (!System.String.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
+				{
+					result.Add(MetadataReference.CreateFromFile(location));
+				}
+			}
+
+			return result;
+		},
+		true);
 
 	/// <summary>
-	///   Non-generic shared infrastructure for all <see cref="BaseTest{TDelegate}" /> instantiations.
-	///   Placing static fields here ensures they are initialized exactly once regardless of how many
-	///   distinct TDelegate type arguments are used.
+	///   A seed compilation carrying the shared references/options with zero syntax trees. Every test
+	///   class's compilation is derived from this via <see cref="CSharpCompilation.AddSyntaxTrees(SyntaxTree[])" />
+	///   instead of
+	///   <see
+	///     cref="CSharpCompilation.Create(string, IEnumerable{SyntaxTree}, IEnumerable{MetadataReference}, CSharpCompilationOptions)" />
+	///   ,
+	///   so Roslyn reuses the reference-binding graph built for this seed instead of rebuilding it from
+	///   scratch for every one of the ~539 test classes.
 	/// </summary>
-	protected static class BaseTestShared
-	{
-		private static readonly Type[] ForceLoadedTypes = [ typeof(TensorPrimitives) ];
+	internal static readonly Lazy<CSharpCompilation> SeedCompilation = new(() =>
+			CSharpCompilation.Create(
+				"TestAssembly",
+				[ ],
+				MetadataReferences.Value,
+				new CSharpCompilationOptions(OutputKind.ConsoleApplication, nullableContextOptions: NullableContextOptions.Enable)),
+		true);
+}
 
-		public static readonly ConcurrentDictionary<Type, BaseTestClassState> StateByType = new();
-		public static readonly ConcurrentDictionary<Type, int> DelegateParameterCount = new();
-		public static readonly ConcurrentDictionary<string, (BlockSyntax Block, string Rendered)> ParsedBlockCache = new(StringComparer.Ordinal);
-
-		internal static readonly Lazy<IReadOnlyList<MetadataReference>> MetadataReferences = new(() =>
-			{
-				// Force-load assemblies needed in test compilations before scanning the AppDomain.
-				foreach (var t in ForceLoadedTypes)
-				{
-					_ = t;
-				}
-
-				var appDomainRefs = AppDomain.CurrentDomain.GetAssemblies()
-					.Where(a => !a.IsDynamic && !System.String.IsNullOrWhiteSpace(a.Location))
-					.Select(a => a.Location)
-					.ToHashSet(StringComparer.Ordinal);
-
-				var result = appDomainRefs
-					.Select(MetadataReference (path) => MetadataReference.CreateFromFile(path))
-					.ToList();
-
-				// Explicitly add force-loaded assemblies by location in case they were filtered out.
-				foreach (var t in ForceLoadedTypes)
-				{
-					var location = t.Assembly.Location;
-
-					if (!System.String.IsNullOrWhiteSpace(location) && appDomainRefs.Add(location))
-					{
-						result.Add(MetadataReference.CreateFromFile(location));
-					}
-				}
-
-				return result;
-			},
-			true);
-	}
-
-	protected sealed class BaseTestClassState
-	{
-		public Compilation Compilation { get; init; } = null!;
-		public List<string> ParameterNames { get; init; } = null!;
-		public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
-		public BlockSyntax FormattedOriginalBody { get; init; } = null!;
-		public string FormattedOriginalBodyRendered { get; init; } = null!;
-		public SemanticModel SemanticModel { get; init; } = null!;
-		public MetadataLoader Loader { get; init; } = null!;
-		public LocalFunctionStatementSyntax Method { get; init; } = null!;
-	}
+internal sealed class BaseTestClassState
+{
+	public Compilation Compilation { get; init; } = null!;
+	public List<string> ParameterNames { get; init; } = null!;
+	public List<ITypeSymbol> ParameterTypes { get; init; } = null!;
+	public BlockSyntax FormattedOriginalBody { get; init; } = null!;
+	public string FormattedOriginalBodyRendered { get; init; } = null!;
+	public SemanticModel SemanticModel { get; init; } = null!;
+	public MetadataLoader Loader { get; init; } = null!;
+	public LocalFunctionStatementSyntax Method { get; init; } = null!;
+	public IReadOnlyList<InlineCandidate> Candidates { get; init; } = null!;
 }

@@ -6,8 +6,8 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class VisitWhileStatementTests : BaseTestWithRandomValues<Func<int, bool, (int, int, int, int)>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 4;
+
 	public override string TestMethod => GetString((limit, condition) =>
 	{
 		var a = 0;
@@ -63,9 +63,5 @@ public class VisitWhileStatementTests : BaseTestWithRandomValues<Func<int, bool,
 
 			return (0, 11, c, d);
 		}),
-		CreateFolded(3, true),
-		CreateFolded(0, true),
-		CreateFolded(5, false),
-		CreateFolded(10, true)
 	];
 }

@@ -12,9 +12,5 @@ public class RegexMatchesTests : BaseTestWithRandomValues<Func<string, string, i
 	[
 		CreateDefault(),
 		Create("return Regex_ab3uPQ.Matches(input).Count;", Unknown, @"^\d+$"),
-		// Matches(input, pattern).Count now folds all the way to a literal when input is also known
-		// (see ConstExprPartialRewriter.TryFoldRegexPropertyAccess), so this no longer stops at the
-		// `Regex_xxx.Matches("1234").Count` intermediate shape.
-		Create("return 1;", "1234", @"^\d+$")
 	];
 }

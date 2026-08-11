@@ -175,7 +175,7 @@ public class ConditionalExpressionOptimizer
 										PredefinedType(Token(SyntaxKind.BoolKeyword)),
 										PredefinedType(Token(SyntaxKind.ByteKeyword))
 									])))))
-				.WithArgumentList(ArgumentList(NegateExpressionRefactoring.Negate(Condition, false)));
+				.WithArgumentList(ArgumentList(NegateExpressionRefactoring.Negate(Condition)));
 
 			result = Type.SpecialType == SpecialType.System_Byte ? bitCast : CastExpression(Type.AsTypeSyntax(), bitCast);
 			return true;
@@ -213,7 +213,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind) binary.RawKind;
+		var kind = binary.Kind();
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression
@@ -282,7 +282,7 @@ public class ConditionalExpressionOptimizer
 			return false;
 		}
 
-		var kind = (SyntaxKind) binary.RawKind;
+		var kind = binary.Kind();
 
 		if (kind is not (SyntaxKind.LessThanExpression
 		    or SyntaxKind.LessThanOrEqualExpression

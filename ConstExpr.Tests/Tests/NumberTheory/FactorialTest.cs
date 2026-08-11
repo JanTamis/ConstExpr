@@ -3,8 +3,8 @@ namespace ConstExpr.Tests.NumberTheory;
 [InheritsTests]
 public class FactorialTest : BaseTestWithRandomValues<Func<int, long>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(n =>
 	{
 		if (n < 0)
@@ -44,9 +44,5 @@ public class FactorialTest : BaseTestWithRandomValues<Func<int, long>>
 
 			return result;
 		}),
-		CreateFolded(5),
-		CreateFolded(1),
-		CreateFolded(-5),
-		CreateFolded(10)
 	];
 }

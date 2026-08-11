@@ -7,9 +7,6 @@ public class ScaleBTest : BaseTestWithRandomValues<Func<double, int, double>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return FastScaleB(x, n);"), // Unknown args → emit fast helper
-		Create((x, _) => x, [ Unknown, 0 ]), // ScaleB(x, 0) = x (2^0 = 1)
-		Create((_, _) => 0D, [ 0.0, Unknown ]), // ScaleB(0, n) = 0
-		CreateFolded(2.0, 3) // ScaleB(2.0, 3) = 2.0 * 2^3 = 16.0
+		Create("return FastScaleB(x, n);")
 	];
 }

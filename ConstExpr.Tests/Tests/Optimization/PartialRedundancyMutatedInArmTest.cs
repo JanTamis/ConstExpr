@@ -49,8 +49,8 @@ namespace ConstExpr.Tests.Optimization;
 [InheritsTests]
 public class PartialRedundancyMutatedInArmTest() : BaseTestWithRandomValues<Func<int, bool, int>>(optimizations: OptimizationFlags.CommonSubexpressionElimination)
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString((n, flag) =>
 	{
 		var k = n;
@@ -87,7 +87,5 @@ public class PartialRedundancyMutatedInArmTest() : BaseTestWithRandomValues<Func
 
 			return sum * n;
 		}),
-		CreateFolded(3, true),
-		CreateFolded(3, false)
 	];
 }

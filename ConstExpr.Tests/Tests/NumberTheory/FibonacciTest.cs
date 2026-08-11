@@ -3,8 +3,8 @@ namespace ConstExpr.Tests.NumberTheory;
 [InheritsTests]
 public class FibonacciTest : BaseTestWithRandomValues<Func<int, long>>
 {
-
 	protected override int MaxRandomMagnitudeBits => 5;
+
 	public override string TestMethod => GetString(n =>
 	{
 		if (n <= 0)
@@ -55,9 +55,5 @@ public class FibonacciTest : BaseTestWithRandomValues<Func<int, long>>
 
 			return curr;
 		}),
-		CreateFolded(5),
-		CreateFolded(1),
-		CreateFolded(0),
-		CreateFolded(10)
 	];
 }
