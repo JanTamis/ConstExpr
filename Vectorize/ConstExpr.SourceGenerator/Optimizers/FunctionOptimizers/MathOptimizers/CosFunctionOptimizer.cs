@@ -1,14 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is 1), IBaseMathCustomImplementation
+/// <summary>
+///   Optimizer for Math.Cos / MathF.Cos. See SinFunctionOptimizer for the Cody-Waite two-term
+///   Tau-reduction rationale (large-|x| precision fix, 5e6 fallback threshold mirroring
+///   VectorMath.CosDouble's ARG_HUGE constant).
+/// </summary>
+public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -40,7 +44,6 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
-		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 
 		builder.WriteLine("private static float FastCos(float x)")
 			.StartBlock();
@@ -50,7 +53,13 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteLine($"x -= {roundInvocation}(x * (1f / Single.Tau)) * Single.Tau;")
+		builder.WriteLine("if (Single.Abs(x) >= 5e6f) return Single.Cos(x);")
+			.WriteWhitespace()
+			.WriteLine("var xd = (double)x;")
+			.WriteLine("var k = Math.Round(xd * (1.0 / Double.Tau));")
+			.WriteLine("xd -= k * 6.2831853069365025;")
+			.WriteLine("xd -= k * 2.4308402026024769e-10;")
+			.WriteLine("x = (float)xd;")
 			.WriteWhitespace()
 			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()
@@ -83,7 +92,11 @@ public class CosFunctionOptimizer() : BaseMathFunctionOptimizer("Cos", n => n is
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteLine($"x -= {roundInvocation}(x * (1.0 / Double.Tau)) * Double.Tau;")
+		builder.WriteLine("if (Double.Abs(x) >= 5e6) return Double.Cos(x);")
+			.WriteWhitespace()
+			.WriteLine($"var k = {roundInvocation}(x * (1.0 / Double.Tau));")
+			.WriteLine("x -= k * 6.2831853069365025;")
+			.WriteLine("x -= k * 2.4308402026024769e-10;")
 			.WriteWhitespace()
 			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()

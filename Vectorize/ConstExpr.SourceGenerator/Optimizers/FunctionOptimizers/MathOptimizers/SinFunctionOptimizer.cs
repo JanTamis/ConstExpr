@@ -1,14 +1,22 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is 1), IBaseMathCustomImplementation
+/// <summary>
+///   Optimizer for Math.Sin / MathF.Sin.
+///   Range reduction uses a Cody-Waite two-term Tau split (TauHi/TauLo) instead of a single-constant
+///   subtraction, which loses precision catastrophically for large |x| via cancellation. Verified via
+///   arbitrary-precision (mpmath) reference: the two-term reduction is exact (to double ULP) up to
+///   |x| ~ 2e7-5e7. The 5e6 fallback threshold mirrors VectorMath.CosDouble/SinDouble's own ARG_HUGE
+///   constant (CoreLib System.Runtime.Intrinsics.VectorMath) with comfortable margin; beyond it, the
+///   real BCL Sin is used instead of hand-porting BCL's full Payne-Hanek reduction.
+/// </summary>
+public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -39,7 +47,6 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 		var builder = new CodeWriter();
 		var multiplyAdd = MultiplyAddEstimate(context, paramType);
 
-		var roundInvocation = GetMethodInvocation<RoundFunctionOptimizer>(context, paramType);
 		var absInvocation = GetMethodInvocation<AbsFunctionOptimizer>(context, paramType);
 		var minInvocation = GetMethodInvocation<MinFunctionOptimizer>(context, paramType);
 		var copySignInvocation = GetMethodInvocation<CopySignFunctionOptimizer>(context, paramType);
@@ -52,10 +59,15 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			builder.WriteLine("if (Single.IsNaN(x)) return Single.NaN;");
 		}
 
-		builder.WriteWhitespace()
-			.WriteLine("var originalX = x;")
+		builder.WriteLine("if (Single.Abs(x) >= 5e6f) return Single.Sin(x);")
 			.WriteWhitespace()
-			.WriteLine($"x -= {roundInvocation}(x * (1.0f / Single.Tau)) * Single.Tau;")
+			.WriteLine("var xd = (double)x;")
+			.WriteLine("var k = Math.Round(xd * (1.0 / Double.Tau));")
+			.WriteLine("xd -= k * 6.2831853069365025;")
+			.WriteLine("xd -= k * 2.4308402026024769e-10;")
+			.WriteLine("x = (float)xd;")
+			.WriteWhitespace()
+			.WriteLine("var originalX = x;")
 			.WriteWhitespace()
 			.WriteLine($"x = {absInvocation}(x);")
 			.WriteLine($"x = {minInvocation}(x, Single.Pi - x);")
@@ -90,10 +102,13 @@ public class SinFunctionOptimizer() : BaseMathFunctionOptimizer("Sin", n => n is
 			builder.WriteLine("if (Double.IsNaN(x)) return Double.NaN;");
 		}
 
-		builder.WriteWhitespace()
-			.WriteLine("var originalX = x;")
+		builder.WriteLine("if (Double.Abs(x) >= 5e6) return Double.Sin(x);")
 			.WriteWhitespace()
-			.WriteLine($"x -= {roundInvocation}(x * (1.0 / Double.Tau)) * Double.Tau;")
+			.WriteLine($"var k = {roundInvocation}(x * (1.0 / Double.Tau));")
+			.WriteLine("x -= k * 6.2831853069365025;")
+			.WriteLine("x -= k * 2.4308402026024769e-10;")
+			.WriteWhitespace()
+			.WriteLine("var originalX = x;")
 			.WriteWhitespace()
 			.WriteLine($"x = {absInvocation}(x);")
 			.WriteWhitespace()

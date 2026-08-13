@@ -1,14 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
-using ConstExpr.SourceGenerator.Interfaces;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers;
 
-public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n => n is 1), IBaseMathCustomImplementation
+/// <summary>
+///   Optimizer for Math.SinCos / MathF.SinCos. See SinFunctionOptimizer for the Cody-Waite two-term
+///   Tau-reduction rationale (large-|x| precision fix, 5e6 fallback threshold mirroring
+///   VectorMath.SinCosDouble's ARG_HUGE constant).
+/// </summary>
+public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n => n is 1)
 {
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
@@ -50,8 +54,13 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			builder.WriteLine("if (Single.IsNaN(x)) return (Single.NaN, Single.NaN);");
 		}
 
-		builder.WriteWhitespace()
-			.WriteLine("x -= Single.Round(x * 0.15915494309189535f) * Single.Tau;")
+		builder.WriteLine("if (Single.Abs(x) >= 5e6f) return Single.SinCos(x);")
+			.WriteWhitespace()
+			.WriteLine("var xd = (double)x;")
+			.WriteLine("var k = Math.Round(xd * (1.0 / Double.Tau));")
+			.WriteLine("xd -= k * 6.2831853069365025;")
+			.WriteLine("xd -= k * 2.4308402026024769e-10;")
+			.WriteLine("x = (float)xd;")
 			.WriteWhitespace()
 			.WriteLine($"var xSign = {copySignMethod}(1.0f, x);")
 			.WriteLine($"var absX  = {absMethod}(x);")
@@ -98,8 +107,11 @@ public class SinCosFunctionOptimizer() : BaseMathFunctionOptimizer("SinCos", n =
 			builder.WriteLine("if (Double.IsNaN(x)) return (Double.NaN, Double.NaN);");
 		}
 
-		builder.WriteWhitespace()
-			.WriteLine("x -= Double.Round(x * 0.15915494309189533576888) * Double.Tau;")
+		builder.WriteLine("if (Double.Abs(x) >= 5e6) return Double.SinCos(x);")
+			.WriteWhitespace()
+			.WriteLine("var k = Double.Round(x * (1.0 / Double.Tau));")
+			.WriteLine("x -= k * 6.2831853069365025;")
+			.WriteLine("x -= k * 2.4308402026024769e-10;")
 			.WriteWhitespace()
 			.WriteLine($"var xSign = {copySignMethod}(1.0, x);")
 			.WriteLine($"var absX  = {absMethod}(x);")
