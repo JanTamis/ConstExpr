@@ -153,6 +153,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						[EditorBrowsable(EditorBrowsableState.Never)]
 						internal interface IOperator<T>
 						{
+							static abstract bool IsVectorizable { get; }
 							static abstract bool Invoke(T item);
 							static abstract Vector<T> Invoke(Vector<T> vector);
 						}
@@ -183,7 +184,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 								
 								ref var reference = ref MemoryMarshal.GetReference(data);
 							
-								if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+								if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
 								{
 									do
 									{
@@ -227,7 +228,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 								
 								ref var reference = ref MemoryMarshal.GetReference(data);
 							
-								if (Vector.IsHardwareAccelerated && (uint)length >= (uint)count)
+								if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
 								{
 									do
 									{
