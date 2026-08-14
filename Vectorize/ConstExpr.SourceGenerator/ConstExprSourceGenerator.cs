@@ -138,7 +138,9 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						""");
 				}
 
-				var usesVectorOperations = processedModels.Any(m => m.Usings?.Contains("ConstantExpression.Operations") == true);
+				var usesVectorAll = processedModels.Any(m => InvokesVectorOperationsMethod(m.Method, "All"));
+				var usesVectorAny = processedModels.Any(m => InvokesVectorOperationsMethod(m.Method, "Any"));
+				var usesVectorOperations = usesVectorAll || usesVectorAny;
 				var usesInferfaces = processedModels.Any(m => m.Usings?.Contains("ConstantExpression.Interfaces") == true);
 
 				if (usesInferfaces)
@@ -162,7 +164,104 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				if (usesVectorOperations)
 				{
-					spc.AddSource("VectorOperations.g.cs", """
+					const string allMethod = """
+						public static bool All<T, TOperator>(ReadOnlySpan<T> data)
+							where TOperator : struct, IOperator<T>
+						{
+							var i = 0;
+							var length = data.Length;
+							var count = Vector<T>.Count;
+
+							ref var reference = ref MemoryMarshal.GetReference(data);
+
+							if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
+							{
+								do
+								{
+									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+									var mask = TOperator.Invoke(vector);
+
+									if (Vector.EqualsAny(mask, Vector<T>.Zero))
+										return false;
+
+									i += count;
+								}
+								while ((uint)i < (uint)(length - count));
+
+								if ((uint)i < (uint)length)
+								{
+									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+									var remainderMask = TOperator.Invoke(remainderVector);
+
+									if (Vector.EqualsAny(remainderMask, Vector<T>.Zero))
+										return false;
+								}
+							}
+
+							for (; (uint)i < (uint)length; i++)
+							{
+								var item = Unsafe.Add(ref reference, i);
+
+								if (!TOperator.Invoke(item))
+									return false;
+							}
+
+							return true;
+						}
+						""";
+
+					const string anyMethod = """
+						public static bool Any<T, TOperator>(ReadOnlySpan<T> data)
+							where TOperator : struct, IOperator<T>
+						{
+							var i = 0;
+							var length = data.Length;
+							var count = Vector<T>.Count;
+
+							ref var reference = ref MemoryMarshal.GetReference(data);
+
+							if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
+							{
+								do
+								{
+									var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
+									var mask = TOperator.Invoke(vector);
+
+									if (Vector.EqualsAny(mask, Vector<T>.AllBitsSet))
+										return true;
+
+									i += count;
+								}
+								while ((uint)i < (uint)(length - count));
+
+								if ((uint)i < (uint)length)
+								{
+									var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
+									var remainderMask = TOperator.Invoke(remainderVector);
+
+									return Vector.EqualsAny(remainderMask, Vector<T>.AllBitsSet);
+								}
+							}
+
+							for (; (uint)i < (uint)length; i++)
+							{
+								var item  = Unsafe.Add(ref reference, i);
+
+								if (TOperator.Invoke(item))
+									return true;
+							}
+
+							return false;
+						}
+						""";
+
+					var vectorOperationsMembers = String.Join("\n\n", new[]
+					{
+						usesVectorAll ? allMethod : null,
+						usesVectorAny ? anyMethod : null
+					}.Where(m => m != null));
+
+					spc.AddSource("VectorOperations.g.cs", $$"""
 						using System;
 						using System.ComponentModel;
 						using System.Numerics;
@@ -175,92 +274,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 						[EditorBrowsable(EditorBrowsableState.Never)]
 						internal static class VectorOperations
 						{
-							public static bool All<T, TOperator>(ReadOnlySpan<T> data)
-								where TOperator : struct, IOperator<T>
-							{
-								var i = 0;
-								var length = data.Length;
-								var count = Vector<T>.Count;
-								
-								ref var reference = ref MemoryMarshal.GetReference(data);
-							
-								if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
-								{
-									do
-									{
-										var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-										var mask = TOperator.Invoke(vector);
-							
-										if (Vector.EqualsAny(mask, Vector<T>.Zero))
-											return false;
-							
-										i += count;
-									}
-									while ((uint)i < (uint)(length - count));
-							
-									if ((uint)i < (uint)length)
-									{
-										var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-										var remainderMask = TOperator.Invoke(remainderVector);
-							
-										if (Vector.EqualsAny(remainderMask, Vector<T>.Zero))
-											return false;
-									}
-								}
-							
-								for (; (uint)i < (uint)length; i++)
-								{
-									var item = Unsafe.Add(ref reference, i);
-							
-									if (!TOperator.Invoke(item))
-										return false;
-								}
-							
-								return true;
-							}
-							
-							public static bool Any<T, TOperator>(ReadOnlySpan<T> data)
-								where TOperator : struct, IOperator<T>
-							{
-								var i = 0;
-								var length = data.Length;
-								var count = Vector<T>.Count;
-								
-								ref var reference = ref MemoryMarshal.GetReference(data);
-							
-								if (Vector.IsHardwareAccelerated && TOperator.IsVectorizable && (uint)length >= (uint)count)
-								{
-									do
-									{
-										var vector = Vector.LoadUnsafe(ref reference, (nuint)i);
-										var mask = TOperator.Invoke(vector);
-							
-										if (Vector.EqualsAny(mask, Vector<T>.AllBitsSet))
-											return true;
-							
-										i += count;
-									}
-									while ((uint)i < (uint)(length - count));
-							
-									if ((uint)i < (uint)length)
-									{
-										var remainderVector = Vector.LoadUnsafe(ref reference, (nuint)(data.Length - count));
-										var remainderMask = TOperator.Invoke(remainderVector);
-							
-										return Vector.EqualsAny(remainderMask, Vector<T>.AllBitsSet);
-									}
-								}
-							
-								for (; (uint)i < (uint)length; i++)
-								{
-									var item  = Unsafe.Add(ref reference, i);
-									
-									if (TOperator.Invoke(item))
-										return true;
-								}
-							
-								return false;
-							}
+						{{vectorOperationsMembers}}
 						}
 						""");
 				}
@@ -307,6 +321,20 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 				callGraphAnalyzer.ClearCache();
 			}
 		});
+	}
+
+	private static bool InvokesVectorOperationsMethod(SyntaxNode? node, string methodName)
+	{
+		if (node is null)
+		{
+			return false;
+		}
+
+		var target = $"VectorOperations.{methodName}";
+
+		return node.DescendantNodesAndSelf()
+			.OfType<InvocationExpressionSyntax>()
+			.Any(invocation => invocation.Expression is GenericNameSyntax generic && generic.Identifier.Text == target);
 	}
 
 	private (string FileName, string Source)? GenerateMethodSource(Compilation compilation, IGrouping<MethodDeclarationSyntax, InvocationModel?> methodGroup, MetadataLoader loader)
