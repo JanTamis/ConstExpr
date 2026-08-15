@@ -45,6 +45,20 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		.. OrderingOperations
 	];
 
+	// The Grouping helper struct's source is a fixed string regardless of TKey/TElement (both are
+	// generic parameters, not substituted here) - parsed once instead of on every ToLookup call site
+	// TryGenerateLookupStruct visits, since SyntaxNodes are immutable and safe to hand the same
+	// instance to multiple AdditionalSyntax dictionaries across unrelated rewrites.
+	private static readonly StructDeclarationSyntax GroupingStruct = ParseTypeFromString<StructDeclarationSyntax>("""
+		file readonly struct Grouping<TKey, TElement>(TKey key, params IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
+		{
+			public TKey Key => key;
+
+			public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
+			IEnumerator IEnumerable.GetEnumerator() => elements.GetEnumerator();
+		}
+		""");
+
 	protected override bool TryOptimizeLinq(FunctionOptimizerContext context, ExpressionSyntax source, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var isNewSource = TryGetOptimizedChainExpression(source, OperationsThatDontAffectLookup, out source);
@@ -192,18 +206,8 @@ public class ToLookupFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 			if (groups.Count > 0)
 			{
-				// Generate the Grouping helper struct (shared across all lookups)
-				var groupingStruct = ParseTypeFromString<StructDeclarationSyntax>("""
-					file readonly struct Grouping<TKey, TElement>(TKey key, params IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
-					{
-						public TKey Key => key;
-
-						public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
-						IEnumerator IEnumerable.GetEnumerator() => elements.GetEnumerator();
-					}
-					""");
-
-				context.AdditionalSyntax.TryAdd(groupingStruct, true);
+				// Shared across all lookups - see the GroupingStruct field's comment.
+				context.AdditionalSyntax.TryAdd(GroupingStruct, true);
 			}
 
 			// Build the Contains body as a `key is x or y or z` pattern expression and run through context.Visit
