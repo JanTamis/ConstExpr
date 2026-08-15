@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
@@ -51,6 +52,10 @@ public partial class ConstExprPartialRewriter(
 	private static readonly BaseSimdFunctionOptimizer[] _simdOptimizers = OptimizerRegistry.SimdOptimizers;
 	private static readonly BaseRegexFunctionOptimizer[] _regexOptimizers = OptimizerRegistry.RegexOptimizers;
 
+	private Dictionary<SyntaxNode, SyntaxNode?>? _visitMemo;
+	private long _visitMemoFingerprint;
+	private long _mutationTicks;
+
 	#endregion
 
 	#region Base Visit Overrides
@@ -66,6 +71,125 @@ public partial class ConstExprPartialRewriter(
 		{
 			exceptionHandler(node, e);
 			return node;
+		}
+	}
+
+	/// <summary>
+	///   Visits <paramref name="node" /> the way <see cref="Visit" /> does, but returns the previous result
+	///   when this exact node instance was already visited under the same variable state.
+	///   <para>
+	///     A single invocation is handled by walking its receiver up to four times: once speculatively in
+	///     <c>TryExecuteInstanceMethod</c> (whose visited node is discarded - only "did it fold to a literal"
+	///     is read off it), once in the LINQ optimizer's <c>TryExecutePredicates</c>, once more in that same
+	///     optimizer's <c>UpdateInvocation</c>, and finally when the invocation's own expression is rebuilt.
+	///     Because every one of those re-entries lands back in <c>VisitInvocationExpression</c> for the next
+	///     link, the cost of a LINQ chain was exponential in its length - measured at ~88% of all rewriter
+	///     time on the LINQ test corpus, against ~11% for the one walk that actually produces the result.
+	///   </para>
+	///   <para>
+	///     Reuse is gated on <see cref="GetVariableStateFingerprint" />: syntax nodes are immutable, so the
+	///     only thing that can make the same node visit to a different result is the rewriter's own mutable
+	///     state - the tracked variables, the in-progress method set, and anything mutated in place through
+	///     reflection (which the sites doing it flag with <see cref="MarkStateMutated" />). A visit that
+	///     changes that state itself is deliberately not cached, and drops the whole memo.
+	///   </para>
+	/// </summary>
+	private SyntaxNode? VisitMemoized(SyntaxNode? node)
+	{
+		if (node is null)
+		{
+			return null;
+		}
+
+		var fingerprint = GetVariableStateFingerprint();
+
+		if (_visitMemo is not null
+		    && _visitMemoFingerprint == fingerprint
+		    && _visitMemo.TryGetValue(node, out var cached))
+		{
+			// Returned as-is, null included: a null result is a real answer here (a void call or a local
+			// function that folds away entirely), not a "nothing cached" sentinel.
+			return cached;
+		}
+
+		var result = Visit(node);
+
+		// The visit mutated something a later visit of the same node would read - caching it would hand
+		// out a result computed against state that no longer exists.
+		if (GetVariableStateFingerprint() != fingerprint)
+		{
+			_visitMemo = null;
+			return result;
+		}
+
+		if (_visitMemo is null || _visitMemoFingerprint != fingerprint)
+		{
+			_visitMemo = new Dictionary<SyntaxNode, SyntaxNode?>(NodeReferenceComparer.Instance);
+			_visitMemoFingerprint = fingerprint;
+		}
+
+		_visitMemo[node] = result;
+		return result;
+	}
+
+	/// <summary>
+	///   Everything a <see cref="Visit" /> result can depend on besides the (immutable) node itself.
+	///   <see cref="VariableItem.Value" /> is compared by reference: a value replaced by a fold produces a
+	///   new object, while a value mutated in place through reflection does not - which is why
+	///   <see cref="_mutationTicks" /> is folded in and bumped at the reflective-execution sites.
+	///   <see cref="VariableItem.IsAccessed" /> is left out on purpose; it records that a read happened and
+	///   never feeds back into what a node folds to.
+	/// </summary>
+	private long GetVariableStateFingerprint()
+	{
+		// visitingMethods is in here because HandleStaticMethodInvocation reads it as a recursion guard:
+		// the same call folds to an inlined body or is left alone depending on whether its target is
+		// currently on the stack. It only grows and shrinks along one recursion path, so the count
+		// separates the states.
+		var hash = _mutationTicks * 1000003L + variables.Count * 7L + (visitingMethods?.Count ?? 0);
+
+		foreach (var pair in variables)
+		{
+			var variable = pair.Value;
+
+			hash = hash * 31 + StringComparer.Ordinal.GetHashCode(pair.Key);
+			hash = hash * 31 + RuntimeHelpers.GetHashCode(variable.Value);
+			hash = hash * 31 + (variable.HasValue ? 1 : 0)
+			                 + (variable.IsAltered ? 2 : 0)
+			                 + (variable.CanBeInlined ? 4 : 0)
+			                 + (variable.IsInitialized ? 8 : 0);
+			hash = hash * 31 + (variable.UnknownIndices?.Count ?? 0);
+		}
+
+		return hash;
+	}
+
+	/// <summary>
+	///   Marks tracked state as changed in a way <see cref="GetVariableStateFingerprint" /> cannot observe -
+	///   an object held in <see cref="VariableItem.Value" /> that was mutated in place rather than replaced.
+	/// </summary>
+	private void MarkStateMutated()
+	{
+		_mutationTicks++;
+		_visitMemo = null;
+	}
+
+	/// <summary>
+	///   netstandard2.0 has no <c>ReferenceEqualityComparer</c>. Reference identity is the point here:
+	///   two structurally equal nodes from different places in the tree can legitimately fold differently.
+	/// </summary>
+	private sealed class NodeReferenceComparer : IEqualityComparer<SyntaxNode>
+	{
+		public static readonly NodeReferenceComparer Instance = new();
+
+		public bool Equals(SyntaxNode? x, SyntaxNode? y)
+		{
+			return ReferenceEquals(x, y);
+		}
+
+		public int GetHashCode(SyntaxNode obj)
+		{
+			return RuntimeHelpers.GetHashCode(obj);
 		}
 	}
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.BuildIn;
 using ConstExpr.SourceGenerator.Extensions;
@@ -115,7 +116,7 @@ public partial class ConstExprPartialRewriter
 		if (targetMethod.ContainingType.SpecialType == SpecialType.System_String
 		    && node.Expression is MemberAccessExpressionSyntax stringMemberAccess)
 		{
-			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			var tempNode = node.WithExpression(VisitMemoized(node.Expression) as ExpressionSyntax ?? node.Expression);
 			var optimized = TryOptimizeStringMethod(semanticModel, targetMethod, tempNode, stringMemberAccess, argumentExpressions, originalArguments);
 
 			if (optimized is not null)
@@ -126,7 +127,7 @@ public partial class ConstExprPartialRewriter
 		// Try math optimizers
 		else if (attribute.MathOptimizations.HasFlag(FastMathFlags.NoNaN))
 		{
-			var tempNode = node.WithExpression(Visit(node.Expression) as ExpressionSyntax ?? node.Expression);
+			var tempNode = node.WithExpression(VisitMemoized(node.Expression) as ExpressionSyntax ?? node.Expression);
 			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, tempNode, argumentExpressions, originalArguments);
 
 			if (optimized is not null)
@@ -179,7 +180,7 @@ public partial class ConstExprPartialRewriter
 		var expression = node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax } mutatingReceiverAccessOuter
 		                 && IsLikelyMutatingMethod(targetMethod, mutatingReceiverAccessOuter.Name.Identifier.Text)
 			? mutatingReceiverAccessOuter
-			: Visit(node.Expression) as ExpressionSyntax ?? node.Expression;
+			: VisitMemoized(node.Expression) as ExpressionSyntax ?? node.Expression;
 
 		if (expression is LambdaExpressionSyntax lambdaExpression)
 		{
@@ -345,6 +346,14 @@ public partial class ConstExprPartialRewriter
 			    && variables.TryGetValue(lambdaVarName, out var lambdaVar)
 			    && lambdaVar is { CanBeInlined: true, HasValue: true, Value: LambdaExpressionSyntax lambdaSyntax })
 			{
+				// Both this and the operation-visitor branch below run real code reflectively, and either
+				// can mutate an object a VariableItem still points at (an array handed to a local function
+				// mutates the caller's tracked value in place) - which the visit fingerprint cannot see.
+				// Announced up front rather than on success: a call that mutates and then throws has still
+				// mutated. Narrow paths - a bare-identifier callee or a non-member-access call with every
+				// argument constant - so this costs the memo almost nothing.
+				MarkStateMutated();
+
 				var lambdaResult = TryEvaluateLambdaVariableWithArguments(lambdaSyntax, constantArguments, targetMethod);
 
 				if (lambdaResult is not null)
@@ -360,6 +369,8 @@ public partial class ConstExprPartialRewriter
 				return TryExecuteInstanceMethod(targetMethod, instanceName, constantArguments, node.ArgumentList.Arguments, out executed)
 					.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
 			}
+
+			MarkStateMutated();
 
 			return TryExecuteViaOperationVisitor(targetMethod, constantArguments)
 				.WithTypeSymbolAnnotation(targetMethod.ReturnType, symbolStore);
@@ -378,8 +389,13 @@ public partial class ConstExprPartialRewriter
 	{
 		executed = false;
 
+		// Memoized: the visited node itself is thrown away here - all that is read off it is whether the
+		// receiver folds to a literal - but the same receiver gets visited again further down this same
+		// method call (the LINQ optimizers, then the invocation's own expression). On the LINQ corpus this
+		// speculative walk alone was ~44% of rewriter time, of which under 4% was the reflective execution
+		// it exists for.
 		var hasLiteral = TryGetLiteralValue(instanceName, out var instance)
-		                 || TryGetLiteralValue(Visit(instanceName), out instance);
+		                 || TryGetLiteralValue(VisitMemoized(instanceName), out instance);
 
 		if (hasLiteral && loader.TryGetType(targetMethod.ContainingType, out var type))
 		{
@@ -395,6 +411,11 @@ public partial class ConstExprPartialRewriter
 		    && loader.TryExecuteMethod(targetMethod, instance, new VariableItemDictionary(variables), constantArguments, out var value, out var executedParameters))
 		{
 			executed = true;
+
+			// A reflectively executed call can mutate the tracked instance in place (values.Add(...)),
+			// which leaves VariableItem.Value pointing at the same object and is therefore invisible to
+			// the fingerprint - say so explicitly so no memoized visit outlives the mutation.
+			MarkStateMutated();
 
 			WriteBackRefOutParameters(originalArguments, executedParameters);
 
@@ -659,8 +680,10 @@ public partial class ConstExprPartialRewriter
 			node,
 			visitedArguments.ToArray(),
 			originalParameterExpressions,
-			x => Visit(x) as ExpressionSyntax,
-			x => Visit(x) as StatementSyntax,
+			// Memoized: the LINQ optimizers reach for context.Visit from 98 call sites, and the two on the
+			// hot path (TryExecutePredicates and UpdateInvocation) both walk the very same receiver.
+			x => VisitMemoized(x) as ExpressionSyntax,
+			x => VisitMemoized(x) as StatementSyntax,
 			getLambda,
 			optimizeBinaryExpression,
 			additionalMethods,
@@ -1646,7 +1669,7 @@ public partial class ConstExprPartialRewriter
 		if (node.Expression is not InvocationExpressionSyntax regexInvocation
 		    || !semanticModel.TryGetSymbol(regexInvocation, symbolStore, out IMethodSymbol? regexMethod)
 		    || regexMethod.ContainingType.ToDisplayString() != "System.Text.RegularExpressions.Regex"
-		    || regexMethod.Name is not (nameof(System.Text.RegularExpressions.Regex.Match) or nameof(System.Text.RegularExpressions.Regex.Matches)))
+		    || regexMethod.Name is not (nameof(Regex.Match) or nameof(Regex.Matches)))
 		{
 			return false;
 		}
@@ -1662,11 +1685,11 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
-		var options = System.Text.RegularExpressions.RegexOptions.None;
+		var options = RegexOptions.None;
 
 		if (arguments.Count == 3)
 		{
-			if (!TryGetLiteralValue(arguments[2].Expression, out var optionsValue) || optionsValue is not System.Text.RegularExpressions.RegexOptions o)
+			if (!TryGetLiteralValue(arguments[2].Expression, out var optionsValue) || optionsValue is not RegexOptions o)
 			{
 				return false;
 			}
@@ -1676,8 +1699,8 @@ public partial class ConstExprPartialRewriter
 
 		try
 		{
-			var regex = new System.Text.RegularExpressions.Regex(pattern, options);
-			object? result = regexMethod.Name == nameof(System.Text.RegularExpressions.Regex.Match)
+			var regex = new Regex(pattern, options);
+			object? result = regexMethod.Name == nameof(Regex.Match)
 				? regex.Match(input)
 				: regex.Matches(input);
 
