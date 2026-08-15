@@ -8,6 +8,11 @@ namespace ConstExpr.Tests.Linq;
 [InheritsTests]
 public class LinqWhereChainOptimizationTests() : BaseTestWithRandomValues<Func<int[], IEnumerable<int>>>(FastMathFlags.All | FastMathFlags.MagicNumberDivision)
 {
+	// Heavy (~0.45 s per draw), but deliberately NOT cut to 5 like its siblings: its filters reject most
+	// random ints, so draws collide on the same expected body and 5 draws yield only 1 checked case where
+	// 10 yield 3. Measured, not assumed.
+	protected override int MinRandomTestCaseCount => 2;
+
 	public override string TestMethod => GetString(x =>
 	{
 		// Two Where statements

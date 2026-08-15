@@ -9,6 +9,15 @@ namespace ConstExpr.Tests.Linq;
 [InheritsTests]
 public class LinqAggregateByOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
+	// One of the suite's heaviest random tests: each draw runs the full rewriter over a body of ten-plus
+	// LINQ chains, measured at ~0.45 s per draw. Halved from the default 10 - the per-draw cost is set by
+	// the body being rewritten, not by the input, so fewer draws is the only knob that moves it.
+	protected override int RandomTestCaseCount => 5;
+
+	// Yields 4-5 checked cases at 5 draws (measured); floor leaves margin so a future seed or generator
+	// change that starves this class fails loudly instead of quietly checking one.
+	protected override int MinRandomTestCaseCount => 3;
+
 	public override string TestMethod => GetString(x =>
 	{
 		// AsEnumerable().AggregateBy() => AggregateBy() (strips no-op materialization)

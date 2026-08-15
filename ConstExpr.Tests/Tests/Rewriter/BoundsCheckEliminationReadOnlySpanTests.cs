@@ -22,6 +22,15 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class BoundsCheckEliminationReadOnlySpanTests : BaseTestWithRandomValues<Func<int[], int, int>>
 {
+	// data[i] and data[0] need a non-empty array and an in-range i. A full-range random int never is, so every
+	// draw threw and was discarded - the random pass checked nothing at all. Capped to 0-3 against the
+	// generator's 0-8 element arrays.
+	protected override int MaxRandomMagnitudeBits => 2;
+
+	// Floor well under the count actually achieved, so a future generator or seed change that silently
+	// starves this class again fails loudly instead of quietly checking one case.
+	protected override int MinRandomTestCaseCount => 2;
+
 	public override string TestMethod => GetString((array, i) =>
 	{
 		ReadOnlySpan<int> data = array;

@@ -83,9 +83,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			switch (compilationErrors.Count)
 			{
 				case 1:
+				{
 					throw compilationErrors.First();
+				}
 				case > 1:
+				{
 					throw new AggregateException(compilationErrors);
+				}
 			}
 		}
 
@@ -458,7 +462,13 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			throw new InvalidOperationException("CreateFolded requires all parameter values to be known; use Create(...) for cases with Unknown parameters.");
 		}
 
-		_ = TestMethod; // Force the TestMethod getter to run on this instance, populating _capturedMethod.
+		// Force the TestMethod getter to run on this instance, populating _capturedMethod. Guarded because the
+		// getter rebuilds a NullabilityInfoContext and reflects over the whole signature every call, and the
+		// random-value harness calls this once per draw (discarded duplicates included), not once per class.
+		if (_capturedMethod is null)
+		{
+			_ = TestMethod;
+		}
 
 		// Invoke on a clone of each parameter: a method under test (e.g. an in-place array reverse)
 		// may mutate its argument, and `parameters` is also handed to the rewriter afterwards as the
@@ -477,13 +487,21 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		switch (value)
 		{
 			case null:
+			{
 				return null;
+			}
 			case System.Array array:
+			{
 				return array.Clone();
-			case { } when value.GetType() is { IsGenericType: true } listType && listType.GetGenericTypeDefinition() == typeof(List<>):
+			}
+			case not null when value.GetType() is { IsGenericType: true } listType && listType.GetGenericTypeDefinition() == typeof(List<>):
+			{
 				return Activator.CreateInstance(listType, value);
+			}
 			default:
+			{
 				return value;
+			}
 		}
 	}
 

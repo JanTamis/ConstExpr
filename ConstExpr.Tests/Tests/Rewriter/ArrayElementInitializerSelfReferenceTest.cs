@@ -11,6 +11,15 @@ namespace ConstExpr.Tests.Rewriter;
 [InheritsTests]
 public class ArrayElementInitializerSelfReferenceTest : BaseTestWithRandomValues<Func<int[], int[]>>
 {
+	// numbers[result[0]] indexes by an element value, so both numbers[0] and that value have to be in range.
+	// With full-range random elements neither ever was, so every draw threw and was discarded - the random
+	// pass checked nothing at all. Capped to 0-3 against the generator's 0-8 element arrays.
+	protected override int MaxRandomMagnitudeBits => 2;
+
+	// Floor well under the count actually achieved, so a future generator or seed change that silently
+	// starves this class again fails loudly instead of quietly checking one case.
+	protected override int MinRandomTestCaseCount => 2;
+
 	public override string TestMethod => GetString(numbers =>
 	{
 		var result = new int[2];

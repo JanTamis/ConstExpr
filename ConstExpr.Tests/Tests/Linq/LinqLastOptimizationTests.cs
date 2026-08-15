@@ -6,6 +6,21 @@ namespace ConstExpr.Tests.Linq;
 [InheritsTests]
 public class LinqLastOptimizationTests : BaseTestWithRandomValues<Func<int[], int>>
 {
+	// Last() throws on an empty sequence, so every Where(...) here has to match at least once. Capped to 0-7
+	// so v > 3 and v > 2 stay reachable while the values cluster tightly enough for a match to be likely;
+	// with the full int range the filtered sequences were empty on every draw, and a draw that throws is
+	// discarded - the random pass checked nothing at all.
+	protected override int MaxRandomMagnitudeBits => 3;
+
+	// Every Where(...) in the body has to match, so most draws still throw. A throwing draw costs only a
+	// delegate invocation (no rewrite), so drawing more is the cheap way to get real coverage here: 50 draws
+	// yield 5 checked cases, 10 draws yielded 1.
+	protected override int RandomTestCaseCount => 50;
+
+	// Floor well under the count actually achieved, so a future generator or seed change that silently
+	// starves this class again fails loudly instead of quietly checking one case.
+	protected override int MinRandomTestCaseCount => 2;
+
 	public override string TestMethod => GetString(x =>
 	{
 		// Where(...).Last() => Last(predicate)

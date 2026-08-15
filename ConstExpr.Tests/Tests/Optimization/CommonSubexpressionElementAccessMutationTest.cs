@@ -9,6 +9,15 @@ namespace ConstExpr.Tests.Optimization;
 [InheritsTests]
 public class CommonSubexpressionElementAccessMutationTest : BaseTestWithRandomValues<Func<int[], int, int>>
 {
+	// arr[k] and arr[0] need a non-empty array and an in-range k. A full-range random int never is, so every
+	// draw threw and was discarded - the random pass checked nothing at all. Capped to 0-3 against the
+	// generator's 0-8 element arrays.
+	protected override int MaxRandomMagnitudeBits => 2;
+
+	// Floor well under the count actually achieved, so a future generator or seed change that silently
+	// starves this class again fails loudly instead of quietly checking one case.
+	protected override int MinRandomTestCaseCount => 2;
+
 	public override string TestMethod => GetString((arr, k) =>
 	{
 		var x = arr[k];

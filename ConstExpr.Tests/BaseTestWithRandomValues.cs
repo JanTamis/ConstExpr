@@ -40,22 +40,57 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	/// </summary>
 	protected virtual int MaxRandomFloatExponent => 20;
 
+	/// <summary>
+	///   The minimum number of distinct random cases <see cref="RunRandomTests" /> must actually check before it
+	///   accepts the run as meaningful. Defaults to 1, which catches the case this was added for: a method whose
+	///   preconditions a random input essentially never satisfies (an unconstrained index, <c>Single()</c> needing
+	///   an exact match) throws on every single draw, and since a throwing draw is discarded and retried, the test
+	///   used to report green having checked nothing at all. Raise it above 1 on classes that tighten
+	///   <see cref="MaxRandomMagnitudeBits" /> or <see cref="MaxRandomFloatExponent" />, where a narrower range
+	///   makes more draws collide on an already-yielded expected body. Can never exceed however many distinct
+	///   results the tested method can produce (a bool-returning method tops out at 2).
+	/// </summary>
+	protected virtual int MinRandomTestCaseCount => 1;
+
 	[Test]
-	public async Task RunRandomTests()
+	public void RunRandomTests()
 	{
 		var state = GetState();
 		var attribute = new ConstExprAttribute { MathOptimizations = mathOptimizations, LinqOptimization = linqOptimization, Optimizations = optimizations, MaxUnrollIterations = maxUnrollIterations };
+
+		var seeds = BuildVariableSeeds(state);
+
+		// Materialised so the case count can be checked before any rewriting happens. The loop below is kept
+		// sequential deliberately: running the cases through a Parallel.ForEach (each with its own rewriter and
+		// collections, sharing only the SemanticModel and MetadataLoader) was measured and rejected - on the
+		// heaviest test class it tripled CPU through contention, left suite wall-clock unchanged at ~24 s, and
+		// produced failures, so something below the rewriter still holds shared mutable state.
+		var testCases = CreateFoldedRandom().ToList();
+
+		// CreateFoldedRandom draws RandomTestCaseCount times but only yields cases with a distinct expected body,
+		// silently discarding the rest, so without this a class whose every draw throws (or keeps producing the
+		// same result) passes having checked nothing.
+		if (testCases.Count < MinRandomTestCaseCount)
+		{
+			throw new InvalidOperationException($"""
+				{GetType().Name} only checked {testCases.Count} distinct random case(s), below its MinRandomTestCaseCount of {MinRandomTestCaseCount}.
+				{RandomTestCaseCount} draws were taken; the rest threw or collided on an already-yielded expected body.
+				Either the method's preconditions reject nearly every random input (an unconstrained index, an exact-match
+				requirement) - in which case this class should derive from BaseTest and not fuzz at all - or its generator
+				knobs are too tight: MaxRandomMagnitudeBits = {MaxRandomMagnitudeBits}, MaxRandomFloatExponent = {MaxRandomFloatExponent}.
+				""");
+		}
+
 		var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
 		var additionalSyntax = new Dictionary<SyntaxNode, bool>(SyntaxNodeComparer.Get());
-		var parameters = new Dictionary<string, VariableItem>(state.ParameterNames.Count, StringComparer.Ordinal);
-
+		var parameters = new Dictionary<string, VariableItem>(seeds.Count, StringComparer.Ordinal);
 		var symbolStore = new ConcurrentDictionary<ulong, ISymbol>();
 		var exceptionsDuringRewriting = new List<Exception>();
 		var usings = new HashSet<string>();
 
 		var rewriter = new ConstExprPartialRewriter(state.SemanticModel, state.Loader, (_, exception) => exceptionsDuringRewriting.Add(exception), parameters, additionalSyntax, usings, attribute, symbolStore, CancellationToken.None, visitedMethods);
 
-		foreach (var testCase in CreateFoldedRandom())
+		foreach (var testCase in testCases)
 		{
 			visitedMethods.Clear();
 			additionalSyntax.Clear();
@@ -64,34 +99,16 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 			exceptionsDuringRewriting.Clear();
 			usings.Clear();
 
-			for (var i = 0; i < state.ParameterNames.Count; i++)
+			// Fresh VariableItem instances every case, deliberately: the rewriter mutates them (and adds
+			// entries of its own for locals it encounters), and they carry more state than the five fields
+			// reset below - UnknownIndices' per-element array tracking and the never-cleared IsAltered flag
+			// would both leak from one random case into the next.
+			foreach (var seed in seeds)
 			{
-				parameters[state.ParameterNames[i]] = new VariableItem(
-					state.ParameterTypes[i],
-					false,
-					null,
-					state.ParameterTypes[i] is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false });
-			}
-
-			foreach (var candidate in state.Candidates)
-			{
-				var name = candidate.Symbol.Name;
-
-				if (parameters.TryGetValue(name, out var variable))
+				parameters[seed.Name] = new VariableItem(seed.Type, false, null, seed.CanBeNull)
 				{
-					variable.CanBeInlined = true;
-				}
-				else
-				{
-					parameters.Add(name, new VariableItem(
-						candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
-						false,
-						null,
-						candidate.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false })
-					{
-						CanBeInlined = true
-					});
-				}
+					CanBeInlined = seed.CanBeInlined
+				};
 			}
 
 			for (var i = 0; i < testCase.Parameters.Length; i++)
@@ -140,6 +157,53 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 				throw FormatMismatchException(state.ParameterNames, parameters, testCase.ExpectedBody, newBody, additionalSyntax, exceptionsDuringRewriting);
 			}
 		}
+	}
+
+	/// <summary>
+	///   Derives the per-case parameter/inline-candidate seed list once per run. Only the symbol inspection is
+	///   hoisted out of the loop - name, type and nullability are fixed for the class's lifetime - not the
+	///   <see cref="SourceGenerator.Models.VariableItem" /> allocation itself, which has to stay per-case (see the loop's
+	///   comment).
+	/// </summary>
+	private static List<(string Name, ITypeSymbol Type, bool CanBeNull, bool CanBeInlined)> BuildVariableSeeds(BaseTestClassState state)
+	{
+		var seeds = new List<(string Name, ITypeSymbol Type, bool CanBeNull, bool CanBeInlined)>(state.ParameterNames.Count + state.Candidates.Count);
+		var indexByName = new Dictionary<string, int>(StringComparer.Ordinal);
+
+		for (var i = 0; i < state.ParameterNames.Count; i++)
+		{
+			indexByName[state.ParameterNames[i]] = seeds.Count;
+
+			seeds.Add((
+				state.ParameterNames[i],
+				state.ParameterTypes[i],
+				state.ParameterTypes[i] is { NullableAnnotation: NullableAnnotation.Annotated, IsValueType: false },
+				false));
+		}
+
+		foreach (var candidate in state.Candidates)
+		{
+			var name = candidate.Symbol.Name;
+
+			if (indexByName.TryGetValue(name, out var index))
+			{
+				var seed = seeds[index];
+
+				seeds[index] = (seed.Name, seed.Type, seed.CanBeNull, true);
+			}
+			else
+			{
+				indexByName[name] = seeds.Count;
+
+				seeds.Add((
+					name,
+					candidate.Symbol.Type, // Type is not needed for inlining, as the value will be directly substituted
+					candidate.Symbol is { NullableAnnotation: NullableAnnotation.Annotated, Type.IsValueType: false },
+					true));
+			}
+		}
+
+		return seeds;
 	}
 
 	/// <summary>
@@ -220,6 +284,12 @@ public abstract class BaseTestWithRandomValues<TDelegate>(FastMathFlags mathOpti
 	///   Generates a random-length (0-8 elements) array of <paramref name="elementType" />, recursively generating
 	///   each element via <see cref="GenerateRandomValue" />. Includes the empty array, an important edge case for
 	///   most collection-processing functions.
+	///   <para>
+	///     The 0-8 range is deliberately not configurable: capping it was measured on the suite's heaviest random
+	///     test (<c>LinqCountOptimizationTests</c>) and did nothing - per-case cost came out flat at ~0.45 s
+	///     whether the arrays held 8 elements or 2. Per-case cost tracks the body being rewritten, not the input
+	///     size, so <see cref="RandomTestCaseCount" /> is the knob that actually moves runtime.
+	///   </para>
 	/// </summary>
 	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Test-only helper; random test-case generation never runs under AOT/trimming.")]
 	private System.Array GenerateRandomArray(Type elementType, Random random)
