@@ -101,13 +101,17 @@ public sealed class CopyPropagationRewriter : CSharpSyntaxRewriter
 					// point on — bail out instead of reasoning about scopes.
 					case VariableDeclaratorSyntax redeclared when redeclared.Identifier.Text == copy || redeclared.Identifier.Text == source:
 					case SingleVariableDesignationSyntax designation when designation.Identifier.Text == copy || designation.Identifier.Text == source:
+					{
 						return false;
+					}
 
 					// `ref var z = ref y` creates a writable alias the usage collector cannot see.
 					case RefExpressionSyntax refExpression when refExpression.DescendantNodesAndSelf()
 						.OfType<IdentifierNameSyntax>()
 						.Any(id => id.Identifier.Text == copy || id.Identifier.Text == source):
+					{
 						return false;
+					}
 				}
 			}
 		}

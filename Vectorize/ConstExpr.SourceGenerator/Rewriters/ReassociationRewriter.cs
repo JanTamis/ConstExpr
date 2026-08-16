@@ -180,19 +180,27 @@ public sealed class ReassociationRewriter(SemanticModel semanticModel, Concurren
 		switch (expr)
 		{
 			case ParenthesizedExpressionSyntax paren:
+			{
 				Flatten(paren.Expression, negate, terms);
 				return;
+			}
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } add:
+			{
 				Flatten(add.Left, negate, terms);
 				Flatten(add.Right, negate, terms);
 				return;
+			}
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.SubtractExpression } subtract:
+			{
 				Flatten(subtract.Left, negate, terms);
 				Flatten(subtract.Right, !negate, terms);
 				return;
+			}
 			default:
+			{
 				terms.Add((expr.WithoutTrivia(), negate));
 				return;
+			}
 		}
 	}
 

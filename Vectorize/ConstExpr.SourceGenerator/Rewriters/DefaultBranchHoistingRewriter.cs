@@ -99,7 +99,9 @@ public static class DefaultBranchHoistingRewriter
 			switch (branch)
 			{
 				case BlockSyntax block:
+				{
 					return block.WithStatements(List(ProcessStatements(block.Statements, assignments, prefix)));
+				}
 
 				case IfStatementSyntax ifStmt:
 				{
@@ -114,13 +116,17 @@ public static class DefaultBranchHoistingRewriter
 				}
 
 				case SwitchStatementSyntax switchStmt:
+				{
 					return switchStmt.WithSections(List(switchStmt.Sections.Select(section =>
 						section.WithStatements(List(ProcessStatements(section.Statements, assignments, new List<StatementSyntax>(prefix)))))));
+				}
 
 				// Loops re-execute; a value known redundant before the first iteration need not stay so
 				// on later ones, so removing an assignment here would be unsound. Leave as-is.
 				default:
+				{
 					return branch;
+				}
 			}
 		}
 

@@ -223,11 +223,15 @@ public sealed class StackAllocRewriter : CSharpSyntaxRewriter
 			switch (ancestor)
 			{
 				case ForStatementSyntax or ForEachStatementSyntax or ForEachVariableStatementSyntax or WhileStatementSyntax or DoStatementSyntax:
+				{
 					return true;
+				}
 
 				// Reached the enclosing callable — a loop outside it is a fresh frame per call, safe.
 				case BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax:
+				{
 					return false;
+				}
 			}
 		}
 
@@ -248,7 +252,9 @@ public sealed class StackAllocRewriter : CSharpSyntaxRewriter
 			case MethodDeclarationSyntax method when method.Modifiers.Any(SyntaxKind.AsyncKeyword):
 			case LocalFunctionStatementSyntax localFunction when localFunction.Modifiers.Any(SyntaxKind.AsyncKeyword):
 			case AnonymousFunctionExpressionSyntax lambda when lambda.AsyncKeyword.RawKind != 0:
+			{
 				return true;
+			}
 		}
 
 		return container is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or LocalFunctionStatementSyntax

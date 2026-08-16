@@ -91,31 +91,45 @@ internal static class ValueRangeAnalysis
 		switch (kind)
 		{
 			case SyntaxKind.LessThanExpression:
+			{
 				return left.Max < right.Min ? true : left.Min >= right.Max ? false : null;
+			}
 
 			case SyntaxKind.LessThanOrEqualExpression:
+			{
 				return left.Max <= right.Min ? true : left.Min > right.Max ? false : null;
+			}
 
 			case SyntaxKind.GreaterThanExpression:
+			{
 				return left.Min > right.Max ? true : left.Max <= right.Min ? false : null;
+			}
 
 			case SyntaxKind.GreaterThanOrEqualExpression:
+			{
 				return left.Min >= right.Max ? true : left.Max < right.Min ? false : null;
+			}
 
 			// Equality needs both sides pinned to the same single value to be certainly true, but only
 			// needs the intervals to miss each other to be certainly false.
 			case SyntaxKind.EqualsExpression:
+			{
 				return left.IsSinglePoint && right.IsSinglePoint && left.Min == right.Min ? true
 					: !left.Overlaps(right) ? false
 					: null;
+			}
 
 			case SyntaxKind.NotEqualsExpression:
+			{
 				return left.IsSinglePoint && right.IsSinglePoint && left.Min == right.Min ? false
 					: !left.Overlaps(right) ? true
 					: null;
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -134,10 +148,14 @@ internal static class ValueRangeAnalysis
 		switch (pattern)
 		{
 			case ParenthesizedPatternSyntax parenthesized:
+			{
 				return Decide(parenthesized.Pattern, subject, scope);
+			}
 
 			case UnaryPatternSyntax { RawKind: (int) SyntaxKind.NotPattern } negation:
+			{
 				return Decide(negation.Pattern, subject, scope) is { } inner ? !inner : null;
+			}
 
 			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.AndPattern } conjunction:
 			{
@@ -160,15 +178,21 @@ internal static class ValueRangeAnalysis
 			}
 
 			case ConstantPatternSyntax constant:
+			{
 				return For(constant.Expression, scope, MaxDepth) is { } value ? Decide(SyntaxKind.EqualsExpression, subject, value) : null;
+			}
 
 			case RelationalPatternSyntax relational:
+			{
 				return RelationalKind(relational) is var kind && kind != SyntaxKind.None && For(relational.Expression, scope, MaxDepth) is { } bound
 					? Decide(kind, subject, bound)
 					: null;
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -184,9 +208,12 @@ internal static class ValueRangeAnalysis
 			// Kept rather than unwrapped: `and` binds tighter than `or`, so dropping the parentheses
 			// here would silently reassociate the pattern.
 			case ParenthesizedPatternSyntax parenthesized:
+			{
 				return parenthesized.WithPattern(Reduce(parenthesized.Pattern, subject, scope));
+			}
 
 			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.AndPattern } conjunction:
+			{
 				if (Decide(conjunction.Left, subject, scope) == true)
 				{
 					return Reduce(conjunction.Right, subject, scope).WithTriviaFrom(pattern);
@@ -195,8 +222,10 @@ internal static class ValueRangeAnalysis
 				return Decide(conjunction.Right, subject, scope) == true
 					? Reduce(conjunction.Left, subject, scope).WithTriviaFrom(pattern)
 					: conjunction.WithLeft(Reduce(conjunction.Left, subject, scope)).WithRight(Reduce(conjunction.Right, subject, scope));
+			}
 
 			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } disjunction:
+			{
 				if (Decide(disjunction.Left, subject, scope) == false)
 				{
 					return Reduce(disjunction.Right, subject, scope).WithTriviaFrom(pattern);
@@ -205,9 +234,12 @@ internal static class ValueRangeAnalysis
 				return Decide(disjunction.Right, subject, scope) == false
 					? Reduce(disjunction.Left, subject, scope).WithTriviaFrom(pattern)
 					: disjunction.WithLeft(Reduce(disjunction.Left, subject, scope)).WithRight(Reduce(disjunction.Right, subject, scope));
+			}
 
 			default:
+			{
 				return pattern;
+			}
 		}
 	}
 
@@ -228,32 +260,48 @@ internal static class ValueRangeAnalysis
 		switch (expression)
 		{
 			case ParenthesizedExpressionSyntax parenthesized:
+			{
 				return For(parenthesized.Expression, scope, depth);
+			}
 
 			case LiteralExpressionSyntax literal:
+			{
 				return AsLong(literal.Token.Value) is { } value ? ValueRange.Exact(value) : null;
+			}
 
 			// Only over a literal. `-x` on an unsigned operand wraps to a huge positive value rather
 			// than going negative, and the declared type is not available here.
 			case PrefixUnaryExpressionSyntax negation when negation.IsKind(SyntaxKind.UnaryMinusExpression):
+			{
 				return negation.Operand is LiteralExpressionSyntax operand && AsLong(operand.Token.Value) is { } negated
 					? ValueRange.Exact(-negated)
 					: null;
+			}
 
 			case PrefixUnaryExpressionSyntax plus when plus.IsKind(SyntaxKind.UnaryPlusExpression):
+			{
 				return For(plus.Operand, scope, depth);
+			}
 
 			case CastExpressionSyntax cast:
+			{
 				return WithoutTruncation(cast.Type, For(cast.Expression, scope, depth));
+			}
 
 			case BinaryExpressionSyntax binary:
+			{
 				return NonNegative(Combine(binary.Kind(), For(binary.Left, scope, depth), For(binary.Right, scope, depth)));
+			}
 
 			case IdentifierNameSyntax identifier:
+			{
 				return FromFacts(identifier, scope, depth);
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -284,34 +332,46 @@ internal static class ValueRangeAnalysis
 				// the end of the walk either way. Note the body-write check: a counter the body assigns
 				// to is no longer described by its header.
 				case ForStatementSyntax loop when child == loop.Statement && DeclaresCounter(loop, name):
+				{
 					return killed || Writes(loop.Statement, name) ? null : Narrow(result, CounterRange(loop, scope, depth));
+				}
 
 				case IfStatementSyntax branch when !killed && (child == branch.Statement || child == branch.Else):
+				{
 					result = Narrow(result, Refine(branch.Condition, name, child == branch.Statement, scope, depth));
 					break;
+				}
 
 				// The partial rewriter collapses most guards into a ternary long before this pass runs,
 				// so this is the ordinary case rather than the exotic one.
 				case ConditionalExpressionSyntax ternary when !killed && (child == ternary.WhenTrue || child == ternary.WhenFalse):
+				{
 					result = Narrow(result, Refine(ternary.Condition, name, child == ternary.WhenTrue, scope, depth));
 					break;
+				}
 
 				// Short-circuiting makes a left operand a guard over the right one: `a && b` reaches b
 				// only once a held, `a || b` only once it did not. This is where the second half of a
 				// range check picks up what the first half established.
 				case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } conjunction when !killed && child == conjunction.Right:
+				{
 					result = Narrow(result, Refine(conjunction.Left, name, true, scope, depth));
 					break;
+				}
 
 				case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } disjunction when !killed && child == disjunction.Right:
+				{
 					result = Narrow(result, Refine(disjunction.Left, name, false, scope, depth));
 					break;
+				}
 
 				// The condition holds at the top of every iteration, so only for a name the body leaves
 				// alone. Reached only from the body — a use inside the condition itself is below.
 				case WhileStatementSyntax loop when !killed && child == loop.Statement && !Writes(loop.Statement, name):
+				{
 					result = Narrow(result, Refine(loop.Condition, name, true, scope, depth));
 					break;
+				}
 
 				// A declaration is where the name comes from, so its initializer has the last word and
 				// the walk ends — same as a `for` counter reaching its header. The early-exit guards the
@@ -501,27 +561,41 @@ internal static class ValueRangeAnalysis
 		switch (condition)
 		{
 			case ParenthesizedExpressionSyntax parenthesized:
+			{
 				return Refine(parenthesized.Expression, name, positive, scope, depth);
+			}
 
 			case PrefixUnaryExpressionSyntax negation when negation.IsKind(SyntaxKind.LogicalNotExpression):
+			{
 				return Refine(negation.Operand, name, !positive, scope, depth);
+			}
 
 			// Both halves of an `&&` hold on the true branch; by De Morgan both negated halves of an
 			// `||` hold on the false branch. The other two combinations narrow nothing.
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalAndExpression } conjunction when positive:
+			{
 				return Narrow(Refine(conjunction.Left, name, true, scope, depth), Refine(conjunction.Right, name, true, scope, depth));
+			}
 
 			case BinaryExpressionSyntax { RawKind: (int) SyntaxKind.LogicalOrExpression } disjunction when !positive:
+			{
 				return Narrow(Refine(disjunction.Left, name, false, scope, depth), Refine(disjunction.Right, name, false, scope, depth));
+			}
 
 			case BinaryExpressionSyntax comparison when IsComparison(comparison.Kind()):
+			{
 				return RefineComparison(comparison, name, positive, scope, depth);
+			}
 
 			case IsPatternExpressionSyntax pattern when IsNamed(pattern.Expression, name):
+			{
 				return RefinePattern(pattern.Pattern, positive, scope, depth);
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -591,27 +665,41 @@ internal static class ValueRangeAnalysis
 		switch (pattern)
 		{
 			case ParenthesizedPatternSyntax parenthesized:
+			{
 				return RefinePattern(parenthesized.Pattern, positive, scope, depth);
+			}
 
 			case UnaryPatternSyntax { RawKind: (int) SyntaxKind.NotPattern } negation:
+			{
 				return RefinePattern(negation.Pattern, !positive, scope, depth);
+			}
 
 			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.AndPattern } conjunction when positive:
+			{
 				return Narrow(RefinePattern(conjunction.Left, true, scope, depth), RefinePattern(conjunction.Right, true, scope, depth));
+			}
 
 			case BinaryPatternSyntax { RawKind: (int) SyntaxKind.OrPattern } disjunction when !positive:
+			{
 				return Narrow(RefinePattern(disjunction.Left, false, scope, depth), RefinePattern(disjunction.Right, false, scope, depth));
+			}
 
 			case ConstantPatternSyntax constant when positive:
+			{
 				return For(constant.Expression, scope, depth - 1);
+			}
 
 			case RelationalPatternSyntax relational:
+			{
 				return RelationalKind(relational) is var kind && kind != SyntaxKind.None && For(relational.Expression, scope, depth - 1) is { } range
 					? FromRelation(positive ? kind : Negate(kind), range)
 					: null;
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -640,23 +728,35 @@ internal static class ValueRangeAnalysis
 		switch (kind)
 		{
 			case SyntaxKind.LessThanExpression:
+			{
 				return bound.Max > Int64.MinValue ? new ValueRange(Int64.MinValue, bound.Max - 1) : null;
+			}
 
 			case SyntaxKind.LessThanOrEqualExpression:
+			{
 				return new ValueRange(Int64.MinValue, bound.Max);
+			}
 
 			case SyntaxKind.GreaterThanExpression:
+			{
 				return bound.Min < Int64.MaxValue ? new ValueRange(bound.Min + 1, Int64.MaxValue) : null;
+			}
 
 			case SyntaxKind.GreaterThanOrEqualExpression:
+			{
 				return new ValueRange(bound.Min, Int64.MaxValue);
+			}
 
 			case SyntaxKind.EqualsExpression:
+			{
 				return bound;
+			}
 
 			// `!=` only excludes a hole in the middle, which an interval cannot express.
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -712,12 +812,17 @@ internal static class ValueRangeAnalysis
 				switch (kind)
 				{
 					case SyntaxKind.AddExpression:
+					{
 						return new ValueRange(l.Min + r.Min, l.Max + r.Max);
+					}
 
 					case SyntaxKind.SubtractExpression:
+					{
 						return new ValueRange(l.Min - r.Max, l.Max - r.Min);
+					}
 
 					case SyntaxKind.MultiplyExpression:
+					{
 						var corners = new[] { l.Min * r.Min, l.Min * r.Max, l.Max * r.Min, l.Max * r.Max };
 						var low = corners[0];
 						var high = corners[0];
@@ -729,35 +834,52 @@ internal static class ValueRangeAnalysis
 						}
 
 						return new ValueRange(low, high);
+					}
 
 					// Division and remainder are only well behaved here for a non-negative dividend and a
 					// positive constant divisor: C# truncates towards zero and keeps the dividend's sign.
 					case SyntaxKind.DivideExpression when l.Min >= 0 && Constant(r) is { } divisor && divisor > 0:
+					{
 						return new ValueRange(l.Min / divisor, l.Max / divisor);
+					}
 
 					case SyntaxKind.ModuloExpression when l.Min >= 0 && Constant(r) is { } modulus && modulus > 0:
+					{
 						return new ValueRange(0, Math.Min(l.Max, modulus - 1));
+					}
 
 					case SyntaxKind.BitwiseAndExpression when l.Min >= 0 && r.Min >= 0:
+					{
 						return new ValueRange(0, Math.Min(l.Max, r.Max));
+					}
 
 					// For non-negative a, b: max(a, b) <= a | b <= a + b, and 0 <= a ^ b <= a + b.
 					case SyntaxKind.BitwiseOrExpression when l.Min >= 0 && r.Min >= 0:
+					{
 						return new ValueRange(Math.Max(l.Min, r.Min), l.Max + r.Max);
+					}
 
 					case SyntaxKind.ExclusiveOrExpression when l.Min >= 0 && r.Min >= 0:
+					{
 						return new ValueRange(0, l.Max + r.Max);
+					}
 
 					// Capped at 30 so the result is right whether the operand is 32- or 64-bit: C# masks
 					// the shift count by the operand's width, which is not known here.
 					case SyntaxKind.LeftShiftExpression when l.Min >= 0 && Constant(r) is { } shift && shift <= 30:
+					{
 						return new ValueRange(l.Min * (1L << (int) shift), l.Max * (1L << (int) shift));
+					}
 
 					case SyntaxKind.RightShiftExpression when l.Min >= 0 && Constant(r) is { } offset && offset <= 30:
+					{
 						return new ValueRange(l.Min >> (int) offset, l.Max >> (int) offset);
+					}
 
 					default:
+					{
 						return null;
+					}
 				}
 			}
 		}
@@ -845,22 +967,30 @@ internal static class ValueRangeAnalysis
 			switch (node)
 			{
 				case AssignmentExpressionSyntax { Left: IdentifierNameSyntax assigned }:
+				{
 					written.Add(assigned.Identifier.Text);
 					break;
+				}
 
 				case PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax stepped } postfix
 					when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression):
+				{
 					written.Add(stepped.Identifier.Text);
 					break;
+				}
 
 				case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax advanced } prefix
 					when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+				{
 					written.Add(advanced.Identifier.Text);
 					break;
+				}
 
 				case ArgumentSyntax { RefKindKeyword.RawKind: not 0, Expression: IdentifierNameSyntax passed }:
+				{
 					written.Add(passed.Identifier.Text);
 					break;
+				}
 			}
 		}
 	}

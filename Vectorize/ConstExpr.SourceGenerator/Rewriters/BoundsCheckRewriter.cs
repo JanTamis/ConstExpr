@@ -124,21 +124,29 @@ public sealed class BoundsCheckRewriter
 		switch (type)
 		{
 			case ArrayTypeSyntax { RankSpecifiers: [ { Sizes.Count: 1 } ] } array:
+			{
 				return (CollectionKind.Array, IsPrimitiveElement(array.ElementType));
+			}
 
 			// A string has no indexer setter, so no write can exist to rewrite in the first place.
 			case PredefinedTypeSyntax { Keyword.RawKind: (int) SyntaxKind.StringKeyword }:
 			case IdentifierNameSyntax { Identifier.Text: "String" }:
+			{
 				return (CollectionKind.String, false);
+			}
 
 			// System.Span<int> and the like.
 			case QualifiedNameSyntax qualified:
+			{
 				return Classify(qualified.Right);
+			}
 
 			// A nullable annotation on a reference type (`string?`, `int[]?`) says nothing about how it
 			// is indexed. A nullable *value* type unwraps to something this method rejects anyway.
 			case NullableTypeSyntax nullable:
+			{
 				return Classify(nullable.ElementType);
+			}
 
 			// ponytail: matches the type name only, not the namespace it came from — the pass runs on a
 			// tree the semantic model no longer covers. A user type of the same name emits a call it
@@ -146,6 +154,7 @@ public sealed class BoundsCheckRewriter
 			// silently. Same trade-off as IndexFromEndRewriter; add a semantic guard if that stops
 			// being acceptable.
 			case GenericNameSyntax { TypeArgumentList.Arguments.Count: 1 } generic:
+			{
 				return generic.Identifier.Text switch
 				{
 					"Span" => (CollectionKind.Span, true),
@@ -153,9 +162,12 @@ public sealed class BoundsCheckRewriter
 					"List" => (CollectionKind.List, true),
 					_ => null
 				};
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -199,12 +211,17 @@ public sealed class BoundsCheckRewriter
 		switch (type)
 		{
 			case IArrayTypeSymbol { Rank: 1 } array:
+			{
 				return (CollectionKind.Array, IsPrimitiveElement(array.ElementType));
+			}
 
 			case { SpecialType: SpecialType.System_String }:
+			{
 				return (CollectionKind.String, false);
+			}
 
 			case INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1 } named:
+			{
 				return (named.ContainingNamespace?.ToDisplayString(), named.Name) switch
 				{
 					("System", "Span") => (CollectionKind.Span, true),
@@ -212,9 +229,12 @@ public sealed class BoundsCheckRewriter
 					("System.Collections.Generic", "List") => (CollectionKind.List, true),
 					_ => null
 				};
+			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 

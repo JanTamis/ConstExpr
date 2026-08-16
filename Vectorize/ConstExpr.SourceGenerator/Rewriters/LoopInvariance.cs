@@ -29,8 +29,10 @@ internal static class LoopInvariance
 			{
 				// x = …, x += …, x -= …, etc.
 				case AssignmentExpressionSyntax { Left: IdentifierNameSyntax id }:
+				{
 					written.Add(id.Identifier.Text);
 					break;
+				}
 
 				// x++, x--
 				case PostfixUnaryExpressionSyntax
@@ -38,8 +40,10 @@ internal static class LoopInvariance
 						Operand: IdentifierNameSyntax pid
 					} pue when pue.IsKind(SyntaxKind.PostIncrementExpression)
 					           || pue.IsKind(SyntaxKind.PostDecrementExpression):
+				{
 					written.Add(pid.Identifier.Text);
 					break;
+				}
 
 				// ++x, --x
 				case PrefixUnaryExpressionSyntax
@@ -47,16 +51,20 @@ internal static class LoopInvariance
 						Operand: IdentifierNameSyntax preid
 					} prue when prue.IsKind(SyntaxKind.PreIncrementExpression)
 					            || prue.IsKind(SyntaxKind.PreDecrementExpression):
+				{
 					written.Add(preid.Identifier.Text);
 					break;
+				}
 
 				// Foo(ref x), Foo(out x)
 				case ArgumentSyntax
 				{
 					RefKindKeyword.RawKind: not 0, Expression: IdentifierNameSyntax refid
 				}:
+				{
 					written.Add(refid.Identifier.Text);
 					break;
+				}
 			}
 		}
 
@@ -79,12 +87,16 @@ internal static class LoopInvariance
 			switch (node)
 			{
 				case VariableDeclaratorSyntax declarator:
+				{
 					locals.Add(declarator.Identifier.Text);
 					break;
+				}
 
 				case SingleVariableDesignationSyntax designation:
+				{
 					locals.Add(designation.Identifier.Text);
 					break;
+				}
 			}
 		}
 
@@ -120,10 +132,14 @@ internal static class LoopInvariance
 				case BracketedArgumentListSyntax:
 				case ConditionalExpressionSyntax:
 				case TypeSyntax:
+				{
 					continue;
+				}
 
 				default:
+				{
 					return false;
+				}
 			}
 		}
 

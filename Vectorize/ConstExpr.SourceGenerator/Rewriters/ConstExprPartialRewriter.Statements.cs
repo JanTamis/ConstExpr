@@ -711,9 +711,13 @@ public partial class ConstExprPartialRewriter
 			switch (descendant)
 			{
 				case InvocationExpressionSyntax:
+				{
 					return false;
+				}
 				case IdentifierNameSyntax identifier when assignedVariables.Contains(identifier.Identifier.Text):
+				{
 					return false;
+				}
 			}
 		}
 
@@ -2807,15 +2811,21 @@ public partial class ConstExprPartialRewriter
 		switch (expr)
 		{
 			case PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax id } postfix when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression):
+			{
 				operand = id;
 				isIncrement = postfix.IsKind(SyntaxKind.PostIncrementExpression);
 				break;
+			}
 			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax id } prefix when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+			{
 				operand = id;
 				isIncrement = prefix.IsKind(SyntaxKind.PreIncrementExpression);
 				break;
+			}
 			default:
+			{
 				return false;
+			}
 		}
 
 		if (!semanticModel.TryGetTypeSymbol(operand, symbolStore, out var type) || !IsIntegralType(type))

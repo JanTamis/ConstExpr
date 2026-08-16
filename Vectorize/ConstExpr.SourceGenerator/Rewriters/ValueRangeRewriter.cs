@@ -150,12 +150,16 @@ public sealed class ValueRangeRewriter : CSharpSyntaxRewriter
 				// Splicing is only safe when the block introduces nothing: a name declared inside it
 				// would suddenly share a scope with the rest of this block.
 				case BlockSyntax inner when !Declares(inner):
+				{
 					statements.AddRange(inner.Statements);
 					break;
+				}
 
 				case { } survivor:
+				{
 					statements.Add(survivor.WithTriviaFrom(branch));
 					break;
+				}
 			}
 		}
 

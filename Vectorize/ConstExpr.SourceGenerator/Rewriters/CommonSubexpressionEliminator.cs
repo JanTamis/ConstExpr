@@ -573,18 +573,27 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				case null:
 				case BlockSyntax:
 				case AnonymousFunctionExpressionSyntax:
+				{
 					return false;
+				}
 
 				case ExpressionSyntax expr when !conditional && _comparer.Equals(Unparenthesize(expr), candidate):
+				{
 					return true;
+				}
 
 				case ConditionalExpressionSyntax cond:
+				{
 					return Walk(cond.Condition, conditional) || Walk(cond.WhenTrue, true) || Walk(cond.WhenFalse, true);
+				}
 
 				case BinaryExpressionSyntax binary when blockShortCircuit && (binary.IsKind(SyntaxKind.LogicalAndExpression) || binary.IsKind(SyntaxKind.LogicalOrExpression)):
+				{
 					return Walk(binary.Left, conditional) || Walk(binary.Right, true);
+				}
 
 				default:
+				{
 					foreach (var child in node.ChildNodes())
 					{
 						if (Walk(child, conditional))
@@ -593,6 +602,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 						}
 					}
 					return false;
+				}
 			}
 		}
 	}
@@ -643,42 +653,59 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		switch (node)
 		{
 			case null:
+			{
 				return false;
+			}
 
 			case ExpressionSyntax expr when _comparer.Equals(Unparenthesize(expr), candidate):
+			{
 				return true;
+			}
 
 			// Exactly one arm runs, so the candidate is guaranteed if the always-evaluated condition
 			// has it — or if EVERY arm does.
 			case ConditionalExpressionSyntax cond:
+			{
 				return IsEvaluatedOnEveryPath(cond.Condition, candidate)
 				       || IsEvaluatedOnEveryPath(cond.WhenTrue, candidate) && IsEvaluatedOnEveryPath(cond.WhenFalse, candidate);
+			}
 
 			// The same shape as the ternary above, one level up. Without an `else` the construct is not
 			// exhaustive: the fall-through path evaluates nothing, so a then-only occurrence proves nothing.
 			case IfStatementSyntax ifStatement:
+			{
 				return IsEvaluatedOnEveryPath(ifStatement.Condition, candidate)
 				       || ifStatement.Else is { } elseClause
 				       && IsEvaluatedOnEveryPath(ifStatement.Statement, candidate)
 				       && IsEvaluatedOnEveryPath(elseClause.Statement, candidate);
+			}
 
 			// Only the left operand is guaranteed; the right can be short-circuited away entirely.
 			case BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.LogicalAndExpression)
 			                                        || binary.IsKind(SyntaxKind.LogicalOrExpression)
 			                                        || binary.IsKind(SyntaxKind.CoalesceExpression):
+			{
 				return IsEvaluatedOnEveryPath(binary.Left, candidate);
+			}
 
 			// `a?.b` evaluates `a`, but reaches `.b` only when `a` is non-null.
 			case ConditionalAccessExpressionSyntax conditionalAccess:
+			{
 				return IsEvaluatedOnEveryPath(conditionalAccess.Expression, candidate);
+			}
 
 			case BlockSyntax block:
+			{
 				return IsEvaluatedOnEveryStatementPath(block, candidate);
+			}
 
 			case not null when IsNeverGuaranteedToRun(node):
+			{
 				return false;
+			}
 
 			default:
+			{
 				foreach (var child in node.ChildNodes())
 				{
 					if (IsEvaluatedOnEveryPath(child, candidate))
@@ -688,6 +715,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 				}
 
 				return false;
+			}
 		}
 	}
 
@@ -780,21 +808,29 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			switch (node)
 			{
 				case AssignmentExpressionSyntax assignment:
+				{
 					Mark(assignment.Left);
 					break;
+				}
 
 				case PrefixUnaryExpressionSyntax prefix when IsIncrementOrDecrement(prefix.Kind()):
+				{
 					Mark(prefix.Operand);
 					break;
+				}
 
 				case PostfixUnaryExpressionSyntax postfix when IsIncrementOrDecrement(postfix.Kind()):
+				{
 					Mark(postfix.Operand);
 					break;
+				}
 
 				case ArgumentSyntax argument when argument.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
 				                                  || argument.RefKindKeyword.IsKind(SyntaxKind.OutKeyword):
+				{
 					Mark(argument.Expression);
 					break;
+				}
 			}
 		}
 
@@ -839,19 +875,29 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		{
 			case LiteralExpressionSyntax:
 			case IdentifierNameSyntax:
+			{
 				return true;
+			}
 
 			case BinaryExpressionSyntax binary when IsPureArithmeticOperator(binary.Kind()):
+			{
 				return IsProvablyPureArithmetic(binary.Left) && IsProvablyPureArithmetic(binary.Right);
+			}
 
 			case CastExpressionSyntax cast when cast.Type is PredefinedTypeSyntax predefined && IsNumericKeyword(predefined.Keyword.Kind()):
+			{
 				return IsProvablyPureArithmetic(cast.Expression);
+			}
 
 			case PrefixUnaryExpressionSyntax prefix when prefix.IsKind(SyntaxKind.UnaryMinusExpression) || prefix.IsKind(SyntaxKind.UnaryPlusExpression) || prefix.IsKind(SyntaxKind.BitwiseNotExpression):
+			{
 				return IsProvablyPureArithmetic(prefix.Operand);
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 	}
 
@@ -1080,11 +1126,29 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		{
 			switch (expr)
 			{
-				case ParenthesizedExpressionSyntax p: expr = p.Expression; break;
-				case ElementAccessExpressionSyntax e: expr = e.Expression; break;
-				case MemberAccessExpressionSyntax m: expr = m.Expression; break;
-				case IdentifierNameSyntax id: return id.Identifier.Text;
-				default: return null;
+				case ParenthesizedExpressionSyntax p:
+				{
+					expr = p.Expression;
+					break;
+				}
+				case ElementAccessExpressionSyntax e:
+				{
+					expr = e.Expression;
+					break;
+				}
+				case MemberAccessExpressionSyntax m:
+				{
+					expr = m.Expression;
+					break;
+				}
+				case IdentifierNameSyntax id:
+				{
+					return id.Identifier.Text;
+				}
+				default:
+				{
+					return null;
+				}
 			}
 		}
 	}

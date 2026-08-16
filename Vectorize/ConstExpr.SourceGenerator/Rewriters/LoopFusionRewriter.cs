@@ -182,7 +182,9 @@ public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
@@ -285,20 +287,28 @@ public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 			switch (node)
 			{
 				case AssignmentExpressionSyntax assignment:
+				{
 					AddBaseIdentifier(assignment.Left, writes);
 					break;
+				}
 
 				case PrefixUnaryExpressionSyntax pre when pre.IsKind(SyntaxKind.PreIncrementExpression) || pre.IsKind(SyntaxKind.PreDecrementExpression):
+				{
 					AddBaseIdentifier(pre.Operand, writes);
 					break;
+				}
 
 				case PostfixUnaryExpressionSyntax post when post.IsKind(SyntaxKind.PostIncrementExpression) || post.IsKind(SyntaxKind.PostDecrementExpression):
+				{
 					AddBaseIdentifier(post.Operand, writes);
 					break;
+				}
 
 				case ArgumentSyntax arg when arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword):
+				{
 					AddBaseIdentifier(arg.Expression, writes);
 					break;
+				}
 			}
 		}
 
@@ -312,19 +322,29 @@ public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 			switch (expr)
 			{
 				case ParenthesizedExpressionSyntax p:
+				{
 					expr = p.Expression;
 					continue;
+				}
 				case ElementAccessExpressionSyntax e:
+				{
 					expr = e.Expression;
 					continue;
+				}
 				case MemberAccessExpressionSyntax m:
+				{
 					expr = m.Expression;
 					continue;
+				}
 				case IdentifierNameSyntax id:
+				{
 					writes.Add(id.Identifier.Text);
 					return;
+				}
 				default:
+				{
 					return;
+				}
 			}
 		}
 	}
@@ -372,20 +392,28 @@ public sealed class LoopFusionRewriter : CSharpSyntaxRewriter
 		{
 			case PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax post } postfix
 				when postfix.IsKind(SyntaxKind.PostIncrementExpression) || postfix.IsKind(SyntaxKind.PostDecrementExpression):
+			{
 				return post.Identifier.Text == loopVar;
+			}
 
 			case PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax pre } prefix
 				when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+			{
 				return pre.Identifier.Text == loopVar;
+			}
 
 			case AssignmentExpressionSyntax { Left: IdentifierNameSyntax target, Right: LiteralExpressionSyntax literal } compound
 				when compound.IsKind(SyntaxKind.AddAssignmentExpression) || compound.IsKind(SyntaxKind.SubtractAssignmentExpression):
+			{
 				return target.Identifier.Text == loopVar
 				       && literal.IsKind(SyntaxKind.NumericLiteralExpression)
 				       && Convert.ToDouble(literal.Token.Value) != 0;
+			}
 
 			default:
+			{
 				return false;
+			}
 		}
 	}
 

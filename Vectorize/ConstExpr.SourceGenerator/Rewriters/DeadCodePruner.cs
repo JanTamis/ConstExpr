@@ -192,10 +192,14 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				case AssignmentExpressionSyntax:
 				case AwaitExpressionSyntax:
 				case PostfixUnaryExpressionSyntax:
+				{
 					return false;
+				}
 				case PrefixUnaryExpressionSyntax prefix
 					when prefix.IsKind(SyntaxKind.PreIncrementExpression) || prefix.IsKind(SyntaxKind.PreDecrementExpression):
+				{
 					return false;
+				}
 			}
 		}
 

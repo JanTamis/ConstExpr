@@ -150,7 +150,9 @@ public sealed class LoopInvariantCodeMotionRewriter : CSharpSyntaxRewriter
 			}
 
 			default:
+			{
 				return null;
+			}
 		}
 	}
 
