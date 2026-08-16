@@ -8,7 +8,6 @@ using ConstExpr.SourceGenerator.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Analyzers;
 
@@ -43,12 +42,7 @@ public class BodyAnalyzer : BaseAnalyzer<InvocationExpressionSyntax, IMethodSymb
 
 		try
 		{
-			// The result is discarded - this call exists to surface exceptions as diagnostics. The
-			// real formatting options are passed anyway so that a fault in a rendering pass is
-			// reported here too, instead of only failing at emit time.
-			var formatting = FormattingOptions.Read(context.Options.AnalyzerConfigOptionsProvider, context.SemanticModel.SyntaxTree);
-
-			ConstExprSourceGenerator.GenerateExpression(context.SemanticModel, loader, node, symbol, attribute!.ToAttribute<ConstExprAttribute>(), cache, formatting, token);
+			ConstExprSourceGenerator.GenerateExpression(context.SemanticModel, loader, node, symbol, attribute!.ToAttribute<ConstExprAttribute>(), cache, token);
 		}
 		catch (Exception e)
 		{

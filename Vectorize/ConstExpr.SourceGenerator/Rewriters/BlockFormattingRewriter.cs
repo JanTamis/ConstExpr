@@ -6,40 +6,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SourceGen.Utilities.Extensions;
-using SourceGen.Utilities.Helpers;
 
 namespace ConstExpr.SourceGenerator.Rewriters;
 
-public sealed class BlockFormattingRewriter(FormattingOptions? options = null) : CSharpSyntaxRewriter
+public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 {
-	private readonly FormattingOptions _options = options ?? FormattingOptions.Default;
-
-	/// <summary>
-	///   An elastic line break in the configured end-of-line style. Using a hard-coded CRLF here
-	///   would emit the wrong separator once <c>end_of_line = lf</c> is configured, reintroducing
-	///   the mixed line endings this pass exists to avoid.
-	/// </summary>
-	private SyntaxTrivia ElasticNewLine => ElasticEndOfLine(_options.EndOfLine);
-
-	/// <summary>A hard line break in the configured end-of-line style.</summary>
-	private SyntaxTrivia NewLine => EndOfLine(_options.EndOfLine);
-
-	/// <summary>
-	///   Whether a single embedded statement may drop its braces. Mirrors
-	///   <c>csharp_prefer_braces</c>; <see cref="BracePreference.WhenMultiline" /> is decided here
-	///   rather than in <see cref="BracePreferenceRewriter" /> because only after normalization is
-	///   the line structure real.
-	/// </summary>
-	private bool CanStripBraces(StatementSyntax statement)
-	{
-		return _options.PreferBraces switch
-		{
-			BracePreference.Never => true,
-			BracePreference.WhenMultiline => !statement.ToString().Contains('\n'),
-			_ => false
-		};
-	}
-
 	// Strips explanatory "// ..." comments (e.g. carried over from the original source, like
 	// "// Optimize by using smaller k") from generated code. XML doc comments are untouched.
 	public override SyntaxToken VisitToken(SyntaxToken token)
@@ -311,8 +282,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 		if (visited.Else is null && visited.Statement is BlockSyntax { Statements.Count: 1 } block
 		                         && node.Parent is not ElseClauseSyntax
-		                         && !IsConditionalSyntax(block.Statements[0])
-		                         && CanStripBraces(block.Statements[0]))
+		                         && !IsConditionalSyntax(block.Statements[0]))
 		{
 			visited = visited.WithStatement(block.Statements[0]);
 		}
@@ -323,8 +293,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	public override SyntaxNode? VisitForStatement(ForStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && !IsConditionalSyntax(block.Statements[0])
-		    && CanStripBraces(block.Statements[0]))
+		    && !IsConditionalSyntax(block.Statements[0]))
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
@@ -335,8 +304,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	public override SyntaxNode? VisitForEachStatement(ForEachStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && !IsConditionalSyntax(block.Statements[0])
-		    && CanStripBraces(block.Statements[0]))
+		    && !IsConditionalSyntax(block.Statements[0]))
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
@@ -347,8 +315,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	public override SyntaxNode? VisitForEachVariableStatement(ForEachVariableStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && !IsConditionalSyntax(block.Statements[0])
-		    && CanStripBraces(block.Statements[0]))
+		    && !IsConditionalSyntax(block.Statements[0]))
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
@@ -359,8 +326,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	public override SyntaxNode? VisitWhileStatement(WhileStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && !IsConditionalSyntax(block.Statements[0])
-		    && CanStripBraces(block.Statements[0]))
+		    && !IsConditionalSyntax(block.Statements[0]))
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
@@ -371,8 +337,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	public override SyntaxNode? VisitDoStatement(DoStatementSyntax node)
 	{
 		if (node.Statement is BlockSyntax { Statements.Count: 1 } block
-		    && !IsConditionalSyntax(block.Statements[0])
-		    && CanStripBraces(block.Statements[0]))
+		    && !IsConditionalSyntax(block.Statements[0]))
 		{
 			node = node.WithStatement(block.Statements[0]);
 		}
@@ -407,7 +372,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 		if (visited.ConstraintClauses.Count > 0)
 		{
 			var newClauses = visited.ConstraintClauses
-				.Select(c => c.WithLeadingTrivia(ElasticNewLine, Whitespace(_options.IndentationString)));
+				.Select(c => c.WithLeadingTrivia(ElasticCarriageReturnLineFeed, Whitespace("\t")));
 			visited = visited.WithConstraintClauses(List(newClauses));
 
 			// Strip trailing EOL from ) so there's no blank line before the first where
@@ -992,7 +957,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 	///   processed group.
 	/// </param>
 	/// <param name="isInGroup">A predicate that determines whether a given statement belongs to the group to be surrounded.</param>
-	private void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup, Func<int, bool>? stopBefore = null)
+	private static void SurroundContiguousGroup(List<StatementSyntax> visited, ref int i, Func<StatementSyntax, bool> isInGroup, Func<int, bool>? stopBefore = null)
 	{
 		var start = i;
 		var end = i;
@@ -1132,7 +1097,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 		return CountTrailingNewLines(trailing) < 2;
 	}
 
-	private StatementSyntax EnsureTrailingBlankLine(StatementSyntax statement)
+	private static StatementSyntax EnsureTrailingBlankLine(StatementSyntax statement)
 	{
 		var trailing = statement.GetTrailingTrivia();
 		var newlineCount = CountTrailingNewLines(trailing);
@@ -1146,13 +1111,13 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 		for (var k = 0; k < 2 - newlineCount; k++)
 		{
-			list = list.Add(ElasticNewLine);
+			list = list.Add(ElasticCarriageReturnLineFeed);
 		}
 
 		return statement.WithTrailingTrivia(list);
 	}
 
-	private StatementSyntax TrimLeadingBlankLinesTo(StatementSyntax statement, int maxEols)
+	private static StatementSyntax TrimLeadingBlankLinesTo(StatementSyntax statement, int maxEols)
 	{
 		var leading = statement.GetLeadingTrivia();
 		var idx = 0;
@@ -1173,7 +1138,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 		for (var i = 0; i < maxEols; i++)
 		{
-			newLeading.Add(ElasticNewLine);
+			newLeading.Add(ElasticCarriageReturnLineFeed);
 		}
 
 		for (var i = idx; i < leading.Count; i++)
@@ -1205,7 +1170,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 		return count;
 	}
 
-	private BlockSyntax NormalizeOpenBraceTrailing(BlockSyntax block)
+	private static BlockSyntax NormalizeOpenBraceTrailing(BlockSyntax block)
 	{
 		var open = block.OpenBraceToken;
 		var trailing = open.TrailingTrivia;
@@ -1228,7 +1193,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 			newTrailing.Add(trailing[i]);
 		}
 
-		newTrailing.Add(ElasticNewLine);
+		newTrailing.Add(ElasticCarriageReturnLineFeed);
 
 		return block.WithOpenBraceToken(open.WithTrailingTrivia(TriviaList(newTrailing)));
 	}
@@ -1437,7 +1402,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 		var openBrace = Token(SyntaxKind.OpenBraceToken)
 			.WithLeadingTrivia(openBraceLeading)
-			.WithTrailingTrivia(NewLine);
+			.WithTrailingTrivia(LineFeed);
 
 		// Build close brace: newline + same indentation as case label
 		var closeBraceLeading = TriviaList();
@@ -1449,7 +1414,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 		var closeBrace = Token(SyntaxKind.CloseBraceToken)
 			.WithLeadingTrivia(closeBraceLeading)
-			.WithTrailingTrivia(NewLine);
+			.WithTrailingTrivia(LineFeed);
 
 		var block = VisitBlock(Block(openBrace, List(visited.Statements), closeBrace));
 
@@ -1627,7 +1592,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 		       || text.StartsWith("0B", StringComparison.OrdinalIgnoreCase);
 	}
 
-	private SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
+	private static SyntaxList<MemberDeclarationSyntax> NormalizeMemberSpacing(SyntaxList<MemberDeclarationSyntax> members)
 	{
 		if (members.Count <= 1)
 		{
@@ -1652,7 +1617,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 				}
 
 				// Build new leading trivia: exactly 1 EOL + rest (whitespace/indentation)
-				var newLeading = TriviaList(NewLine);
+				var newLeading = TriviaList(LineFeed);
 
 				for (var j = nonEolStart; j < leading.Count; j++)
 				{
@@ -1691,7 +1656,7 @@ public sealed class BlockFormattingRewriter(FormattingOptions? options = null) :
 
 				if (!foundEol)
 				{
-					newTrailing = newTrailing.Add(NewLine);
+					newTrailing = newTrailing.Add(LineFeed);
 				}
 
 				newMembers = newMembers.Replace(newMembers[i - 1], prev.WithTrailingTrivia(newTrailing));
