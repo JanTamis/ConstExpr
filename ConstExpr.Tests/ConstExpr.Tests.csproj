@@ -39,5 +39,8 @@
 		<ProjectReference Include="..\Vectorize\ConstExpr.SourceGenerator\ConstExpr.SourceGenerator.csproj">
 			<Aliases>sourcegen</Aliases>
 		</ProjectReference>
+		<!-- FormattingHelper's signatures mention FormattingOptions, which lives here; the generator
+		     references this project privately, so the tests need their own reference to see the type. -->
+		<ProjectReference Include="..\SourceGen.Utilities\SourceGen.Utilities.csproj"/>
 	</ItemGroup>
 </Project>

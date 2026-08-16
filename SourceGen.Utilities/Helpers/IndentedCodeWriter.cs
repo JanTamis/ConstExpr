@@ -30,16 +30,40 @@ public sealed class IndentedCodeWriter : IDisposable
 	public delegate void Callback<in T>(T value, IndentedCodeWriter writer);
 
 	/// <summary>
-	///   The default indentation (tab).
+	///   The indentation used when no <see cref="FormattingOptions" /> are supplied (tab).
 	/// </summary>
 	private const string DefaultIndentation = "\t";
 
-	/// <summary>
-	///   The default new line (<c>'\n'</c>).
-	/// </summary>
-	private const char DefaultNewLine = '\n';
-
 	private readonly Compilation _compilation;
+
+	/// <summary>
+	///   One level of indentation, from <see cref="FormattingOptions.IndentationString" />.
+	/// </summary>
+	private readonly string _indentation;
+
+	/// <summary>
+	///   The line separator, from <see cref="FormattingOptions.EndOfLine" />.
+	/// </summary>
+	private readonly string _newLine;
+
+	/// <summary>
+	///   The last character of <see cref="_newLine" />, used to detect "we are at the start of a
+	///   line" and to split multiline content. Splitting on this single character keeps CRLF and LF
+	///   input working identically; any stray <c>'\r'</c> left at the end of a line is trimmed
+	///   before <see cref="_newLine" /> is appended, so mixed-EOL input is normalised on the way in.
+	/// </summary>
+	private readonly char _newLineLastChar;
+
+	/// <summary>
+	///   Two consecutive line breaks, precomputed because the blank-line check runs on every
+	///   <see cref="WriteLine(bool)" /> that may skip.
+	/// </summary>
+	private readonly string _blankLine;
+
+	/// <summary>
+	///   Whether the rendered output ends with a line break.
+	/// </summary>
+	private readonly bool _insertFinalNewLine;
 
 	/// <summary>
 	///   The cached array of available indentations, as text.
@@ -64,18 +88,30 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <summary>
 	///   Creates a new <see cref="IndentedCodeWriter" /> object.
 	/// </summary>
-	public IndentedCodeWriter(Compilation compilation)
+	/// <param name="compilation">The compilation the generated code belongs to.</param>
+	/// <param name="options">
+	///   The formatting settings to render with. Defaults to <see cref="FormattingOptions.Default" />,
+	///   which reproduces the historic tab/CRLF output.
+	/// </param>
+	public IndentedCodeWriter(Compilation compilation, FormattingOptions? options = null)
 	{
+		var resolved = options ?? FormattingOptions.Default;
+
 		_builder = new ImmutableArrayBuilder<char>();
 		_currentIndentationLevel = 0;
 		_currentIndentation = String.Empty;
 		_availableIndentations = new string[4];
 		_availableIndentations[0] = String.Empty;
 		_compilation = compilation;
+		_indentation = resolved.IndentationString;
+		_newLine = resolved.EndOfLine;
+		_newLineLastChar = _newLine[_newLine.Length - 1];
+		_blankLine = _newLine + _newLine;
+		_insertFinalNewLine = resolved.InsertFinalNewline;
 
 		for (int i = 1, n = _availableIndentations.Length; i < n; i++)
 		{
-			_availableIndentations[i] = _availableIndentations[i - 1] + DefaultIndentation;
+			_availableIndentations[i] = _availableIndentations[i - 1] + _indentation;
 		}
 	}
 
@@ -97,7 +133,7 @@ public sealed class IndentedCodeWriter : IDisposable
 	public Span<char> Advance(int requestedSize)
 	{
 		// Add the leading whitespace if needed (same as WriteRawText below)
-		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == DefaultNewLine)
+		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == _newLineLastChar)
 		{
 			_builder.AddRange(_currentIndentation.AsSpan());
 		}
@@ -120,7 +156,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		// Set both the current indentation and the current position in the indentations
 		// array to the expected indentation for the incremented level (ie. one level more).
 		_currentIndentation = _availableIndentations[_currentIndentationLevel]
-			??= _availableIndentations[_currentIndentationLevel - 1] + DefaultIndentation;
+			??= _availableIndentations[_currentIndentationLevel - 1] + _indentation;
 	}
 
 	/// <summary>
@@ -217,7 +253,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		{
 			while (content.Length > 0)
 			{
-				var newLineIndex = content.IndexOf(DefaultNewLine);
+				var newLineIndex = content.IndexOf(_newLineLastChar);
 
 				if (newLineIndex < 0)
 				{
@@ -227,7 +263,10 @@ public sealed class IndentedCodeWriter : IDisposable
 					break;
 				}
 
-				var line = content[..newLineIndex];
+				// Drop a CR that belongs to a CRLF in the input: the line break is re-emitted as
+				// the configured one below, so incoming content is normalised to a single EOL
+				// regardless of what it arrived with.
+				var line = content[..newLineIndex].TrimEnd('\r');
 
 				// Write the current line (if it's empty, we can skip writing the text entirely).
 				// This ensures that raw multiline string literals with blank lines don't have
@@ -298,12 +337,22 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <param name="skipIfPresent">Indicates whether to skip adding the line if there already is one.</param>
 	public void WriteLine(bool skipIfPresent = false)
 	{
-		if (skipIfPresent && _builder.WrittenSpan.EndsWith("\n\n"))
+		if (skipIfPresent && EndsWithBlankLine())
 		{
 			return;
 		}
 
-		_builder.Add(DefaultNewLine);
+		_builder.AddRange(_newLine.AsSpan());
+	}
+
+	/// <summary>
+	///   Whether the buffer already ends with two consecutive line breaks, i.e. a blank line.
+	/// </summary>
+	private bool EndsWithBlankLine()
+	{
+		var written = _builder.WrittenSpan;
+
+		return written.Length >= _blankLine.Length && written[^_blankLine.Length..].SequenceEqual(_blankLine.AsSpan());
 	}
 
 	/// <summary>
@@ -394,7 +443,13 @@ public sealed class IndentedCodeWriter : IDisposable
 	/// <inheritdoc />
 	public override string ToString()
 	{
-		return _builder.WrittenSpan.Trim().ToString();
+		// Trimming both ends drops the blank line callers write before the first member as well as
+		// any trailing break; the final line separator is then re-added only when configured.
+		var result = _builder.WrittenSpan.Trim().ToString();
+
+		return _insertFinalNewLine
+			? result + _newLine
+			: result;
 	}
 
 	/// <summary>
@@ -419,13 +474,21 @@ public sealed class IndentedCodeWriter : IDisposable
 
 	private void TryWriteIndentation()
 	{
-		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == DefaultNewLine)
+		if (_builder.Count == 0 || _builder.WrittenSpan[^1] == _newLineLastChar)
 		{
 			_builder.AddRange(_currentIndentation.AsSpan());
 		}
 	}
 
-	public static ExpressionSyntax CreateLiteral<T>(T? value)
+	/// <summary>
+	///   Builds a literal expression for <paramref name="value" />.
+	/// </summary>
+	/// <param name="value">The value to turn into a literal expression.</param>
+	/// <param name="indentation">
+	///   The indentation applied when <paramref name="value" /> is already an
+	///   <see cref="ExpressionSyntax" /> and has to be normalised. Defaults to a tab.
+	/// </param>
+	public static ExpressionSyntax CreateLiteral<T>(T? value, string? indentation = null)
 	{
 		switch (value)
 		{
@@ -526,7 +589,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			}
 			case ExpressionSyntax expression:
 			{
-				return expression.NormalizeWhitespace(DefaultIndentation);
+				return expression.NormalizeWhitespace(indentation ?? DefaultIndentation);
 			}
 		}
 
@@ -548,7 +611,7 @@ public sealed class IndentedCodeWriter : IDisposable
 			{
 				var itemValue = member is FieldInfo fi
 					? fi.GetValue(value)
-					: ((PropertyInfo)member).GetValue(value);
+					: ((PropertyInfo) member).GetValue(value);
 
 				tupleItems.Add(SyntaxFactory.Argument(CreateLiteral(itemValue)));
 			}
@@ -712,7 +775,7 @@ public sealed class IndentedCodeWriter : IDisposable
 		/// <typeparam name="T">The type of the value to write.</typeparam>
 		public void AppendFormatted<T>(T value)
 		{
-			var item = CreateLiteral(value);
+			var item = CreateLiteral(value, _writer._indentation);
 
 			if (item is not null)
 			{
@@ -762,7 +825,7 @@ public sealed class IndentedCodeWriter : IDisposable
 						AppendLiteral($"0b{Convert.ToString(l, 2).PadLeft(64, '0')}");
 						return;
 					case ulong ul:
-						AppendLiteral($"0b{Convert.ToString((long)ul, 2).PadLeft(64, '0')}");
+						AppendLiteral($"0b{Convert.ToString((long) ul, 2).PadLeft(64, '0')}");
 						return;
 				}
 			}

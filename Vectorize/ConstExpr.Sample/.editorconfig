@@ -1,0 +1,96 @@
+# Formatting for the sample project, and a live demonstration of what ConstExpr honours when it
+# generates code. Every key below is read by the generator; flip one and rebuild to see the 65
+# files under Generated/ change shape.
+#
+# There is deliberately no "root = true": the repository's own .editorconfig still applies, and
+# this file only makes the settings that were implicit explicit, or spells out a default so it is
+# visible. The values here therefore reproduce the current output exactly.
+#
+# A source generator can only observe .editorconfig - Rider's and Visual Studio's own formatting
+# settings are invisible to the compiler. Keys not listed here fall back to the Roslyn default.
+
+[*.cs]
+
+#### Whitespace ####
+
+# Without this the generator cannot know which style the editor uses and falls back to a tab,
+# ignoring indent_size. Set it to "space" to get indent_size-wide indentation instead.
+indent_style = tab
+
+# indent_size / tab_width / end_of_line come from the repository .editorconfig (2 and crlf).
+
+# Whether the generated file ends with a line break.
+insert_final_newline = false
+
+# Trailing spaces are left alone; setting this to true strips them, except inside multi-line
+# string literals where they are part of the value.
+trim_trailing_whitespace = false
+
+# utf-8-bom emits a byte order mark, utf-8 does not.
+charset = utf-8-bom
+
+#### Braces and line breaks ####
+
+# Strips braces from a single-statement if/for/foreach/while/do/lock/using/fixed body wherever
+# that is legal, e.g. "if (x) return;" instead of "if (x) { return; }". Overrides the repository
+# .editorconfig, which sets this to true. Use "when_multiline" instead of false to keep braces
+# only once the body no longer fits on one line.
+csharp_prefer_braces = false
+
+# csharp_style_namespace_declarations comes from the repository .editorconfig (block_scoped).
+
+# "all" puts every opening brace on its own line (Allman). "none" gives K&R; a comma-separated
+# list such as "methods,types" applies it per construct.
+csharp_new_line_before_open_brace = all
+
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+#### Indentation of constructs ####
+
+# The generator emits goto labels when it unrolls a loop with a conditional break; this is what
+# pulls them one level out of the surrounding statements. "flush_left" moves them to column 0.
+# (Also set in the repository .editorconfig.)
+csharp_indent_labels = one_less_than_current
+
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_switch_labels = true
+csharp_indent_case_contents = true
+
+#### Using directives ####
+
+# csharp_using_directive_placement comes from the repository .editorconfig (outside_namespace).
+
+# System.* first, then alphabetical.
+dotnet_sort_system_directives_first = true
+
+# Set to true to separate System.* from other roots with a blank line.
+dotnet_separate_import_directive_groups = false
+
+#### Spacing ####
+#
+# All of these are at the Roslyn default, which is also what the generator produces today. They
+# are listed because they are the least obvious knobs: change one and every generated expression
+# follows. For example csharp_space_after_cast = true turns "(uint)i" into "(uint) i".
+
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_parentheses = false
+csharp_space_around_binary_operators = before_and_after
+csharp_space_after_comma = true
+csharp_space_before_comma = false
+csharp_space_after_dot = false
+csharp_space_before_dot = false
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_before_semicolon_in_for_statement = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+csharp_space_before_open_square_brackets = false
+csharp_space_between_square_brackets = false
+csharp_space_between_empty_square_brackets = false
