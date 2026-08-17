@@ -310,7 +310,7 @@ public class AllFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 		var type = ParseTypeFromString<StructDeclarationSyntax>($$"""
 			private struct Operator{{lambda.Body.GetDeterministicHashString()}} : IOperator<{{typeName}}>
 			{
-				public static bool IsVectorized => true;
+				public static bool IsVectorizable => true;
 				public static Vector<{{typeName}}> Invoke(Vector<{{typeName}}> vector) => {{ReplaceIdentifier(vectorizedCode, lambda, "vector")}};
 				public static bool Invoke({{typeName}} item) => {{ReplaceIdentifier(lambda.Body, lambda, "item")}};
 			}
