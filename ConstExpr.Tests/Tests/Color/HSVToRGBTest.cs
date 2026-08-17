@@ -81,7 +81,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 			{
 				h = h == 360D ? 0D : h * 0.016666666666666666;
 
-				var i = (int) Double.Truncate(h);
+				var i = (int) h;
 				var f = h - i;
 				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
 				var prod = v * Double.MultiplyAddEstimate(-s, f, 1D);
@@ -160,7 +160,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 			h = h == 360D ? 0D : h * 0.016666666666666666;
 
-			var i = (int) Double.Truncate(h);
+			var i = (int) h;
 			var f = h - i;
 			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, 0.5, 0.5), v, v);
 			var prod = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
@@ -235,7 +235,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 			{
 				h = h == 360D ? 0D : h * 0.016666666666666666;
 
-				var i = (int) Double.Truncate(h);
+				var i = (int) h;
 				var f = h - i;
 				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), 0.5, 0.5);
 				var prod = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;

@@ -26,7 +26,7 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		}
 
 		// 3) Unary minus: Truncate(-x) -> -Truncate(x)
-		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int)SyntaxKind.MinusToken } prefix)
+		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
 		{
 			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
 
@@ -52,6 +52,28 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Round" } } roundInv)
 		{
 			result = roundInv;
+			return true;
+		}
+
+		// 7) (int)Math.Truncate(x) -> (int)x — an explicit cast to an integer type already
+		// truncates towards zero, so the Truncate call is redundant.
+		if (context.Invocation.Parent is CastExpressionSyntax
+		    {
+			    Type: PredefinedTypeSyntax
+			    {
+				    Keyword.RawKind: (int) SyntaxKind.IntKeyword
+				    or (int) SyntaxKind.UIntKeyword
+				    or (int) SyntaxKind.LongKeyword
+				    or (int) SyntaxKind.ULongKeyword
+				    or (int) SyntaxKind.ShortKeyword
+				    or (int) SyntaxKind.UShortKeyword
+				    or (int) SyntaxKind.ByteKeyword
+				    or (int) SyntaxKind.SByteKeyword
+				    or (int) SyntaxKind.CharKeyword
+			    }
+		    })
+		{
+			result = context.VisitedParameters[0];
 			return true;
 		}
 
