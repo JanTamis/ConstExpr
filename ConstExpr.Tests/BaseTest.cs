@@ -438,6 +438,18 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 			? SyntaxFactory.Block()
 			: SyntaxFactory.Block(SyntaxFactory.ReturnStatement(SyntaxHelpers.CreateLiteral(result)));
 
+		// A fully-known result can still contain a structurally repeated literal - e.g. two
+		// independently-computed Double.NegativeInfinity - and the real pipeline's CSE hoists that
+		// exactly like any other repeated subexpression (CommonSubexpressionEliminator.ShouldConsider
+		// treats a MemberAccessExpressionSyntax field reference as an ordinary candidate). Without
+		// running the same pass here, this naive rendering disagrees with OptimizationPipeline's actual
+		// output on structure alone, even though the computed values are identical.
+		if (optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination)
+		    && CommonSubexpressionEliminator.Eliminate(block, mathOptimizations) is BlockSyntax eliminated)
+		{
+			block = eliminated;
+		}
+
 		var formatted = FormattingHelper.Format(block) as BlockSyntax ?? block;
 		var rendered = FormattingHelper.Render(formatted)!;
 

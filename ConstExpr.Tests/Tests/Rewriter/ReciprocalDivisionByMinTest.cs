@@ -6,18 +6,15 @@ namespace ConstExpr.Tests.Rewriter;
 ///   is converted to <c>* ReciprocalEstimate(min)</c> at each occurrence, then the repeated call is
 ///   hoisted into <c>invMin</c>.
 ///   <para>
-///     Deliberately <see cref="BaseTest{TDelegate}" />, not <see cref="BaseTestWithRandomValues{TDelegate}" />:
-///     this class's stable random seed draws an exact-zero <c>min</c> (a deliberately-included fuzz
+///     This class's stable random seed draws an exact-zero <c>min</c> (a deliberately-included fuzz
 ///     bucket, see <see cref="BaseTestWithRandomValues{TDelegate}.MaxRandomFloatExponent" />'s doc)
-///     with two of the three divisions landing on the same <c>Double.NegativeInfinity</c>. That's a
-///     genuine, pre-existing, unrelated gap — CSE hoisting the repeated special-value literal into a
-///     shared local, which <c>CreateFoldedRandom</c>'s expected body never runs CSE to anticipate —
-///     not a defect in the reciprocal-division identity itself (the computed values match exactly;
-///     only the hoisting differs). Tracked separately rather than worked around here.
+///     with two of the three divisions landing on the same <c>Double.NegativeInfinity</c>, which
+///     <see cref="BaseTest{TDelegate}.CreateFoldedSyntax" />'s expected body now runs CSE to
+///     anticipate, same as the real pipeline.
 ///   </para>
 /// </summary>
 [InheritsTests]
-public class ReciprocalDivisionByMinTest : BaseTest<Func<double, double, double, (double, double, double)>>
+public class ReciprocalDivisionByMinTest : BaseTestWithRandomValues<Func<double, double, double, (double, double, double)>>
 {
 	public override string TestMethod => GetString((x, y, z) =>
 	{
