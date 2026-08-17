@@ -149,7 +149,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 			if (s != 0D)
 			{
 				r = Double.MultiplyAddEstimate(-s, v, v);
-				g = v * Double.MultiplyAddEstimate(-s, 0.3333333333333335, 1D);
+				g = v * Double.MultiplyAddEstimate(s, -0.3333333333333335, 1D);
 			}
 
 			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (v * 255D));
@@ -163,7 +163,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 			var i = (int) Double.Truncate(h);
 			var f = h - i;
 			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, 0.5, 0.5), v, v);
-			var prod = v * Double.MultiplyAddEstimate(-f, 0.5, 1D);
+			var prod = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
 			var prod2 = v * 0.5;
 
 			switch (i)

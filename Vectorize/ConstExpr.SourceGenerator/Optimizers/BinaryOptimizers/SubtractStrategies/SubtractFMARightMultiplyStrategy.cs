@@ -23,7 +23,27 @@ public class SubtractFMARightMultiplyStrategy() : NumericBinaryStrategy<Expressi
 		}
 
 		var host = context.Type.AsTypeSyntax();
-		var arguments = ArgumentList(UnaryMinusExpression(context.Right.Syntax.Left), context.Right.Syntax.Right, context.Left.Syntax);
+		var mulLeft = context.Right.Syntax.Left;
+		var mulRight = context.Right.Syntax.Right;
+		ExpressionSyntax negatedLeft, negatedRight;
+
+		if (context.TryGetValue(mulRight, out var rightValue) && TryCreateLiteral(rightValue.Negate(), out var negatedRightLiteral))
+		{
+			negatedLeft = mulLeft;
+			negatedRight = negatedRightLiteral;
+		}
+		else if (context.TryGetValue(mulLeft, out var leftValue) && TryCreateLiteral(leftValue.Negate(), out var negatedLeftLiteral))
+		{
+			negatedLeft = negatedLeftLiteral;
+			negatedRight = mulRight;
+		}
+		else
+		{
+			negatedLeft = UnaryMinusExpression(mulLeft);
+			negatedRight = mulRight;
+		}
+
+		var arguments = ArgumentList(negatedLeft, negatedRight, context.Left.Syntax);
 
 		if (ContainsMultiplyAddEstimate(context.Type))
 		{
