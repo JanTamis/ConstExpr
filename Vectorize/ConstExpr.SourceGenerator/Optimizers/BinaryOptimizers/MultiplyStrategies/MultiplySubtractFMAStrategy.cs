@@ -55,18 +55,21 @@ public class MultiplySubtractFMAStrategy : SymmetricStrategy<NumericBinaryStrate
 
 		var a = RemoveParentheses(sub.Left);
 		var b = RemoveParentheses(sub.Right);
+		var negatedC = context.TryGetValue(c, out var cValue) && TryCreateLiteral(cValue.Negate(), out var negatedCLiteral) ? negatedCLiteral : null;
 
 		ArgumentListSyntax arguments;
 
 		if (context.TryGetValue(a, out var aValue) && IsOne(aValue))
 		{
-			// (1 - b) * c == -b*c + c => FMA(-b, c, c)
-			arguments = ArgumentList(Negate(b), c, c);
+			// (1 - b) * c == -b*c + c => FMA(-b, c, c), or FMA(b, -c, c) when c is a known
+			// constant so the negation folds into it instead of running at each call.
+			arguments = negatedC is not null ? ArgumentList(b, negatedC, c) : ArgumentList(Negate(b), c, c);
 		}
 		else if (context.TryGetValue(b, out var bValue) && IsOne(bValue))
 		{
-			// (a - 1) * c == a*c - c => FMA(a, c, -c)
-			arguments = ArgumentList(a, c, UnaryMinusExpression(c));
+			// (a - 1) * c == a*c - c => FMA(a, c, -c), with c's negation folded into a literal
+			// when c is a known constant.
+			arguments = negatedC is not null ? ArgumentList(a, c, negatedC) : ArgumentList(a, c, UnaryMinusExpression(c));
 		}
 		else
 		{

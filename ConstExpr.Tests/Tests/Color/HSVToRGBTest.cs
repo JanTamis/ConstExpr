@@ -162,7 +162,7 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 			var i = (int) h;
 			var f = h - i;
-			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, 0.5, 0.5), v, v);
+			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(f, -0.5, 0.5), v, v);
 			var prod = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
 			var prod2 = v * 0.5;
 
@@ -237,9 +237,9 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 				var i = (int) h;
 				var f = h - i;
-				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), 0.5, 0.5);
+				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(Double.MultiplyAddEstimate(-f, s, s), -0.5, 0.5);
 				var prod = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
-				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(-s, 0.5, 0.5);
+				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(s, -0.5, 0.5);
 
 				switch (i)
 				{
@@ -295,6 +295,6 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
 		}, [ Unknown, Unknown, 0.5 ]),
-		Create((_, s, _) => ((byte) (s == 0D ? 127.5D : Double.MultiplyAddEstimate(-s, 0.5, 0.5) * 255D), 127, 127), [ 180, Unknown, 0.5 ])
+		Create((_, s, _) => ((byte) (s == 0D ? 127.5D : Double.MultiplyAddEstimate(s, -0.5, 0.5) * 255D), 127, 127), [ 180, Unknown, 0.5 ])
 	];
 }

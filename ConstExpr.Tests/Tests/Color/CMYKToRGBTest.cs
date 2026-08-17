@@ -18,8 +18,8 @@ public class CMYKToRGBTest : BaseTestWithRandomValues<Func<double, double, doubl
 		{
 			var diff = 1D - k;
 
-			return ((byte) (Double.MultiplyAddEstimate(-c, 255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(-m, 255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(-y, 255D, 255D) * diff));
+			return ((byte) (Double.MultiplyAddEstimate(c, -255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(m, -255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(y, -255D, 255D) * diff));
 		}),
-		Create((c, m, y, _) => ((byte) (Double.MultiplyAddEstimate(-c, 255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(-m, 255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(-y, 255D, 255D) * 0.6)), [ Unknown, Unknown, Unknown, 0.4 ])
+		Create((c, m, y, _) => ((byte) (Double.MultiplyAddEstimate(c, -255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(m, -255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(y, -255D, 255D) * 0.6)), [ Unknown, Unknown, Unknown, 0.4 ])
 	];
 }

@@ -25,37 +25,28 @@ public class TruncateFunctionOptimizer() : BaseMathFunctionOptimizer("Truncate",
 			return true;
 		}
 
-		// 3) Unary minus: Truncate(-x) -> -Truncate(x)
-		if (context.VisitedParameters[0] is PrefixUnaryExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.MinusToken } prefix)
-		{
-			var truncateCall = CreateInvocation(paramType, "Truncate", prefix.Operand);
-
-			result = UnaryMinusExpression(ParenthesizedExpression(truncateCall));
-			return true;
-		}
-
-		// 4) Truncate(Floor(x)) -> Floor(x) (Floor already truncates towards negative infinity)
+		// 3) Truncate(Floor(x)) -> Floor(x) (Floor already truncates towards negative infinity)
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Floor" } } floorInv)
 		{
 			result = floorInv;
 			return true;
 		}
 
-		// 5) Truncate(Ceiling(x)) -> Ceiling(x) (Ceiling already returns an integer)
+		// 4) Truncate(Ceiling(x)) -> Ceiling(x) (Ceiling already returns an integer)
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Ceiling" } } ceilingInv)
 		{
 			result = ceilingInv;
 			return true;
 		}
 
-		// 6) Truncate(Round(x)) -> Round(x) (Round already returns an integer value)
+		// 5) Truncate(Round(x)) -> Round(x) (Round already returns an integer value)
 		if (context.VisitedParameters[0] is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Round" } } roundInv)
 		{
 			result = roundInv;
 			return true;
 		}
 
-		// 7) (int)Math.Truncate(x) -> (int)x — an explicit cast to an integer type already
+		// 6) (int)Math.Truncate(x) -> (int)x — an explicit cast to an integer type already
 		// truncates towards zero, so the Truncate call is redundant.
 		if (context.Invocation.Parent is CastExpressionSyntax
 		    {

@@ -8,6 +8,6 @@ public class MathTruncateNegationTest : BaseTestWithRandomValues<Func<double, do
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => -Double.Truncate(x))
+		Create(x => Double.Truncate(-x))
 	];
 }
