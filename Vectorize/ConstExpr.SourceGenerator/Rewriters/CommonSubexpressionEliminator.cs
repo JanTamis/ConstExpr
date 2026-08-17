@@ -14,7 +14,7 @@ namespace ConstExpr.SourceGenerator.Rewriters;
 ///   Performs Common Subexpression Elimination (CSE) by identifying repeated expressions
 ///   and replacing them with local variables.
 /// </summary>
-public sealed class CommonSubexpressionEliminator(bool allowReassociation = false) : CSharpSyntaxRewriter
+public sealed class CommonSubexpressionEliminator(bool allowReassociation = false, bool allowReciprocal = false) : CSharpSyntaxRewriter
 {
 	private static readonly IEqualityComparer<ExpressionSyntax> _comparer = new NormalizedExpressionComparer();
 	private readonly HashSet<string> _usedNames = new();
@@ -50,6 +50,9 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			InvocationExpressionSyntax invocation => invocation.Expression switch
 			{
 				IdentifierNameSyntax id => $"{SanitizeIdentifierPart(id.Identifier.Text)}Val",
+				MemberAccessExpressionSyntax { Name.Identifier.Text: "ReciprocalEstimate" or "ReciprocalSqrtEstimate" }
+					when invocation.ArgumentList.Arguments is [ { Expression: IdentifierNameSyntax argId } ]
+					=> $"inv{CapitalizeIdentifierPart(argId.Identifier.Text)}",
 				MemberAccessExpressionSyntax ma => $"{SanitizeIdentifierPart(GetHostNameHint(ma.Expression))}{ma.Name.Identifier.Text}",
 				_ => "callVal"
 			},
@@ -73,6 +76,13 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			}
 
 			return end == 0 ? String.Empty : Char.ToLowerInvariant(text[0]) + text.Substring(1, end - 1);
+		}
+
+		string CapitalizeIdentifierPart(string text)
+		{
+			var sanitized = SanitizeIdentifierPart(text);
+
+			return sanitized.Length == 0 ? sanitized : Char.ToUpperInvariant(sanitized[0]) + sanitized.Substring(1);
 		}
 
 		while (_usedNames.Contains(name))
@@ -105,7 +115,9 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			return null;
 		}
 
-		var eliminator = new CommonSubexpressionEliminator(mathOptimizations.HasFlag(FastMathFlags.AssociativeMath));
+		var eliminator = new CommonSubexpressionEliminator(
+			mathOptimizations.HasFlag(FastMathFlags.AssociativeMath),
+			mathOptimizations.HasFlag(FastMathFlags.ReciprocalMath));
 		eliminator.SeedUsedNames(node);
 
 		return eliminator.Visit(node);
@@ -136,7 +148,7 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			return null;
 		}
 
-		if (allowReassociation)
+		if (allowReassociation || allowReciprocal)
 		{
 			visitedNode = CanonicalizeForCse(visitedNode);
 		}
@@ -263,10 +275,18 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 	///   sees chains that are already aligned. Only reached when <see cref="allowReassociation" />
 	///   is set, since reordering floating-point multiplication/subtraction can change rounding.
 	/// </summary>
-	private static BlockSyntax CanonicalizeForCse(BlockSyntax block)
+	private BlockSyntax CanonicalizeForCse(BlockSyntax block)
 	{
-		block = CanonicalizeMultiplicationFactors(block);
-		block = CanonicalizeSubtractionPrefixes(block);
+		if (allowReassociation)
+		{
+			block = CanonicalizeMultiplicationFactors(block);
+			block = CanonicalizeSubtractionPrefixes(block);
+		}
+
+		if (allowReciprocal)
+		{
+			block = CanonicalizeReciprocalDivision(block);
+		}
 
 		return block;
 	}
@@ -397,6 +417,96 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		}
 
 		return block;
+	}
+
+	/// <summary>
+	///   Finds a symbolic (non-literal) denominator divided into by two or more expressions, at
+	///   least two of which are guaranteed to run together (see <see cref="ContainsUnconditionalOccurrence" />
+	///   — a denominator divided into only across mutually-exclusive branches has nothing to share),
+	///   and rewrites every one of those divisions from <c>x / d</c> to <c>x * Receiver.ReciprocalEstimate(d)</c>,
+	///   letting the ordinary exact-match CSE pass that follows hoist the now-repeated
+	///   <c>ReciprocalEstimate</c> call into a single shared local. This never widens which
+	///   occurrences get evaluated — it only reshapes each division in place — so the safety of the
+	///   actual hoist is left entirely to CSE's own candidate rules.
+	///   <para>
+	///     The receiver for <c>ReciprocalEstimate</c> (e.g. <c>Double</c>) is not resolved through the
+	///     semantic model — a denominator this pass rewrites can be a synthetic local a fast-math pass
+	///     introduced earlier in the pipeline, which the model was never built to answer for. Instead
+	///     it's read straight off the denominator's own declaration when that declaration is itself a
+	///     <c>Receiver.MaxNative(...)</c>/<c>Receiver.MinNative(...)</c>-shaped reduction (the
+	///     convention <see cref="ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers.MaxFunctionOptimizer" />
+	///     and <see cref="MaxMinScaleFactorRewriter" /> both already use only for numeric helper types
+	///     that expose it) — declining rather than guessing when the denominator has any other shape.
+	///   </para>
+	/// </summary>
+	private static BlockSyntax CanonicalizeReciprocalDivision(BlockSyntax block)
+	{
+		var divisionsByDenominator = block.DescendantNodes()
+			.OfType<BinaryExpressionSyntax>()
+			.Where(b => b.IsKind(SyntaxKind.DivideExpression) && Unparenthesize(b.Right) is IdentifierNameSyntax)
+			.GroupBy(b => ((IdentifierNameSyntax) Unparenthesize(b.Right)).Identifier.Text)
+			.Where(g => g.Count() >= 2);
+
+		var replacements = new Dictionary<ExpressionSyntax, ExpressionSyntax>();
+
+		foreach (var group in divisionsByDenominator)
+		{
+			var divisions = group.ToList();
+
+			// ContainsUnconditionalOccurrence expects a single statement as its root (a BlockSyntax
+			// root always answers false, by design — see its doc), so each division is checked
+			// against its own enclosing top-level statement, not the whole block.
+			var unconditionalCount = divisions.Count(d =>
+				block.Statements.FirstOrDefault(s => s.Contains(d)) is { } enclosing && ContainsUnconditionalOccurrence(enclosing, d));
+
+			if (unconditionalCount < 2)
+			{
+				continue;
+			}
+
+			if (!TryFindReciprocalReceiver(block, group.Key, out var receiver))
+			{
+				continue;
+			}
+
+			foreach (var division in divisions)
+			{
+				var reciprocalCall = InvocationExpression(
+					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, receiver, IdentifierName("ReciprocalEstimate")),
+					ArgumentList(SingletonSeparatedList(Argument(Unparenthesize(division.Right)))));
+
+				replacements[division] = MultiplyExpression(division.Left, reciprocalCall);
+			}
+		}
+
+		return replacements.Count == 0 ? block : block.ReplaceNodes(replacements.Keys, (orig, _) => replacements[orig]);
+	}
+
+	/// <summary>
+	///   A denominator's own declaration reveals its numeric helper type only when that declaration
+	///   is itself a <c>Receiver.Max/MaxNative/Min/MinNative(...)</c> reduction — reused verbatim so
+	///   the emitted <c>Receiver.ReciprocalEstimate(...)</c> matches whatever spelling (<c>double</c>
+	///   vs. <c>Double</c>) that reduction already used.
+	/// </summary>
+	private static bool TryFindReciprocalReceiver(BlockSyntax block, string denominatorName, out ExpressionSyntax receiver)
+	{
+		receiver = null!;
+
+		var declarator = block.Statements
+			.OfType<LocalDeclarationStatementSyntax>()
+			.Select(s => s.Declaration.Variables.FirstOrDefault(v => v.Identifier.Text == denominatorName))
+			.FirstOrDefault(v => v is not null);
+
+		if (declarator?.Initializer?.Value is not InvocationExpressionSyntax
+		    {
+			    Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Max" or "MaxNative" or "Min" or "MinNative" } member
+		    })
+		{
+			return false;
+		}
+
+		receiver = member.Expression;
+		return true;
 	}
 
 	/// <summary>

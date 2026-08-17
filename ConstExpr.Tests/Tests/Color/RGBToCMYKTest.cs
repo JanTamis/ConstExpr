@@ -21,13 +21,11 @@ public class RGBToCMYKTest : BaseTestWithRandomValues<Func<byte, byte, byte, (do
 	[
 		Create((r, g, b) =>
 		{
-			var dr = r * 0.00392156862745098;
-			var dg = g * 0.00392156862745098;
-			var db = b * 0.00392156862745098;
-			var k = 1D - Double.MaxNative(Double.MaxNative(dr, dg), db);
-			var diff = 1D - k;
+			var max = Double.MaxNative(Double.MaxNative(r, g), b);
+			var k = 1D - max * 0.00392156862745098;
+			var invMax = Double.ReciprocalEstimate(max);
 
-			return ((diff - dr) / diff, (diff - dg) / diff, (diff - db) / diff, k);
+			return ((max - r) * invMax, (max - g) * invMax, (max - b) * invMax, k);
 		})
 	];
 }

@@ -194,12 +194,31 @@ public enum OptimizationFlags
 	UseNullableAnnotations = 1 << 13,
 
 	/// <summary>
+	///   Enable Max/Min scale-factor distribution.
+	///   When two or more locals are each declared as a parameter (or expression) scaled by the same
+	///   positive constant (<c>var dr = r * K;</c>) and combined via a <c>Max</c>/<c>Min</c> chain,
+	///   distributes the constant out of the chain (<c>Max(a*K, b*K) =&gt; Max(a,b) * K</c>). When the
+	///   chain's complement then also appears as the denominator of a division whose numerator is
+	///   built from the same scaled locals (a "normalize, take extremum, ratio against the complement"
+	///   idiom), cancels the shared constant out of that division too, leaving a plain ratio of the
+	///   un-scaled operands:
+	///   <code>
+	///   var dr = r * K;                    var max = Max(Max(r, g), b);
+	///   var dg = g * K;                     var k = 1D - max * K;
+	///   var db = b * K;             =&gt;
+	///   var k = 1D - Max(Max(dr,dg),db);
+	///   var c = (1D - dr - k) / (1D - k);   var c = (max - r) / max;
+	///   </code>
+	/// </summary>
+	ScaleFactorDistribution = 1 << 14,
+
+	/// <summary>
 	///   Enable all general-purpose optimization passes.
 	///   Combines <see cref="CommonSubexpressionElimination" />, <see cref="LoopInvariantCodeMotion" />,
 	///   <see cref="TailRecursionElimination" />, <see cref="LoopUnswitching" />, <see cref="LoopFusion" />, <see cref="CopyPropagation" />,
 	///   <see cref="InductionVariableStrengthReduction" />, <see cref="StackAllocConversion" />, <see cref="BoundsCheckElimination"/>,
 	///   <see cref="ValueRangePropagation" />, <see cref="DefaultBranchHoisting" />, <see cref="Reassociation" />,
-	///   <see cref="WhileToDoWhileConversion" /> and <see cref="UseNullableAnnotations" />.
+	///   <see cref="WhileToDoWhileConversion" />, <see cref="UseNullableAnnotations" /> and <see cref="ScaleFactorDistribution" />.
 	/// </summary>
-	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion | UseNullableAnnotations
+	All = CommonSubexpressionElimination | LoopInvariantCodeMotion | TailRecursionElimination | LoopUnswitching | LoopFusion | CopyPropagation | InductionVariableStrengthReduction | BoundsCheckElimination | StackAllocConversion | ValueRangePropagation | DefaultBranchHoisting | Reassociation | WhileToDoWhileConversion | UseNullableAnnotations | ScaleFactorDistribution
 }

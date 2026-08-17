@@ -78,6 +78,15 @@ public static class OptimizationPipeline
 			body = WhileToDoWhileRewriter.Apply(body); // no Prune: converting while->do-while creates no dead code
 		}
 
+		// Before CSE, so CSE's own canonicalization and hoisting see the block with any scaled
+		// Max/Min reduction and complement-ratio division already rewritten to their raw-domain
+		// form — in particular the reciprocal-hoistable `Double.ReciprocalEstimate` calls this
+		// pass's division cancellation can leave duplicated across a tuple/return statement.
+		if (attribute.Optimizations.HasFlag(OptimizationFlags.ScaleFactorDistribution))
+		{
+			body = Prune(MaxMinScaleFactorRewriter.Apply(body, attribute.MathOptimizations));
+		}
+
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CommonSubexpressionElimination))
 		{
 			body = Prune(CommonSubexpressionEliminator.Eliminate(body, attribute.MathOptimizations) ?? body);
