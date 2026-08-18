@@ -93,7 +93,11 @@ public sealed class ValueRangeRewriter : CSharpSyntaxRewriter
 			return visited;
 		}
 
-		if (ValueRangeAnalysis.Decide(node.Pattern, subject, _root) is { } outcome)
+		// Same refusal as IsLoopCondition below: settling this pattern to a bare literal when it IS
+		// the loop's own top-level condition would turn a terminating loop into an infinite one.
+		// Losing conjuncts that can't fail (the Reduce fallback below) is still safe - the pattern
+		// keeps depending on the subject, so the loop still re-checks it every iteration.
+		if (!IsLoopCondition(node) && ValueRangeAnalysis.Decide(node.Pattern, subject, _root) is { } outcome)
 		{
 			return BooleanLiteral(outcome).WithTriviaFrom(visited);
 		}
@@ -251,7 +255,7 @@ public sealed class ValueRangeRewriter : CSharpSyntaxRewriter
 	///   analysis already refuses a fact about a name the loop body writes, but the top-level condition
 	///   is refused outright — it is the one place where being wrong does not merely emit worse code.
 	/// </summary>
-	private static bool IsLoopCondition(BinaryExpressionSyntax node)
+	private static bool IsLoopCondition(ExpressionSyntax node)
 	{
 		return node.Parent switch
 		{

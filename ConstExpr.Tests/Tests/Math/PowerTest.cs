@@ -58,5 +58,29 @@ public class PowerTest : BaseTestWithRandomValues<Func<int, int, long>>
 
 			return result;
 		}),
+		Create((baseNum, exponent) =>
+		{
+			switch (exponent)
+			{
+				case < 0:
+					return 0L;
+				case 0:
+					return 1L;
+			}
+
+			var result = 1L;
+			var base64 = 2L;
+
+			while (exponent > 0)
+			{
+				if (Int32.IsOddInteger(exponent))
+					result *= base64;
+
+				base64 *= base64;
+				exponent >>= 1;
+			}
+
+			return result;
+		}, [ 2, Unknown ])
 	];
 }

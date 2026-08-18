@@ -734,11 +734,11 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					var enumType = loader.GetType(argument.Parameter.Type);
 					var value = visitor.Visit(argument.Value, new VariableItemDictionary(variables));
 
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value), true));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type, true, Enum.ToObject(enumType, value), true, true));
 				}
 				catch (Exception)
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true));
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, null, true, true));
 				}
 			}
 			else
@@ -747,11 +747,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 				try
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true) { CanBeNull = canBeNull });
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, true, visitor.Visit(argument.Value, new VariableItemDictionary(variables)), true, true) { CanBeNull = canBeNull });
 				}
 				catch (Exception)
 				{
-					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true) { CanBeNull = canBeNull });
+					// HasValue is false here (the argument couldn't be resolved to a constant), but the
+					// parameter still received a real value from the caller - IsInitialized must be true,
+					// or HandleIdentifierAssignment treats this variable's first in-body assignment as an
+					// initializer and latches onto that assignment's RHS as if it were the variable's
+					// current value (e.g. `exponent /= 2` inside a loop gets read as "exponent's initial
+					// value is 2", folding the loop condition to a literal and eliding the assignment).
+					variables.Add(argument.Parameter.Name, new VariableItem(argument.Type ?? argument.Parameter.Type, false, argument.Syntax, true, true) { CanBeNull = canBeNull });
 				}
 			}
 		}
@@ -759,7 +765,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		foreach (var (parameter, argument) in methodSymbol.TypeParameters.Zip(methodSymbol.TypeArguments, (x, y) => (x, y)))
 		{
 			var canBeNull = parameter.NullableAnnotation == NullableAnnotation.Annotated && !parameter.IsValueType;
-			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true) { CanBeNull = canBeNull });
+			variables.Add($"#{parameter.Name}", new VariableItem(argument, true, loader.GetType(argument), true, true) { CanBeNull = canBeNull });
 		}
 
 		return variables;
