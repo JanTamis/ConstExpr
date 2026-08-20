@@ -16,6 +16,7 @@ public class BinaryMultiplyOptimizer : BaseBinaryOptimizer
 		yield return new MultiplyIdentityElementStrategy();
 		yield return new MultiplyByNegativeOneStrategy();
 		yield return new MultiplyFMAConstantFoldingStrategy();
+		yield return new MultiplyFMASharedScaleFoldingStrategy();
 		yield return new MultiplyConstantFoldingStrategy();
 		yield return new MultiplyByTwoToShiftStrategy();
 		yield return new MultiplyByTwoToAdditionStrategy();
