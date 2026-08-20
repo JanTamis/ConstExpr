@@ -295,6 +295,6 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 			return ((byte) (r * 255D), (byte) (g * 255D), (byte) (b * 255D));
 		}, [ Unknown, Unknown, 0.5 ]),
-		Create((_, s, _) => ((byte) (s == 0D ? 127.5D : Double.MultiplyAddEstimate(s, -0.5, 0.5) * 255D), 127, 127), [ 180, Unknown, 0.5 ])
+		Create((_, s, _) => ((byte) (s == 0D ? 127.5D : Double.MultiplyAddEstimate(s, -127.5, 127.5)), 127, 127), [ 180, Unknown, 0.5 ])
 	];
 }

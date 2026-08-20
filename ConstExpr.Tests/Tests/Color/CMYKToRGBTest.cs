@@ -20,6 +20,6 @@ public class CMYKToRGBTest : BaseTestWithRandomValues<Func<double, double, doubl
 
 			return ((byte) (Double.MultiplyAddEstimate(c, -255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(m, -255D, 255D) * diff), (byte) (Double.MultiplyAddEstimate(y, -255D, 255D) * diff));
 		}),
-		Create((c, m, y, _) => ((byte) (Double.MultiplyAddEstimate(c, -255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(m, -255D, 255D) * 0.6), (byte) (Double.MultiplyAddEstimate(y, -255D, 255D) * 0.6)), [ Unknown, Unknown, Unknown, 0.4 ])
+		Create((c, m, y, _) => ((byte) Double.MultiplyAddEstimate(c, -153D, 153D), (byte) Double.MultiplyAddEstimate(m, -153D, 153D), (byte) Double.MultiplyAddEstimate(y, -153D, 153D)), [ Unknown, Unknown, Unknown, 0.4 ])
 	];
 }
