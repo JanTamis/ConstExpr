@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -278,9 +279,13 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 				// and once the initializer folds to a literal collection, `var buf = [1, 2, 3];` does
 				// not even compile. See ConstExprPartialRewriter.SimplifiedTypeOf, which needed the
 				// identical guard.
+				//
+				// Beyond that, `var` is unsafe when it would silently turn a declared floating-point
+				// type into an integral one - see VarDeclarationTypeGuard.
 				if (node.Type is not RefTypeSyntax
 				    && !IsSpanType(node.Type)
-				    && remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax))
+				    && remainingVariables[0].Initializer?.Value is not null and not (StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax)
+				    && !VarDeclarationTypeGuard.WouldNarrowFloatingToIntegral(node.Type, remainingVariables[0].Initializer?.Value, variables))
 				{
 					node = node.WithType(ParseTypeName("var"));
 				}

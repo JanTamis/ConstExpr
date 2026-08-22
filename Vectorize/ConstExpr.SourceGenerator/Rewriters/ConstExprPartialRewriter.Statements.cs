@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Optimizers.ConditionalOptimizers;
 using ConstExpr.SourceGenerator.Refactorers;
@@ -1668,7 +1669,7 @@ public partial class ConstExprPartialRewriter
 	///   Only top-level simple assignments are merged; assignments inside branches or loops are
 	///   left unchanged so that control-flow semantics are preserved.
 	/// </summary>
-	private static SyntaxList<StatementSyntax> MergeUninitializedDeclarations(SyntaxList<StatementSyntax> statements)
+	private SyntaxList<StatementSyntax> MergeUninitializedDeclarations(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 2)
 			return statements;
@@ -1720,8 +1721,11 @@ public partial class ConstExprPartialRewriter
 				var assignment = (AssignmentExpressionSyntax) ((ExpressionStatementSyntax) result[kvp.Key]).Expression;
 				var newDeclarator = VariableDeclarator(Identifier(kvp.Value))
 					.WithInitializer(EqualsValueClause(assignment.Right));
+				var newType = VarDeclarationTypeGuard.WouldNarrowFloatingToIntegral(declStmt.Declaration.Type, assignment.Right, variables)
+					? declStmt.Declaration.Type
+					: ParseTypeName("var");
 				result[kvp.Key] = LocalDeclarationStatement(
-					VariableDeclaration(ParseTypeName("var"))
+					VariableDeclaration(newType)
 						.WithVariables(SingletonSeparatedList(newDeclarator)));
 			}
 
@@ -1739,8 +1743,12 @@ public partial class ConstExprPartialRewriter
 			else
 			{
 				// Same guard as SimplifiedTypeOf: a `ref var` declaration keeps its `ref` in the type,
-				// so normalizing to a bare `var` would delete it and produce CS8171.
-				var newType = remainingVars.Count == 1 && declStmt.Declaration.Type is not RefTypeSyntax
+				// so normalizing to a bare `var` would delete it and produce CS8171. An uninitialized
+				// survivor must also keep its explicit type - `var x;` with no initializer is CS0818.
+				var newType = remainingVars.Count == 1
+				              && declStmt.Declaration.Type is not RefTypeSyntax
+				              && remainingVars[0].Initializer?.Value is not null
+				              && !VarDeclarationTypeGuard.WouldNarrowFloatingToIntegral(declStmt.Declaration.Type, remainingVars[0].Initializer?.Value, variables)
 					? ParseTypeName("var")
 					: declStmt.Declaration.Type;
 				result[i] = declStmt.WithDeclaration(

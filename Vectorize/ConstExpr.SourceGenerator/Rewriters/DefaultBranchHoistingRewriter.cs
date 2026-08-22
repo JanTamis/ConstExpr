@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using ConstExpr.SourceGenerator.Refactorers;
 using Microsoft.CodeAnalysis;
@@ -230,72 +231,11 @@ public static class DefaultBranchHoistingRewriter
 		/// <summary>
 		///   <c>var</c> is only safe when the hoisted right-hand side infers to the exact type that was
 		///   declared — otherwise (an unrecognised expression shape, or a literal/identifier whose type
-		///   doesn't match) the explicit declared type is kept, same fallback <see cref="VariableItem.Type" />
-		///   gives <c>BoundsCheckRewriter</c> for a rewritten tree with no usable semantic model.
+		///   doesn't match) the explicit declared type is kept. See <see cref="VarDeclarationTypeGuard" />.
 		/// </summary>
 		private TypeSyntax InferredDeclarationType(TypeSyntax declaredType, ExpressionSyntax rhs)
 		{
-			if (!TryGetPredefinedSpecialType(declaredType, out var declaredSpecial))
-			{
-				return declaredType;
-			}
-
-			var rhsSpecial = rhs switch
-			{
-				LiteralExpressionSyntax lit => LiteralSpecialType(lit),
-				IdentifierNameSyntax id when variables.TryGetValue(id.Identifier.Text, out var v) => v.Type.SpecialType,
-				_ => SpecialType.None
-			};
-
-			return rhsSpecial == declaredSpecial ? ParseTypeName("var") : declaredType;
-		}
-
-		private static bool TryGetPredefinedSpecialType(TypeSyntax type, out SpecialType specialType)
-		{
-			specialType = type is PredefinedTypeSyntax predefined
-				? predefined.Keyword.Kind() switch
-				{
-					SyntaxKind.DoubleKeyword => SpecialType.System_Double,
-					SyntaxKind.FloatKeyword => SpecialType.System_Single,
-					SyntaxKind.DecimalKeyword => SpecialType.System_Decimal,
-					SyntaxKind.IntKeyword => SpecialType.System_Int32,
-					SyntaxKind.UIntKeyword => SpecialType.System_UInt32,
-					SyntaxKind.LongKeyword => SpecialType.System_Int64,
-					SyntaxKind.ULongKeyword => SpecialType.System_UInt64,
-					SyntaxKind.ShortKeyword => SpecialType.System_Int16,
-					SyntaxKind.UShortKeyword => SpecialType.System_UInt16,
-					SyntaxKind.ByteKeyword => SpecialType.System_Byte,
-					SyntaxKind.SByteKeyword => SpecialType.System_SByte,
-					SyntaxKind.BoolKeyword => SpecialType.System_Boolean,
-					SyntaxKind.CharKeyword => SpecialType.System_Char,
-					SyntaxKind.StringKeyword => SpecialType.System_String,
-					_ => SpecialType.None
-				}
-				: SpecialType.None;
-
-			return specialType != SpecialType.None;
-		}
-
-		private static SpecialType LiteralSpecialType(LiteralExpressionSyntax literal)
-		{
-			return literal.Token.Value switch
-			{
-				double => SpecialType.System_Double,
-				float => SpecialType.System_Single,
-				decimal => SpecialType.System_Decimal,
-				int => SpecialType.System_Int32,
-				uint => SpecialType.System_UInt32,
-				long => SpecialType.System_Int64,
-				ulong => SpecialType.System_UInt64,
-				byte => SpecialType.System_Byte,
-				sbyte => SpecialType.System_SByte,
-				short => SpecialType.System_Int16,
-				ushort => SpecialType.System_UInt16,
-				char => SpecialType.System_Char,
-				bool => SpecialType.System_Boolean,
-				string => SpecialType.System_String,
-				_ => SpecialType.None
-			};
+			return VarDeclarationTypeGuard.CanSafelyInferVar(declaredType, rhs, variables) ? ParseTypeName("var") : declaredType;
 		}
 
 		/// <summary>

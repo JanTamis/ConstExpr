@@ -56,8 +56,8 @@ public class RGBToHSVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (dou
 		Create((r, g, b) =>
 		{
 			var h = 0D;
-			var min = Byte.Min(Byte.Min(r, g), b);
-			var v = Byte.Max(Byte.Max(r, g), b);
+			double min = Byte.Min(Byte.Min(r, g), b);
+			double v = Byte.Max(Byte.Max(r, g), b);
 			var delta = v - min;
 			var s = v == 0D ? 0D : delta / v;
 

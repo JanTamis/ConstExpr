@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using ConstExpr.SourceGenerator.Extensions;
+using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -327,11 +328,12 @@ public partial class ConstExprPartialRewriter
 	///     (a collection expression has no type of its own for <c>var</c> to infer).
 	///   </para>
 	/// </summary>
-	private static TypeSyntax SimplifiedTypeOf(VariableDeclarationSyntax node, VariableDeclaratorSyntax declarator)
+	private TypeSyntax SimplifiedTypeOf(VariableDeclarationSyntax node, VariableDeclaratorSyntax declarator)
 	{
 		return node.Type is RefTypeSyntax
 		       || declarator.Initializer?.Value is StackAllocArrayCreationExpressionSyntax or ImplicitStackAllocArrayCreationExpressionSyntax
 		       || IsSpanType(node.Type)
+		       || VarDeclarationTypeGuard.WouldNarrowFloatingToIntegral(node.Type, declarator.Initializer?.Value, variables)
 			? node.Type
 			: ParseTypeName("var");
 	}
