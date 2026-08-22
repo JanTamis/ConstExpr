@@ -83,56 +83,54 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 				var i = (int) h;
 				var f = h - i;
-				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
-				var prod = v * Double.MultiplyAddEstimate(-s, f, 1D);
-				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(-s, v, v);
+				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-s, v, v);
 
 				switch (i)
 				{
 					case 0:
 					{
-						g = doubleMultiplyAddEstimate;
-						b = doubleMultiplyAddEstimate2;
+						g = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 1:
 					{
-						r = prod;
-						b = doubleMultiplyAddEstimate2;
+						r = v * Double.MultiplyAddEstimate(-s, f, 1D);
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 2:
 					{
-						r = doubleMultiplyAddEstimate2;
-						b = doubleMultiplyAddEstimate;
+						r = doubleMultiplyAddEstimate;
+						b = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
 
 						break;
 					}
 
 					case 3:
 					{
-						r = doubleMultiplyAddEstimate2;
-						g = prod;
+						r = doubleMultiplyAddEstimate;
+						g = v * Double.MultiplyAddEstimate(-s, f, 1D);
 
 						break;
 					}
 
 					case 4:
 					{
-						r = doubleMultiplyAddEstimate;
-						g = doubleMultiplyAddEstimate2;
+						r = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(-f, s, s), v, v);
+						g = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					default:
 					{
-						g = doubleMultiplyAddEstimate2;
-						b = prod;
+						g = doubleMultiplyAddEstimate;
+						b = v * Double.MultiplyAddEstimate(-s, f, 1D);
 
 						break;
 					}
@@ -162,43 +160,41 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 			var i = (int) h;
 			var f = h - i;
-			var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(f, -0.5, 0.5), v, v);
-			var prod = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
-			var prod2 = v * 0.5;
+			var prod = v * 0.5;
 
 			switch (i)
 			{
 				case 0:
 				{
 					r = v;
-					g = doubleMultiplyAddEstimate;
-					b = prod2;
+					g = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(f, -0.5, 0.5), v, v);
+					b = prod;
 
 					break;
 				}
 
 				case 1:
 				{
-					r = prod;
+					r = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
 					g = v;
-					b = prod2;
+					b = prod;
 
 					break;
 				}
 
 				case 2:
 				{
-					r = prod2;
+					r = prod;
 					g = v;
-					b = doubleMultiplyAddEstimate;
+					b = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(f, -0.5, 0.5), v, v);
 
 					break;
 				}
 
 				case 3:
 				{
-					r = prod2;
-					g = prod;
+					r = prod;
+					g = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
 					b = v;
 
 					break;
@@ -206,8 +202,8 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 				case 4:
 				{
-					r = doubleMultiplyAddEstimate;
-					g = prod2;
+					r = Double.MultiplyAddEstimate(-Double.MultiplyAddEstimate(f, -0.5, 0.5), v, v);
+					g = prod;
 					b = v;
 
 					break;
@@ -216,8 +212,8 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 				default:
 				{
 					r = v;
-					g = prod2;
-					b = prod;
+					g = prod;
+					b = v * Double.MultiplyAddEstimate(f, -0.5, 1D);
 
 					break;
 				}
@@ -237,56 +233,54 @@ public class HSVToRGBTest : BaseTestWithRandomValues<Func<double, double, double
 
 				var i = (int) h;
 				var f = h - i;
-				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(Double.MultiplyAddEstimate(-f, s, s), -0.5, 0.5);
-				var prod = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
-				var doubleMultiplyAddEstimate2 = Double.MultiplyAddEstimate(s, -0.5, 0.5);
+				var doubleMultiplyAddEstimate = Double.MultiplyAddEstimate(s, -0.5, 0.5);
 
 				switch (i)
 				{
 					case 0:
 					{
-						g = doubleMultiplyAddEstimate;
-						b = doubleMultiplyAddEstimate2;
+						g = Double.MultiplyAddEstimate(Double.MultiplyAddEstimate(-f, s, s), -0.5, 0.5);
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 1:
 					{
-						r = prod;
-						b = doubleMultiplyAddEstimate2;
+						r = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
+						b = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					case 2:
 					{
-						r = doubleMultiplyAddEstimate2;
-						b = doubleMultiplyAddEstimate;
+						r = doubleMultiplyAddEstimate;
+						b = Double.MultiplyAddEstimate(Double.MultiplyAddEstimate(-f, s, s), -0.5, 0.5);
 
 						break;
 					}
 
 					case 3:
 					{
-						r = doubleMultiplyAddEstimate2;
-						g = prod;
+						r = doubleMultiplyAddEstimate;
+						g = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
 
 						break;
 					}
 
 					case 4:
 					{
-						r = doubleMultiplyAddEstimate;
-						g = doubleMultiplyAddEstimate2;
+						r = Double.MultiplyAddEstimate(Double.MultiplyAddEstimate(-f, s, s), -0.5, 0.5);
+						g = doubleMultiplyAddEstimate;
 
 						break;
 					}
 
 					default:
 					{
-						g = doubleMultiplyAddEstimate2;
-						b = prod;
+						g = doubleMultiplyAddEstimate;
+						b = Double.MultiplyAddEstimate(-s, f, 1D) * 0.5;
 
 						break;
 					}

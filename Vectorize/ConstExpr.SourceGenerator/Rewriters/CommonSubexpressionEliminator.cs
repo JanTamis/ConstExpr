@@ -702,6 +702,54 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 					return Walk(binary.Left, conditional) || Walk(binary.Right, true);
 				}
 
+				// Same "several mutually exclusive alternatives" shape as a ternary's arms above:
+				// exactly one section ever runs, so an occurrence inside one is never unconditional
+				// (regardless of blockShortCircuit — that flag only distinguishes a ternary arm from
+				// a short-circuit operand, and a switch section is neither of those, it's the ternary
+				// kind of conditional). Without this, an unbraced section's statements fall through to
+				// the generic child-walk below at the caller's own `conditional` flag, which would
+				// report an occurrence duplicated only across sections as unconditional.
+				case SwitchStatementSyntax switchStatement:
+				{
+					if (Walk(switchStatement.Expression, conditional))
+					{
+						return true;
+					}
+
+					foreach (var section in switchStatement.Sections)
+					{
+						foreach (var statement in section.Statements)
+						{
+							if (Walk(statement, true))
+							{
+								return true;
+							}
+						}
+					}
+
+					return false;
+				}
+
+				// The expression-form equivalent of the SwitchStatementSyntax case above: exactly one
+				// arm's Expression is ever evaluated, so an occurrence inside one is never unconditional.
+				case SwitchExpressionSyntax switchExpr:
+				{
+					if (Walk(switchExpr.GoverningExpression, conditional))
+					{
+						return true;
+					}
+
+					foreach (var arm in switchExpr.Arms)
+					{
+						if (Walk(arm.Expression, true))
+						{
+							return true;
+						}
+					}
+
+					return false;
+				}
+
 				default:
 				{
 					foreach (var child in node.ChildNodes())
@@ -806,7 +854,36 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 			case BlockSyntax block:
 			{
-				return IsEvaluatedOnEveryStatementPath(block, candidate);
+				return IsEvaluatedOnEveryStatementPath(block.Statements, candidate);
+			}
+
+			// A switch's exhaustiveness generally can't be proven without type information this
+			// rewriter doesn't have (see IsNeverGuaranteedToRun) — except a `default:` section, which
+			// proves it with none: whichever value the governing expression has, some section runs.
+			// Same "one of several alternatives, but every alternative has it" shape as the ternary
+			// and if/else cases above, one level further out. Unlike an if/else's two branches — which
+			// the language gives no way to jump between — a switch's sections can be chained by
+			// `goto case`/`goto default`, so a single execution can run through more than one of them.
+			// That breaks the "exactly one arm runs" premise this rule (like the if/else one above it)
+			// relies on to be safe even for a candidate that can throw: hoisting could turn two
+			// evaluations someone chained together via goto into one. ContainsGoto excludes that shape
+			// rather than trying to reason about it.
+			case SwitchStatementSyntax { Sections: var sections } switchStatement
+				when sections.Any(s => s.Labels.Any(l => l.IsKind(SyntaxKind.DefaultSwitchLabel))) && !ContainsGoto(switchStatement):
+			{
+				return IsEvaluatedOnEveryPath(switchStatement.Expression, candidate)
+				       || sections.All(section => IsEvaluatedOnEveryStatementPath(section.Statements, candidate));
+			}
+
+			// The expression-form equivalent of the SwitchStatementSyntax case above. A switch
+			// expression has no `default:` label — its catch-all is an arm whose pattern is a bare
+			// discard (`_`, with no `when` clause, which could still fail to match). That arm proves
+			// exhaustiveness the same way a `default:` section does, with the same zero type
+			// information needed.
+			case SwitchExpressionSyntax { Arms: var arms } switchExpr when arms.Any(a => a.Pattern is DiscardPatternSyntax && a.WhenClause is null):
+			{
+				return IsEvaluatedOnEveryPath(switchExpr.GoverningExpression, candidate)
+				       || arms.All(arm => IsEvaluatedOnEveryPath(arm.Expression, candidate));
 			}
 
 			case not null when IsNeverGuaranteedToRun(node):
@@ -831,15 +908,17 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 
 	/// <summary>
 	///   Whether <paramref name="candidate" /> is evaluated on every path through
-	///   <paramref name="block" />. Statements run in order, but an early exit before an occurrence
-	///   creates a path that skips it — in <c>if (d) return 0; return a.Length;</c> the read is NOT on
-	///   every path, so hoisting it in front of the block would evaluate it where the original never
-	///   did (and throw where the original returned). Hence: walk forwards, and stop at the first
-	///   statement that can transfer control out.
+	///   <paramref name="statements" /> (a block's own statements, or one switch section's — a
+	///   section's statements are never wrapped in a <see cref="BlockSyntax" /> by the parser just
+	///   because there's more than one of them). Statements run in order, but an early exit before an
+	///   occurrence creates a path that skips it — in <c>if (d) return 0; return a.Length;</c> the read
+	///   is NOT on every path, so hoisting it in front of the block would evaluate it where the
+	///   original never did (and throw where the original returned). Hence: walk forwards, and stop at
+	///   the first statement that can transfer control out.
 	/// </summary>
-	private static bool IsEvaluatedOnEveryStatementPath(BlockSyntax block, ExpressionSyntax candidate)
+	private static bool IsEvaluatedOnEveryStatementPath(SyntaxList<StatementSyntax> statements, ExpressionSyntax candidate)
 	{
-		foreach (var statement in block.Statements)
+		foreach (var statement in statements)
 		{
 			if (IsEvaluatedOnEveryPath(statement, candidate))
 			{
@@ -856,11 +935,27 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 	}
 
 	/// <summary>
+	///   Whether any section of <paramref name="switchStatement" /> contains a goto — <c>goto case</c>,
+	///   <c>goto default</c>, or a plain labeled <c>goto</c>, all represented by
+	///   <see cref="GotoStatementSyntax" />. Used to exclude the shape described where the
+	///   every-arm switch case of <see cref="IsEvaluatedOnEveryPath" /> is applied: a goto can chain
+	///   two sections into one execution, so "exactly one section runs" is no longer guaranteed.
+	/// </summary>
+	private static bool ContainsGoto(SwitchStatementSyntax switchStatement)
+	{
+		return switchStatement.Sections.Any(section => section.Statements.Any(statement =>
+			statement.DescendantNodesAndSelf().OfType<GotoStatementSyntax>().Any()));
+	}
+
+	/// <summary>
 	///   Constructs nothing inside of which is guaranteed to run: a loop body may iterate zero times, a
-	///   lambda or local function may never be invoked, a <c>switch</c>'s exhaustiveness can't be proven
-	///   without the type information this rewriter no longer has, and a <c>try</c> body can be
-	///   abandoned part-way. None of these ever qualify under the every-path rule — the ordinary
-	///   unconditional rule still covers whatever it covered before.
+	///   lambda or local function may never be invoked, and a <c>try</c> body can be abandoned
+	///   part-way. A <c>switch</c> statement without a <c>default:</c> section, or a switch expression
+	///   without a bare-discard arm, belongs here too — its exhaustiveness can't be proven without the
+	///   type information this rewriter no longer has — but one that does have such a catch-all is
+	///   handled by its own case above this one, so it never reaches here. None of these ever qualify
+	///   under the every-path rule — the ordinary unconditional rule still covers whatever it covered
+	///   before.
 	/// </summary>
 	private static bool IsNeverGuaranteedToRun(SyntaxNode node)
 	{
@@ -1419,7 +1514,15 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 		private void VisitBranch(StatementSyntax statement)
 		{
 			_ternaryDepth++;
+			VisitBranchStatement(statement);
+			_ternaryDepth--;
+		}
 
+		// A block wrapping a branch's body is transparent to the depth tracking here — only a
+		// GENUINELY nested block (a loop/lambda body inside the branch) should stop recursion via
+		// the VisitBlock override below, not the branch's own `{ }` wrapper.
+		private void VisitBranchStatement(StatementSyntax statement)
+		{
 			if (statement is BlockSyntax block)
 			{
 				foreach (var inner in block.Statements)
@@ -1431,8 +1534,57 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			{
 				Visit(statement);
 			}
+		}
 
-			_ternaryDepth--;
+		// Exactly one section ever runs — the same "several mutually exclusive alternatives" hazard
+		// an if/else's branches have (see VisitIfStatement above), so section content is visited
+		// under the same _ternaryDepth bump. Without this override, the base walker's default
+		// traversal would mark occurrences duplicated only across different (mutually exclusive)
+		// case sections as unconditional, and CSE would hoist them in front of the switch — forcing
+		// an evaluation on every execution that the original only ever did on some of them.
+		public override void VisitSwitchStatement(SwitchStatementSyntax node)
+		{
+			Visit(node.Expression);
+
+			foreach (var section in node.Sections)
+			{
+				foreach (var label in section.Labels)
+				{
+					Visit(label);
+				}
+
+				_ternaryDepth++;
+
+				foreach (var statement in section.Statements)
+				{
+					VisitBranchStatement(statement);
+				}
+
+				_ternaryDepth--;
+			}
+		}
+
+		// The expression-form equivalent of VisitSwitchStatement above: exactly one arm's Expression
+		// is ever evaluated, so it's visited under the same _ternaryDepth bump. A WhenClause condition
+		// runs whenever its arm's pattern matches — not guaranteed either, but visited at the
+		// surrounding (not doubly-bumped) depth since a candidate found only there is a narrower miss
+		// this pass doesn't need to chase; leaving it at the outer depth just means it's never treated
+		// as unconditional, same as if this override didn't visit it at all.
+		public override void VisitSwitchExpression(SwitchExpressionSyntax node)
+		{
+			Visit(node.GoverningExpression);
+
+			foreach (var arm in node.Arms)
+			{
+				if (arm.WhenClause is { } whenClause)
+				{
+					Visit(whenClause.Condition);
+				}
+
+				_ternaryDepth++;
+				Visit(arm.Expression);
+				_ternaryDepth--;
+			}
 		}
 
 		public override void VisitExpressionStatement(ExpressionStatementSyntax node)
