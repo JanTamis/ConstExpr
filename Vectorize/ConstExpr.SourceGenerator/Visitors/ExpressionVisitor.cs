@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using ConstExpr.SourceGenerator.Helpers;
@@ -12,6 +14,23 @@ namespace ConstExpr.SourceGenerator.Visitors;
 
 public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnumerable<ParameterExpression> parameters) : OperationVisitor<IDictionary<string, object?>, Expression>
 {
+	// Locals aren't known up front like lambda `parameters` - they're discovered as VisitVariableDeclarator
+	// (or a first-reference fallback) runs. scopedLocals tracks which enclosing Block each one must be
+	// declared in; localsByName lets any later reference to the same symbol resolve to the same instance.
+	private readonly Stack<List<ParameterExpression>> scopedLocals = new();
+	private readonly Dictionary<string, ParameterExpression> localsByName = new();
+	private readonly Stack<(LabelTarget BreakLabel, LabelTarget ContinueLabel)> loopLabels = new();
+
+	private void RegisterLocal(ParameterExpression local)
+	{
+		localsByName[local.Name!] = local;
+
+		if (scopedLocals.Count > 0)
+		{
+			scopedLocals.Peek().Add(local);
+		}
+	}
+
 	public override Expression DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
@@ -19,27 +38,43 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			return Expression.Constant(value);
 		}
 
-		foreach (var currentOperation in operation.ChildOperations)
-		{
-			Visit(currentOperation, argument);
-		}
-
-		return Expression.Empty();
+		// Silently visiting-and-discarding children here used to return a void Expression.Empty()
+		// placeholder for any operation kind with no explicit override. That placeholder then blew up
+		// wherever it was later used (a comparison, a ternary branch, an assignment target) with a
+		// confusing type-mismatch several frames away from the real gap. Fail loudly at the source
+		// instead - the caller (ConstExprSourceGenerator) catches this and skips the fallback delegate
+		// for method bodies this visitor doesn't fully model yet.
+		throw new NotSupportedException($"ExpressionVisitor has no handler for operation kind {operation.Kind} ('{operation.Syntax}')");
 	}
 
 	public override Expression VisitBlock(IBlockOperation operation, IDictionary<string, object?> argument)
 	{
+		scopedLocals.Push([ ]);
+
+		// Only flatten a child's Block when it declares no locals of its own - those variables are
+		// scoped to that Block and would be lost (and become "undefined" at Compile()) if only its
+		// Expressions were spliced in here.
 		var items = operation.Operations
 			.Select(item => Visit(item, argument))
-			.SelectMany<Expression, Expression>(s => s is BlockExpression blockExpression ? blockExpression.Expressions : [ s ])
+			.SelectMany<Expression, Expression>(s => s is BlockExpression { Variables.Count: 0 } blockExpression ? blockExpression.Expressions : [ s ])
 			.ToArray();
 
-		if (items.Length == 1)
+		var locals = scopedLocals.Pop();
+
+		if (items.Length == 0)
+		{
+			return locals.Count > 0 ? Expression.Block(locals, Expression.Empty()) : Expression.Empty();
+		}
+
+		if (items.Length == 1 && locals.Count == 0)
 		{
 			return items[0];
 		}
 
-		return Expression.Block(parameters, items);
+		// Note: `parameters` are the enclosing lambda's parameters, not this block's locals -
+		// they must not be redeclared here, or they'd shadow the real parameters with
+		// default-initialized locals of the same name.
+		return Expression.Block(locals, items);
 	}
 
 	public override Expression VisitReturn(IReturnOperation operation, IDictionary<string, object?> argument)
@@ -72,7 +107,14 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			BinaryOperatorKind.LessThanOrEqual => ExpressionType.LessThanOrEqual,
 			BinaryOperatorKind.GreaterThan => ExpressionType.GreaterThan,
 			BinaryOperatorKind.GreaterThanOrEqual => ExpressionType.GreaterThanOrEqual,
-			_ => throw new NotImplementedException()
+			BinaryOperatorKind.And => ExpressionType.And,
+			BinaryOperatorKind.Or => ExpressionType.Or,
+			BinaryOperatorKind.ExclusiveOr => ExpressionType.ExclusiveOr,
+			BinaryOperatorKind.ConditionalAnd => ExpressionType.AndAlso,
+			BinaryOperatorKind.ConditionalOr => ExpressionType.OrElse,
+			BinaryOperatorKind.LeftShift => ExpressionType.LeftShift,
+			BinaryOperatorKind.RightShift => ExpressionType.RightShift,
+			_ => throw new NotImplementedException($"Binary operator {operation.OperatorKind} is not supported")
 		};
 
 		var left = Visit(operation.LeftOperand, argument);
@@ -91,7 +133,7 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 		// Get method arguments as expressions
 		var arguments = operation.Arguments.Select(arg => Visit(arg.Value, argument)).ToArray();
 		var argumentTypes = operation.Arguments
-			.Select(arg => loader.GetType(arg.Type))
+			.Select(arg => loader.GetType(arg.Value.Type))
 			.ToArray();
 
 		// If this is a delegate invocation
@@ -104,9 +146,35 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 		// For method calls
 		var containingType = loader.GetType(operation.TargetMethod.ContainingType);
 		var methodName = operation.TargetMethod.Name;
+		var parameterCount = operation.TargetMethod.Parameters.Length;
 
-		// Find the method (simplified - may need enhancement for complex overloads)
-		var methodInfo = containingType.GetMethods().First(f => f.Name == methodName && f.GetParameters().Select(p => p.ParameterType).SequenceEqual(argumentTypes));
+		MethodInfo? methodInfo;
+
+		if (operation.TargetMethod.IsGenericMethod)
+		{
+			// A generic method's open-definition parameters (e.g. IEnumerable<TSource>) never
+			// structurally match the concrete argument types, so match by name/arity instead and
+			// let MakeGenericMethod apply the type arguments Roslyn already resolved.
+			var genericArguments = operation.TargetMethod.TypeArguments.Select(loader.GetType).ToArray();
+
+			var openMethod = containingType.GetMethods()
+				.FirstOrDefault(f => f.Name == methodName
+				                     && f.IsGenericMethodDefinition
+				                     && f.GetGenericArguments().Length == genericArguments.Length
+				                     && f.GetParameters().Length == parameterCount);
+
+			if (openMethod == null)
+			{
+				throw new InvalidOperationException($"Generic method {methodName} not found in {containingType.FullName}");
+			}
+
+			methodInfo = openMethod.MakeGenericMethod(genericArguments);
+		}
+		else
+		{
+			// Find the method (simplified - may need enhancement for complex overloads)
+			methodInfo = containingType.GetMethods().FirstOrDefault(f => f.Name == methodName && f.GetParameters().Select(p => p.ParameterType).SequenceEqual(argumentTypes));
+		}
 
 		if (methodInfo == null)
 		{
@@ -124,10 +192,25 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 		return Expression.Call(instance, methodInfo, arguments);
 	}
 
+	public override Expression VisitConversion(IConversionOperation operation, IDictionary<string, object?> argument)
+	{
+		var operand = Visit(operation.Operand, argument);
+		var targetType = loader.GetType(operation.Type);
+
+		return operand.Type == targetType ? operand : Expression.Convert(operand, targetType);
+	}
+
 	public override Expression VisitLiteral(ILiteralOperation operation, IDictionary<string, object?> argument)
 	{
-		return Expression.Constant(operation.ConstantValue.Value,
-			loader.GetType(operation.Type));
+		// An untyped `null` literal has no ITypeSymbol of its own - loader.GetType(null) can't
+		// produce a Type for it. Let Expression.Constant infer object; Equal/Convert both special-case
+		// a null constant against a reference type, so this doesn't need the real target type here.
+		if (operation.Type is null)
+		{
+			return Expression.Constant(operation.ConstantValue.Value);
+		}
+
+		return Expression.Constant(operation.ConstantValue.Value, loader.GetType(operation.Type));
 	}
 
 	public override Expression VisitUnaryOperator(IUnaryOperation operation, IDictionary<string, object?> argument)
@@ -199,9 +282,19 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			return existingParam;
 		}
 
-		// Otherwise, we might need to create a new parameter or handle differently
+		if (localsByName.TryGetValue(localName, out var knownLocal))
+		{
+			return knownLocal;
+		}
+
+		// A reference reached before its declaring VisitVariableDeclarator (e.g. a `foreach`/`out`
+		// binding this visitor doesn't model yet) - register it into the innermost open Block scope
+		// so Compile() still finds it declared somewhere.
 		var localType = loader.GetType(operation.Local.Type);
-		return Expression.Parameter(localType, localName);
+		var newLocal = Expression.Parameter(localType, localName);
+		RegisterLocal(newLocal);
+
+		return newLocal;
 	}
 
 	public override Expression VisitDefaultValue(IDefaultValueOperation operation, IDictionary<string, object?> argument)
@@ -252,7 +345,27 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 	{
 		var condition = Visit(operation.Condition, argument);
 		var whenTrue = Visit(operation.WhenTrue, argument);
+
+		// A statement `if` without an `else` has no WhenFalse operand - that's not a ternary,
+		// it's a void conditional, so it needs Expression.IfThen rather than Expression.Condition
+		// (which requires both branches and would otherwise throw on the missing operand).
+		if (operation.WhenFalse is null)
+		{
+			return Expression.IfThen(condition, whenTrue);
+		}
+
 		var whenFalse = Visit(operation.WhenFalse, argument);
+
+		// Branches can disagree structurally even when Roslyn considers them compatible - e.g. a
+		// bare `null` literal is visited as an untyped `object` constant (see VisitLiteral) against
+		// a reference-typed other branch. Expression.Condition requires an exact type match, unlike
+		// the C# ternary it's built from, so coerce both sides to the operation's real result type.
+		if (whenTrue.Type != whenFalse.Type)
+		{
+			var resultType = operation.Type is not null ? loader.GetType(operation.Type) : whenTrue.Type;
+			whenTrue = whenTrue.Type == resultType ? whenTrue : Expression.Convert(whenTrue, resultType);
+			whenFalse = whenFalse.Type == resultType ? whenFalse : Expression.Convert(whenFalse, resultType);
+		}
 
 		return Expression.Condition(condition, whenTrue, whenFalse);
 	}
@@ -408,5 +521,248 @@ public class ExpressionVisitor(SemanticModel model, MetadataLoader loader, IEnum
 			),
 			resultVar
 		);
+	}
+
+	public override Expression VisitExpressionStatement(IExpressionStatementOperation operation, IDictionary<string, object?> argument)
+	{
+		// DefaultVisit would recurse into this statement's children but discard the result, silently
+		// dropping the assignment/call it wraps. It must forward the visited expression instead.
+		return Visit(operation.Operation, argument);
+	}
+
+	public override Expression VisitSimpleAssignment(ISimpleAssignmentOperation operation, IDictionary<string, object?> argument)
+	{
+		var target = Visit(operation.Target, argument);
+		var value = Visit(operation.Value, argument);
+
+		return Expression.Assign(target, value);
+	}
+
+	public override Expression VisitCompoundAssignment(ICompoundAssignmentOperation operation, IDictionary<string, object?> argument)
+	{
+		var target = Visit(operation.Target, argument);
+		var value = Visit(operation.Value, argument);
+
+		return operation.OperatorKind switch
+		{
+			BinaryOperatorKind.Add => Expression.AddAssign(target, value),
+			BinaryOperatorKind.Subtract => Expression.SubtractAssign(target, value),
+			BinaryOperatorKind.Multiply => Expression.MultiplyAssign(target, value),
+			BinaryOperatorKind.Divide => Expression.DivideAssign(target, value),
+			BinaryOperatorKind.Remainder => Expression.ModuloAssign(target, value),
+			BinaryOperatorKind.And => Expression.AndAssign(target, value),
+			BinaryOperatorKind.Or => Expression.OrAssign(target, value),
+			BinaryOperatorKind.ExclusiveOr => Expression.ExclusiveOrAssign(target, value),
+			BinaryOperatorKind.LeftShift => Expression.LeftShiftAssign(target, value),
+			BinaryOperatorKind.RightShift => Expression.RightShiftAssign(target, value),
+			_ => throw new NotImplementedException($"Compound assignment operator {operation.OperatorKind} is not supported")
+		};
+	}
+
+	public override Expression VisitArrayElementReference(IArrayElementReferenceOperation operation, IDictionary<string, object?> argument)
+	{
+		var array = Visit(operation.ArrayReference, argument);
+		var indices = operation.Indices.Select(i => Visit(i, argument)).ToArray();
+
+		return Expression.ArrayAccess(array, indices);
+	}
+
+	public override Expression VisitArrayCreation(IArrayCreationOperation operation, IDictionary<string, object?> argument)
+	{
+		var elementType = loader.GetType(((IArrayTypeSymbol) operation.Type!).ElementType);
+
+		if (operation.Initializer is not null)
+		{
+			var elements = operation.Initializer.ElementValues.Select(e => Visit(e, argument)).ToArray();
+			return Expression.NewArrayInit(elementType, elements);
+		}
+
+		var bounds = operation.DimensionSizes.Select(d => Visit(d, argument)).ToArray();
+		return Expression.NewArrayBounds(elementType, bounds);
+	}
+
+	public override Expression VisitVariableDeclarationGroup(IVariableDeclarationGroupOperation operation, IDictionary<string, object?> argument)
+	{
+		var assigns = operation.Declarations
+			.SelectMany(decl => decl.Declarators)
+			.Select(declarator => VisitVariableDeclarator(declarator, argument))
+			.ToArray();
+
+		return assigns.Length switch
+		{
+			0 => Expression.Empty(),
+			1 => assigns[0],
+			_ => Expression.Block(assigns)
+		};
+	}
+
+	public override Expression VisitVariableDeclarator(IVariableDeclaratorOperation operation, IDictionary<string, object?> argument)
+	{
+		var local = Expression.Parameter(loader.GetType(operation.Symbol.Type), operation.Symbol.Name);
+		RegisterLocal(local);
+
+		if (operation.Initializer is null)
+		{
+			return Expression.Empty();
+		}
+
+		var value = Visit(operation.Initializer.Value, argument);
+		return Expression.Assign(local, value);
+	}
+
+	public override Expression VisitBranch(IBranchOperation operation, IDictionary<string, object?> argument)
+	{
+		if (loopLabels.Count == 0)
+		{
+			throw new InvalidOperationException("break/continue used outside of a loop");
+		}
+
+		var (breakLabel, continueLabel) = loopLabels.Peek();
+
+		return operation.BranchKind switch
+		{
+			BranchKind.Break => Expression.Break(breakLabel),
+			BranchKind.Continue => Expression.Continue(continueLabel),
+			_ => throw new NotImplementedException($"Branch kind {operation.BranchKind} is not supported")
+		};
+	}
+
+	public override Expression VisitWhileLoop(IWhileLoopOperation operation, IDictionary<string, object?> argument)
+	{
+		var breakLabel = Expression.Label("break");
+		var continueLabel = Expression.Label("continue");
+		loopLabels.Push((breakLabel, continueLabel));
+
+		Expression condition;
+		Expression body;
+
+		try
+		{
+			condition = Visit(operation.Condition, argument);
+
+			if (operation.ConditionIsUntil)
+			{
+				condition = Expression.Not(condition);
+			}
+
+			body = Visit(operation.Body, argument);
+		}
+		finally
+		{
+			loopLabels.Pop();
+		}
+
+		// `do { } while` evaluates the condition after the body; a plain `while` checks it up front.
+		return operation.ConditionIsTop
+			? Expression.Loop(
+				Expression.Block(
+					Expression.IfThen(Expression.Not(condition), Expression.Break(breakLabel)),
+					body,
+					Expression.Label(continueLabel)),
+				breakLabel)
+			: Expression.Loop(
+				Expression.Block(
+					body,
+					Expression.Label(continueLabel),
+					Expression.IfThen(Expression.Not(condition), Expression.Break(breakLabel))),
+				breakLabel);
+	}
+
+	public override Expression VisitForLoop(IForLoopOperation operation, IDictionary<string, object?> argument)
+	{
+		scopedLocals.Push([ ]);
+
+		var before = operation.Before.Select(b => Visit(b, argument)).ToArray();
+		var condition = operation.Condition is not null ? Visit(operation.Condition, argument) : null;
+
+		var breakLabel = Expression.Label("break");
+		var continueLabel = Expression.Label("continue");
+		loopLabels.Push((breakLabel, continueLabel));
+
+		Expression body;
+		Expression[] atLoopBottom;
+
+		try
+		{
+			body = Visit(operation.Body, argument);
+			atLoopBottom = operation.AtLoopBottom.Select(a => Visit(a, argument)).ToArray();
+		}
+		finally
+		{
+			loopLabels.Pop();
+		}
+
+		var loopBodyParts = new List<Expression>();
+
+		if (condition is not null)
+		{
+			loopBodyParts.Add(Expression.IfThen(Expression.Not(condition), Expression.Break(breakLabel)));
+		}
+
+		loopBodyParts.Add(body);
+		loopBodyParts.Add(Expression.Label(continueLabel));
+		loopBodyParts.AddRange(atLoopBottom);
+
+		var loop = Expression.Loop(Expression.Block(loopBodyParts), breakLabel);
+		var locals = scopedLocals.Pop();
+
+		var statements = before.Append(loop).ToArray();
+
+		return locals.Count > 0 ? Expression.Block(locals, statements) : Expression.Block(statements);
+	}
+
+	public override Expression VisitForEachLoop(IForEachLoopOperation operation, IDictionary<string, object?> argument)
+	{
+		scopedLocals.Push([ ]);
+
+		var collection = Visit(operation.Collection, argument);
+		var getEnumerator = collection.Type.GetMethod("GetEnumerator") ?? typeof(IEnumerable).GetMethod("GetEnumerator")!;
+		var enumeratorVar = Expression.Variable(getEnumerator.ReturnType, "enumerator");
+		var moveNext = enumeratorVar.Type.GetMethod("MoveNext") ?? typeof(IEnumerator).GetMethod("MoveNext")!;
+		var currentProperty = enumeratorVar.Type.GetProperty("Current") ?? typeof(IEnumerator).GetProperty("Current")!;
+
+		var loopVar = operation.LoopControlVariable is IVariableDeclaratorOperation declarator
+			? Expression.Parameter(loader.GetType(declarator.Symbol.Type), declarator.Symbol.Name)
+			: Expression.Parameter(currentProperty.PropertyType, "item");
+
+		RegisterLocal(loopVar);
+
+		var breakLabel = Expression.Label("break");
+		var continueLabel = Expression.Label("continue");
+		loopLabels.Push((breakLabel, continueLabel));
+
+		Expression body;
+
+		try
+		{
+			body = Visit(operation.Body, argument);
+		}
+		finally
+		{
+			loopLabels.Pop();
+		}
+
+		var loop = Expression.Block(
+			[ enumeratorVar ],
+			Expression.Assign(enumeratorVar, Expression.Call(collection, getEnumerator)),
+			Expression.TryFinally(
+				Expression.Loop(
+					Expression.IfThenElse(
+						Expression.Call(enumeratorVar, moveNext),
+						Expression.Block(
+							// `Current` can be looser than the loop variable - e.g. arrays only expose
+							// the non-generic IEnumerator.Current (object), even when iterated as int[].
+							Expression.Assign(loopVar, Expression.Convert(Expression.Property(enumeratorVar, currentProperty), loopVar.Type)),
+							body,
+							Expression.Label(continueLabel)),
+						Expression.Break(breakLabel)),
+					breakLabel),
+				typeof(IDisposable).IsAssignableFrom(enumeratorVar.Type)
+					? Expression.Call(Expression.Convert(enumeratorVar, typeof(IDisposable)), typeof(IDisposable).GetMethod("Dispose")!)
+					: Expression.Empty()));
+
+		var locals = scopedLocals.Pop();
+
+		return locals.Count > 0 ? Expression.Block(locals, loop) : loop;
 	}
 }
