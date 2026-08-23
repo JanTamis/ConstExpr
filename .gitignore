@@ -11,3 +11,6 @@ Generated/
 
 # graphify
 graphify-out/
+
+# serena
+.serena/
