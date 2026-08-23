@@ -24,6 +24,17 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 			return true;
 		}
 
+		// Bounds identities: for any integer type, x is always within [T.MinValue, T.MaxValue], so
+		// Max(x, T.MaxValue) → T.MaxValue (absorbing; dropping x's evaluation requires it to be pure)
+		// Max(x, T.MinValue) → x (identity; x is preserved, so no purity requirement)
+		if (TryGetIntegerBounds(paramType, out var minBound, out var maxBound)
+		    && (TryFoldBoundIdentity(paramType, left, right, minBound, maxBound, out var boundResult)
+		        || TryFoldBoundIdentity(paramType, right, left, minBound, maxBound, out boundResult)))
+		{
+			result = boundResult;
+			return true;
+		}
+
 		var containingName = context.Method.ContainingType?.Name;
 
 		// Try to recognize Clamp pattern: Max(Min(X, max), min) -> Clamp(X, min, max)
@@ -299,7 +310,7 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 				return false;
 			}
 
-			if (Compare(paramType, minConstVal2!, null!) <= 0)
+			if (Compare(paramType, minConstVal2!, maxVal2!) <= 0)
 			{
 				if (HasMethod(paramType, "ClampNative", 3))
 				{
@@ -313,6 +324,115 @@ public class MaxFunctionOptimizer() : BaseMathFunctionOptimizer("Max", n => n is
 		}
 
 		return false;
+	}
+
+	// Only integer types have bounds where every value of the type is provably within [MinValue, MaxValue].
+	// Floating-point types are excluded: NaN comparisons don't obey normal ordering, so the identity/absorbing
+	// argument doesn't hold for float/double, and decimal offers no meaningful use case here.
+	private static bool TryGetIntegerBounds(ITypeSymbol paramType, [NotNullWhen(true)] out object? minValue, [NotNullWhen(true)] out object? maxValue)
+	{
+		switch (paramType.SpecialType)
+		{
+			case SpecialType.System_SByte:
+				(minValue, maxValue) = (SByte.MinValue, SByte.MaxValue);
+				return true;
+			case SpecialType.System_Byte:
+				(minValue, maxValue) = (Byte.MinValue, Byte.MaxValue);
+				return true;
+			case SpecialType.System_Int16:
+				(minValue, maxValue) = (Int16.MinValue, Int16.MaxValue);
+				return true;
+			case SpecialType.System_UInt16:
+				(minValue, maxValue) = (UInt16.MinValue, UInt16.MaxValue);
+				return true;
+			case SpecialType.System_Int32:
+				(minValue, maxValue) = (Int32.MinValue, Int32.MaxValue);
+				return true;
+			case SpecialType.System_UInt32:
+				(minValue, maxValue) = (UInt32.MinValue, UInt32.MaxValue);
+				return true;
+			case SpecialType.System_Int64:
+				(minValue, maxValue) = (Int64.MinValue, Int64.MaxValue);
+				return true;
+			case SpecialType.System_UInt64:
+				(minValue, maxValue) = (UInt64.MinValue, UInt64.MaxValue);
+				return true;
+			default:
+				minValue = null;
+				maxValue = null;
+				return false;
+		}
+	}
+
+	// constSide is checked for being a known T.MinValue/T.MaxValue literal; otherSide is the other Max(...) operand.
+	// Max(x, T.MaxValue) -> T.MaxValue (absorbing: x's evaluation is dropped, so it must be pure)
+	// Max(x, T.MinValue) -> x (identity: x is preserved unconditionally, so no purity requirement)
+	private bool TryFoldBoundIdentity(ITypeSymbol paramType, ExpressionSyntax constSide, ExpressionSyntax otherSide, object minBound, object maxBound, [NotNullWhen(true)] out ExpressionSyntax? result)
+	{
+		result = null;
+
+		if (!TryGetConstantValue(paramType, constSide, out var value, out var constExpr))
+		{
+			return false;
+		}
+
+		if (Compare(paramType, value!, maxBound) == 0)
+		{
+			if (!IsPureNumericExpression(paramType, otherSide))
+			{
+				return false;
+			}
+
+			result = constExpr!;
+			return true;
+		}
+
+		if (Compare(paramType, value!, minBound) == 0)
+		{
+			result = otherSide;
+			return true;
+		}
+
+		return false;
+	}
+
+	// IsPure() (BaseFunctionOptimizer) doesn't know Min/Max/MinNative/MaxNative invocations are side-effect
+	// free, so a nested Max/Min call (e.g. the inner Byte.Max(r, g) of Byte.Max(Byte.Max(r, g), 255)) is
+	// treated as impure and blocks the absorbing fold above. Recognize those recursively as pure too, as
+	// long as they stay on the same numeric helper type.
+	private static bool IsPureNumericExpression(ITypeSymbol paramType, ExpressionSyntax expr)
+	{
+		if (IsPure(expr))
+		{
+			return true;
+		}
+
+		if (expr is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "Min" or "Max" or "MinNative" or "MaxNative" } member } invocation)
+		{
+			return false;
+		}
+
+		var containerName = member.Expression switch
+		{
+			IdentifierNameSyntax id => id.Identifier.Text,
+			QualifiedNameSyntax qn => qn.Right.Identifier.Text,
+			_ => null
+		};
+
+		if (containerName is not null && containerName != paramType.Name)
+		{
+			return false;
+		}
+
+		foreach (var argument in invocation.ArgumentList.Arguments)
+		{
+			if (!IsPureNumericExpression(paramType, argument.Expression))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private static bool TryGetConstantValue(ITypeSymbol paramType, ExpressionSyntax expr, out object? value, out ExpressionSyntax? constExpr)
