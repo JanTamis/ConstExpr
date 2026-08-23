@@ -531,30 +531,31 @@ public partial class ConstExprPartialRewriter
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
 
-				// A continue has no jump target we synthesize here, so keep falling back to a
-				// real foreach when one is present rather than emit invalid C#.
-				if (!ContainsOrphanedContinue(node.Statement))
+				// A break and an orphaned continue can be resolved together: the break becomes a
+				// goto to the shared trailing label (below) while each continue becomes a goto to
+				// its own per-iteration label (inside TryUnrollForEachLoop) — the two rewrites are
+				// independent and compose without conflict.
+				
+				var label = $"__unroll_break_{_unrollBreakLabelCounter++}";
+				var hasOrphanedContinue = ContainsOrphanedContinue(node.Statement);
+				var gotoUnrolled = TryUnrollForEachLoop(node, items, label, unrollContinueGoto: hasOrphanedContinue);
+
+				if (gotoUnrolled is not null && !ContainsOrphanedBreak(gotoUnrolled) && !ContainsOrphanedContinue(gotoUnrolled))
 				{
-					var label = $"__unroll_break_{_unrollBreakLabelCounter++}";
-					var gotoUnrolled = TryUnrollForEachLoop(node, items, label);
-
-					if (gotoUnrolled is not null && !ContainsOrphanedBreak(gotoUnrolled))
+					// Unrolling a collection with duplicate values (e.g. the two 'l's in
+					// "hello") emits the same break guard twice. Once the first guard's jump
+					// didn't fire, an identical loop-invariant guard can never fire either, so
+					// drop the redundant copies while keeping the interleaved index++ etc.
+					if (gotoUnrolled is BlockSyntax bodyBlock)
 					{
-						// Unrolling a collection with duplicate values (e.g. the two 'l's in
-						// "hello") emits the same break guard twice. Once the first guard's jump
-						// didn't fire, an identical loop-invariant guard can never fire either, so
-						// drop the redundant copies while keeping the interleaved index++ etc.
-						if (gotoUnrolled is BlockSyntax bodyBlock)
-						{
-							gotoUnrolled = RemoveRedundantGotoGuards(bodyBlock, node, label);
-						}
-
-						var labelStatement = LabeledStatement(Identifier(label), EmptyStatement());
-
-						return gotoUnrolled is BlockSyntax gotoBlock
-							? gotoBlock.AddStatements(labelStatement)
-							: Block((StatementSyntax) gotoUnrolled, labelStatement);
+						gotoUnrolled = RemoveRedundantGotoGuards(bodyBlock, node, label);
 					}
+
+					var labelStatement = LabeledStatement(Identifier(label), EmptyStatement());
+
+					return gotoUnrolled is BlockSyntax gotoBlock
+						? gotoBlock.AddStatements(labelStatement)
+						: Block((StatementSyntax) gotoUnrolled, labelStatement);
 				}
 
 				RestoreVariableState(savedState);

@@ -591,16 +591,18 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		}
 
 		// Attach the following statement to a label that only carries an empty statement:
-		// "L: ; return x;" -> "L: return x;". Skipped when the label is the block's last
-		// statement, since a label must always be followed by a statement.
+		// "L: ; return x;" -> "L: return x;". Cascades through chains of stacked labels (e.g.
+		// two synthesized loop-exit labels landing on the same statement, as with a combined
+		// break+continue unroll) by re-checking the same index after each merge. Skipped when
+		// the label is the block's last statement, since a label must always be followed by a
+		// statement.
 		for (var i = 0; i < visited.Count - 1; i++)
 		{
-			if (visited[i] is LabeledStatementSyntax { Statement: EmptyStatementSyntax } labeled)
+			if (TryAttachToInnermostEmptyLabel(visited[i], visited[i + 1], out var merged))
 			{
-				visited[i] = labeled
-					.WithColonToken(labeled.ColonToken.WithTrailingTrivia(Space))
-					.WithStatement(visited[i + 1].WithoutLeadingTrivia());
+				visited[i] = merged;
 				visited.RemoveAt(i + 1);
+				i--;
 			}
 		}
 
@@ -699,6 +701,39 @@ public sealed class BlockFormattingRewriter : CSharpSyntaxRewriter
 		newNode = NormalizeOpenBraceTrailing(newNode);
 
 		return newNode;
+	}
+
+	/// <summary>
+	///   Attaches <paramref name="next" /> at the innermost empty-statement slot of a
+	///   (possibly nested) chain of <see cref="LabeledStatementSyntax" />, e.g. turning
+	///   <c>L1: L2: ;</c> followed by <c>next</c> into <c>L1: L2: next</c>. Returns
+	///   <see langword="false" /> when <paramref name="statement" /> is not a label, or its
+	///   chain does not bottom out in an empty statement.
+	/// </summary>
+	private static bool TryAttachToInnermostEmptyLabel(StatementSyntax statement, StatementSyntax next, out StatementSyntax result)
+	{
+		if (statement is not LabeledStatementSyntax labeled)
+		{
+			result = statement;
+			return false;
+		}
+
+		if (labeled.Statement is EmptyStatementSyntax)
+		{
+			result = labeled
+				.WithColonToken(labeled.ColonToken.WithTrailingTrivia(Space))
+				.WithStatement(next.WithoutLeadingTrivia());
+			return true;
+		}
+
+		if (TryAttachToInnermostEmptyLabel(labeled.Statement, next, out var innerResult))
+		{
+			result = labeled.WithStatement(innerResult);
+			return true;
+		}
+
+		result = statement;
+		return false;
 	}
 
 	public override SyntaxNode? VisitReturnStatement(ReturnStatementSyntax node)
