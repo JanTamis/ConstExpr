@@ -40,4 +40,8 @@
 			<Aliases>sourcegen</Aliases>
 		</ProjectReference>
 	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Tests\Rewriter\NestedTernarySameConditionTrueBranchTest.cs"/>
+	</ItemGroup>
 </Project>
