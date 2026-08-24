@@ -22,7 +22,10 @@ public class DivideLeftNegationStrategy() : NumericBinaryStrategy<PrefixUnaryExp
 			return false;
 		}
 
-		optimized = UnaryMinusExpression(ParenthesizedExpression(DivideExpression(context.Left.Syntax.Operand, context.Right.Syntax)));
+		var divideExpression = DivideExpression(context.Left.Syntax.Operand, context.Right.Syntax);
+		var parenthesizedDivideExpression = ParenthesizedExpression(context.Visit(divideExpression) ?? divideExpression);
+
+		optimized = UnaryMinusExpression(context.Visit(parenthesizedDivideExpression) ?? parenthesizedDivideExpression);
 		return true;
 	}
 }

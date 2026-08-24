@@ -12,6 +12,6 @@ public class ReassociationRewriterTests : BaseTestWithRandomValues<Func<int, int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(x => 0 - x * 3 + 5),
+		Create(x => -x - (x << 1) + 5)
 	];
 }

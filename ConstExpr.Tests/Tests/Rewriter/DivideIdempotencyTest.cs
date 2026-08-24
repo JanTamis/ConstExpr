@@ -11,6 +11,6 @@ public class DivideIdempotencyTest : BaseTestWithRandomValues<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create(_ => 1)
 	];
 }

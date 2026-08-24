@@ -86,7 +86,7 @@ public class RGBToHSVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (dou
 
 			return (h, s, v * 0.00392156862745098);
 		}),
-		Create((r, g, b) =>
+		Create((_, g, b) =>
 		{
 			var h = 0D;
 			double min = Byte.Min(g, b);
@@ -106,13 +106,13 @@ public class RGBToHSVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (dou
 
 			return (h, s, 1D);
 		}, [ (byte) 255, Unknown, Unknown ]),
-		Create((r, g, b) =>
+		Create((r, g, _) =>
 		{
 			var h = 0D;
 			double v = Byte.Max(r, g);
-			var s = v == 0D ? 0D : v / v;
+			var condVal = v == 0D ? 0D : 1D;
 
-			if (s != 0D)
+			if (condVal != 0D)
 			{
 				if (r == v)
 				{
@@ -120,7 +120,7 @@ public class RGBToHSVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (dou
 				}
 				else if (g == v)
 				{
-					h = (0 - r) / v + 2D;
+					h = 2D - r / v;
 				}
 				else if (v == 0)
 				{
@@ -130,44 +130,25 @@ public class RGBToHSVTest : BaseTestWithRandomValues<Func<byte, byte, byte, (dou
 				h *= 60D;
 
 				if (h < 0D)
-				{
 					h += 360D;
-				}
 			}
 
-			return (h, s, v * 0.00392156862745098);
+			return (h, condVal, v * 3.92156862745098E-3);
 		}, [ Unknown, Unknown, (byte) 0 ]),
-		Create((r, g, b) =>
+		Create((_, _, b) =>
 		{
 			var h = 0D;
-			var s = b == 0D ? 0D : b / b;
+			var condVal = b == 0D ? 0D : 1D;
 
-			if (s != 0D)
+			if (condVal != 0D)
 			{
-				var eq = b == 0;
-
-				if (eq)
-				{
-					h = (0 - b) / b;
-				}
-				else if (eq)
-				{
-					h = b / b + 2D;
-				}
-				else if (b == b)
-				{
-					h = 0 / b + 4D;
-				}
-
-				h *= 60D;
+				h = b == 0 ? -60D : 240D;
 
 				if (h < 0D)
-				{
 					h += 360D;
-				}
 			}
 
-			return (h, s, b * 0.00392156862745098);
+			return (h, condVal, b * 3.92156862745098E-3);
 		}, [ (byte) 0, (byte) 0, Unknown ])
 	];
 }

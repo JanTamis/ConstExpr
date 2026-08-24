@@ -52,6 +52,24 @@ public class ConditionalExpressionOptimizer
 			return true;
 		}
 
+		// condition ? a : (condition ? b : c) => condition ? a : c (inner check is already known false)
+		if (IsPure(Condition)
+		    && UnwrapParentheses(WhenFalse) is ConditionalExpressionSyntax nestedFalse
+		    && SyntaxNodeComparer.Get().Equals(UnwrapParentheses(nestedFalse.Condition), UnwrapParentheses(Condition)))
+		{
+			result = ConditionalExpression(Condition, WhenTrue, nestedFalse.WhenFalse);
+			return true;
+		}
+
+		// condition ? (condition ? b : c) : a => condition ? b : a (inner check is already known true)
+		if (IsPure(Condition)
+		    && UnwrapParentheses(WhenTrue) is ConditionalExpressionSyntax nestedTrue
+		    && SyntaxNodeComparer.Get().Equals(UnwrapParentheses(nestedTrue.Condition), UnwrapParentheses(Condition)))
+		{
+			result = ConditionalExpression(Condition, nestedTrue.WhenTrue, WhenFalse);
+			return true;
+		}
+
 		// condition ? x : false => condition && x (both branches short-circuit identically)
 		if (WhenFalse.TryGetLiteralValue(loader, variables, out var whenFalseValue) && whenFalseValue is false)
 		{

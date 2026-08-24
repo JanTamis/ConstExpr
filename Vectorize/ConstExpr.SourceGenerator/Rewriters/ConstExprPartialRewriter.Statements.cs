@@ -535,7 +535,7 @@ public partial class ConstExprPartialRewriter
 				// goto to the shared trailing label (below) while each continue becomes a goto to
 				// its own per-iteration label (inside TryUnrollForEachLoop) — the two rewrites are
 				// independent and compose without conflict.
-				
+
 				var label = $"__unroll_break_{_unrollBreakLabelCounter++}";
 				var hasOrphanedContinue = ContainsOrphanedContinue(node.Statement);
 				var gotoUnrolled = TryUnrollForEachLoop(node, items, label, unrollContinueGoto: hasOrphanedContinue);
@@ -1079,7 +1079,8 @@ public partial class ConstExprPartialRewriter
 		var mergedInitializers = MergeRedundantInitializers(hoistedBranches);
 		var mergedIfAssignments = MergeIfAssignmentIntoDeclaration(mergedInitializers);
 		var mergedSwaps = MergeSwapPattern(mergedIfAssignments);
-		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedSwaps);
+		var mergedCompoundConditional = MergeCompoundAssignIntoConditionalAssignment(mergedSwaps);
+		var mergedIncDec = RemoveCancelingIncrementDecrement(mergedCompoundConditional);
 
 		// Runs after the merges above have had their (more thorough) chance to fold a declaration
 		// forward into a single conditional-expression initializer: those passes need to see the
@@ -2554,16 +2555,118 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
-	///   Recognizes the classic three-statement swap-via-temp idiom
-	///   <code>
-	/// var temp = a;
-	/// a = b;
-	/// b = temp;
-	/// </code>
-	///   and rewrites it into a tuple-deconstruction assignment <c>(a, b) = (b, a);</c>. Applies to
-	///   plain identifiers as well as simple element-access targets (e.g. array/collection element
-	///   swaps), since both are pure to re-read.
+	///   Merges <c>x = cond ? a : b;</c> immediately followed by a compound assignment
+	///   <c>x op= literal;</c> into a single <c>x = cond ? (a op literal) : (b op literal);</c> when
+	///   both ternary branches are already constant literals. The compound assignment runs
+	///   unconditionally on whichever branch was taken, so distributing it into both branches and
+	///   folding each independently is equivalent - and removes the now-redundant second statement.
+	///   Skipped for `??=` and any other operator <see cref="ObjectExtensions.ExecuteBinaryOperation(SyntaxKind, object, object)" />
+	///   can't fold, since it returns <see langword="null" /> for those and the merge is left alone.
+	///   Each folded branch is coerced back to the target's declared numeric type via checked
+	///   <see cref="Convert" /> calls (<see cref="TryCoerceToNumericSpecialType" />): widening (e.g. an
+	///   int branch folding into a double target) always succeeds, but narrowing (e.g. a byte target
+	///   whose folded branch no longer fits) throws <see cref="OverflowException" /> and the merge is
+	///   abandoned rather than emitting an out-of-range literal the real compound assignment would have
+	///   silently wrapped - unlike a real `byte` compound assignment, a literal outside `byte`'s range
+	///   assigned via a ternary is a compile error (CS0266), not an implicit narrowing conversion.
 	/// </summary>
+	private SyntaxList<StatementSyntax> MergeCompoundAssignIntoConditionalAssignment(SyntaxList<StatementSyntax> statements)
+	{
+		if (statements.Count < 2)
+		{
+			return statements;
+		}
+
+		var result = new List<StatementSyntax>();
+		var i = 0;
+
+		while (i < statements.Count)
+		{
+			if (i + 1 < statements.Count
+			    && statements[i] is ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    RawKind: (int) SyntaxKind.SimpleAssignmentExpression,
+					    Left: IdentifierNameSyntax { Identifier.Text: var targetName },
+					    Right: ConditionalExpressionSyntax { Condition: var condition, WhenTrue: var whenTrue, WhenFalse: var whenFalse }
+				    }
+			    }
+			    && statements[i + 1] is ExpressionStatementSyntax
+			    {
+				    Expression: AssignmentExpressionSyntax
+				    {
+					    Left: IdentifierNameSyntax { Identifier.Text: var compoundTargetName },
+					    OperatorToken: var operatorToken,
+					    Right: var compoundRight
+				    }
+			    }
+			    && compoundTargetName == targetName
+			    && operatorToken.Kind() != SyntaxKind.EqualsToken
+			    && variables.TryGetValue(targetName, out var targetVariable)
+			    && TryGetLiteralValue(whenTrue, out var whenTrueValue)
+			    && TryGetLiteralValue(whenFalse, out var whenFalseValue)
+			    && TryGetLiteralValue(compoundRight, out var compoundValue))
+			{
+				var newWhenTrue = ObjectExtensions.ExecuteBinaryOperation(operatorToken.Kind(), whenTrueValue, compoundValue);
+				var newWhenFalse = ObjectExtensions.ExecuteBinaryOperation(operatorToken.Kind(), whenFalseValue, compoundValue);
+
+				if (newWhenTrue is not null && newWhenFalse is not null
+				                            && TryCoerceToNumericSpecialType(newWhenTrue, targetVariable.Type.SpecialType, out var coercedWhenTrue)
+				                            && TryCoerceToNumericSpecialType(newWhenFalse, targetVariable.Type.SpecialType, out var coercedWhenFalse)
+				                            && TryCreateLiteral(coercedWhenTrue, out var newWhenTrueLiteral)
+				                            && TryCreateLiteral(coercedWhenFalse, out var newWhenFalseLiteral))
+				{
+					result.Add(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, IdentifierName(targetName),
+						ConditionalExpression(condition, newWhenTrueLiteral, newWhenFalseLiteral))));
+					i += 2;
+					continue;
+				}
+			}
+
+			result.Add(statements[i]);
+			i++;
+		}
+
+		return List(result);
+	}
+
+	/// <summary>
+	///   Converts <paramref name="value" /> to the numeric CLR type matching <paramref name="specialType" />
+	///   using a checked <see cref="Convert" /> call, so a value that no longer fits (e.g. 300 into
+	///   <see cref="byte" />) reports failure instead of silently wrapping or throwing uncaught.
+	///   Non-numeric target types are rejected outright.
+	/// </summary>
+	private static bool TryCoerceToNumericSpecialType(object value, SpecialType specialType, out object? coerced)
+	{
+		try
+		{
+			coerced = specialType switch
+			{
+				SpecialType.System_Byte => Convert.ToByte(value),
+				SpecialType.System_SByte => Convert.ToSByte(value),
+				SpecialType.System_Int16 => Convert.ToInt16(value),
+				SpecialType.System_UInt16 => Convert.ToUInt16(value),
+				SpecialType.System_Int32 => Convert.ToInt32(value),
+				SpecialType.System_UInt32 => Convert.ToUInt32(value),
+				SpecialType.System_Int64 => Convert.ToInt64(value),
+				SpecialType.System_UInt64 => Convert.ToUInt64(value),
+				SpecialType.System_Single => Convert.ToSingle(value),
+				SpecialType.System_Double => Convert.ToDouble(value),
+				SpecialType.System_Decimal => Convert.ToDecimal(value),
+				SpecialType.System_Char => Convert.ToChar(value),
+				_ => null
+			};
+
+			return coerced is not null;
+		}
+		catch (OverflowException)
+		{
+			coerced = null;
+			return false;
+		}
+	}
+
 	private SyntaxList<StatementSyntax> MergeSwapPattern(SyntaxList<StatementSyntax> statements)
 	{
 		if (statements.Count < 3)

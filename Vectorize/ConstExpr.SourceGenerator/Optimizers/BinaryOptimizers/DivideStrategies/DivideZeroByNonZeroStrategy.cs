@@ -9,9 +9,9 @@ namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies
 ///   Strategy for zero divided by non-zero: 0 / x = 0 (integers only)
 ///   Safe under Strict (integer arithmetic identity).
 /// </summary>
-public class DivideZeroByNonZeroStrategy : SymmetricStrategy<IntegerBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
+public class DivideZeroByNonZeroStrategy : SymmetricStrategy<NumericBinaryStrategy, LiteralExpressionSyntax, ExpressionSyntax>
 {
-	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.AssociativeMath ];
 
 	public override bool TryOptimizeSymmetric(BinaryOptimizeContext<LiteralExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
