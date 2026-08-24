@@ -76,7 +76,7 @@ public class ConcatFunctionOptimizer(SyntaxNode? instance) : BaseStringFunctionO
 
 			for (var i = 0; i < context.VisitedParameters.Count; i++)
 			{
-				if (!SyntaxNodeComparer.Get().Equals(context.VisitedParameters[i], newParams[i]))
+				if (!SyntaxNodeComparer.Equals(context.VisitedParameters[i], newParams[i]))
 				{
 					changed = true;
 					break;

@@ -481,7 +481,7 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 	{
 		// Self-assignment: x = x — only applies to simple assignment (=), not compound ops like x *= x
 		if (assignment.IsKind(SyntaxKind.SimpleAssignmentExpression)
-		    && SyntaxNodeComparer.Get().Equals(assignment.Left, assignment.Right))
+		    && SyntaxNodeComparer.Equals(assignment.Left, assignment.Right))
 		{
 			return true;
 		}

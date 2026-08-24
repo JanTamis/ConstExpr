@@ -13,7 +13,7 @@ public class ConditionalAndIsFiniteStrategy() : SymmetricStrategy<BooleanBinaryS
 	{
 		if (!IsInfinityMethod(context, context.Left.Syntax, out var leftArgument, out var leftContainingType)
 		    || !IsNaNMethod(context, context.Right.Syntax, out var rightArgument, out var rightContainingType)
-		    || !SyntaxNodeComparer.Get().Equals(leftArgument, rightArgument)
+		    || !SyntaxNodeComparer.Equals(leftArgument, rightArgument)
 		    || !SymbolEqualityComparer.Default.Equals(leftContainingType, rightContainingType))
 		{
 			optimized = null;

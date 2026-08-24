@@ -13,7 +13,7 @@ public class MaxMagnitudeFunctionOptimizer() : BaseMathFunctionOptimizer("MaxMag
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: MaxMagnitude(x, x) → x
-		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
+		if (SyntaxNodeComparer.Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

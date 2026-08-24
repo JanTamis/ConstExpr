@@ -2414,7 +2414,7 @@ public partial class ConstExprPartialRewriter
 			                                && TryGetSimpleAssignment(trueStatements[^1], out var trueName, out var trueValue)
 			                                && TryGetSimpleAssignment(falseStatements[^1], out var falseName, out var falseValue)
 			                                && trueName == falseName
-			                                && SyntaxNodeComparer.Get().Equals(trueValue, falseValue)
+			                                && SyntaxNodeComparer.Equals(trueValue, falseValue)
 			                                && !IsReadOrWrittenIn(trueName, trueStatements.Take(trueStatements.Count - 1))
 			                                && !IsReadOrWrittenIn(trueName, falseStatements.Take(falseStatements.Count - 1)))
 			{
@@ -2697,7 +2697,7 @@ public partial class ConstExprPartialRewriter
 					    Right: var b
 				    }
 			    }
-			    || !SyntaxNodeComparer.Get().Equals(a, aAgain)
+			    || !SyntaxNodeComparer.Equals(a, aAgain)
 			    || !IsSwapTarget(b))
 			{
 				continue;
@@ -2712,7 +2712,7 @@ public partial class ConstExprPartialRewriter
 					    Right: IdentifierNameSyntax { Identifier.Text: var readTemp }
 				    }
 			    }
-			    || !SyntaxNodeComparer.Get().Equals(b, bAgain)
+			    || !SyntaxNodeComparer.Equals(b, bAgain)
 			    || readTemp != tempName)
 			{
 				continue;
@@ -3081,7 +3081,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		// Only simplify if they return opposite values
-		if (SyntaxNodeComparer.Get().Equals(ifReturn.Expression, followingReturn.Expression))
+		if (SyntaxNodeComparer.Equals(ifReturn.Expression, followingReturn.Expression))
 		{
 			return false;
 		}

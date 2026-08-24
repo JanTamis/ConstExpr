@@ -13,7 +13,7 @@ public class MinNumberFunctionOptimizer() : BaseMathFunctionOptimizer("MinNumber
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: MinNumber(x, x) → x
-		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
+		if (SyntaxNodeComparer.Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

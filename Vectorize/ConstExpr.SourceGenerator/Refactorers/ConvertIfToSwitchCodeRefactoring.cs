@@ -263,7 +263,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 				return false;
 			}
 
-			if (switchTarget is not null && !SyntaxNodeComparer.Get().Equals(switchTarget, target))
+			if (switchTarget is not null && !SyntaxNodeComparer.Equals(switchTarget, target))
 			{
 				return false;
 			}
@@ -276,7 +276,7 @@ public static class ConvertIfToSwitchCodeRefactoring
 		// x is constant  /  x is (A or B)
 		if (condition is IsPatternExpressionSyntax { Expression: IdentifierNameSyntax targetExpr } isExpr)
 		{
-			if (switchTarget is not null && !SyntaxNodeComparer.Get().Equals(switchTarget, targetExpr))
+			if (switchTarget is not null && !SyntaxNodeComparer.Equals(switchTarget, targetExpr))
 			{
 				return false;
 			}

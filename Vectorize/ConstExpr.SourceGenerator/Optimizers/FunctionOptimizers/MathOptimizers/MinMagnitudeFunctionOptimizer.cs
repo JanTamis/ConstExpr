@@ -13,7 +13,7 @@ public class MinMagnitudeFunctionOptimizer() : BaseMathFunctionOptimizer("MinMag
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: MinMagnitude(x, x) → x
-		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
+		if (SyntaxNodeComparer.Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

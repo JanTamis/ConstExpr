@@ -18,7 +18,7 @@ public class MinFunctionOptimizer() : BaseMathFunctionOptimizer("Min", n => n is
 		var right = context.VisitedParameters[1];
 
 		// Idempotency: Min(x, x) → x (when x is pure)
-		if (SyntaxNodeComparer.Get().Equals(left, right) && IsPure(left))
+		if (SyntaxNodeComparer.Equals(left, right) && IsPure(left))
 		{
 			result = left;
 			return true;

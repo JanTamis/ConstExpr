@@ -8,7 +8,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using ConstExpr.SourceGenerator.Comparers;
 using ConstExpr.SourceGenerator.Enums;
 using ConstExpr.SourceGenerator.Helpers;
 using ConstExpr.SourceGenerator.Models;
@@ -1665,7 +1664,7 @@ public static class CompilationExtensions
 			}
 		}
 
-		if (SyntaxNodeComparer.Get().Equals(node, other))
+		if (Equals(node, other))
 		{
 			return true;
 		}

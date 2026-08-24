@@ -55,7 +55,7 @@ public class ConditionalExpressionOptimizer
 		// condition ? a : (condition ? b : c) => condition ? a : c (inner check is already known false)
 		if (IsPure(Condition)
 		    && UnwrapParentheses(WhenFalse) is ConditionalExpressionSyntax nestedFalse
-		    && SyntaxNodeComparer.Get().Equals(UnwrapParentheses(nestedFalse.Condition), UnwrapParentheses(Condition)))
+		    && SyntaxNodeComparer.Equals(UnwrapParentheses(nestedFalse.Condition), UnwrapParentheses(Condition)))
 		{
 			result = ConditionalExpression(Condition, WhenTrue, nestedFalse.WhenFalse);
 			return true;
@@ -64,7 +64,7 @@ public class ConditionalExpressionOptimizer
 		// condition ? (condition ? b : c) : a => condition ? b : a (inner check is already known true)
 		if (IsPure(Condition)
 		    && UnwrapParentheses(WhenTrue) is ConditionalExpressionSyntax nestedTrue
-		    && SyntaxNodeComparer.Get().Equals(UnwrapParentheses(nestedTrue.Condition), UnwrapParentheses(Condition)))
+		    && SyntaxNodeComparer.Equals(UnwrapParentheses(nestedTrue.Condition), UnwrapParentheses(Condition)))
 		{
 			result = ConditionalExpression(Condition, nestedTrue.WhenTrue, WhenFalse);
 			return true;
@@ -515,7 +515,7 @@ public class ConditionalExpressionOptimizer
 		var fallbackBranch = isNullWhenConditionIsTrue ? whenTrue : whenFalse;
 
 		if (memberBranch is not MemberAccessExpressionSyntax memberAccess
-		    || !SyntaxNodeComparer.Get().Equals(memberAccess.Expression, checkedExpression))
+		    || !SyntaxNodeComparer.Equals(memberAccess.Expression, checkedExpression))
 		{
 			return false;
 		}

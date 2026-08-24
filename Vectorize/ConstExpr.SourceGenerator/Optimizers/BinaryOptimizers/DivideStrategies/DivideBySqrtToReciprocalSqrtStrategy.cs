@@ -42,7 +42,7 @@ public class DivideBySqrtToReciprocalSqrtStrategy : FloatNumberBinaryStrategy<Ex
 
 		// Sqrt(x * x) folds to the exact Abs(x) in SqrtFunctionOptimizer — don't trade that for an estimate.
 		if (RemoveParentheses(radicand) is BinaryExpressionSyntax { RawKind: (int) SyntaxKind.MultiplyExpression } mul
-		    && SyntaxNodeComparer.Get().Equals(mul.Left, mul.Right))
+		    && SyntaxNodeComparer.Equals(mul.Left, mul.Right))
 		{
 			return false;
 		}

@@ -10,7 +10,7 @@ public static class IdentifierAliasResolver
 {
 	public static bool AreEqual(SyntaxNode left, SyntaxNode right, IDictionary<string, VariableItem> variables)
 	{
-		if (SyntaxNodeComparer.Get().Equals(left, right))
+		if (SyntaxNodeComparer.Equals(left, right))
 		{
 			return true;
 		}
@@ -29,7 +29,7 @@ public static class IdentifierAliasResolver
 		    && variables.TryGetValue(rightIdentifier.Identifier.Text, out var rightVar)
 		    && leftVar.Value is ArgumentSyntax leftArgument
 		    && rightVar.Value is ArgumentSyntax rightArgument
-		    && SyntaxNodeComparer.Get().Equals(leftArgument.Expression, rightArgument.Expression))
+		    && SyntaxNodeComparer.Equals(leftArgument.Expression, rightArgument.Expression))
 		{
 			return true;
 		}
@@ -37,7 +37,7 @@ public static class IdentifierAliasResolver
 		var leftRoot = ResolveAlias(leftIdentifier, variables);
 		var rightRoot = ResolveAlias(rightIdentifier, variables);
 
-		return SyntaxNodeComparer.Get().Equals(leftRoot, rightRoot);
+		return SyntaxNodeComparer.Equals(leftRoot, rightRoot);
 	}
 
 	/// <summary>
@@ -49,9 +49,9 @@ public static class IdentifierAliasResolver
 	private static SyntaxNode ResolveAlias(IdentifierNameSyntax identifier, IDictionary<string, VariableItem> variables)
 	{
 		var visited = new HashSet<string>();
-		SyntaxNode current = identifier;
+		var current = identifier;
 
-		while (current is IdentifierNameSyntax id && visited.Add(id.Identifier.Text))
+		while (current is { } id && visited.Add(id.Identifier.Text))
 		{
 			if (!variables.TryGetValue(id.Identifier.Text, out var variable) || variable.Value is not IdentifierNameSyntax alias)
 			{
