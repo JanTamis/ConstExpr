@@ -2212,7 +2212,7 @@ public static class CompilationExtensions
 
 	public static bool IsFloatingPoint(this TypeInfo typeInfo)
 	{
-		return typeInfo.IsFloatingPoint() || IsFloatingPoint(typeInfo.ConvertedType);
+		return IsFloatingPoint(typeInfo.Type) || IsFloatingPoint(typeInfo.ConvertedType);
 	}
 
 	public static bool IsMethod(this IMethodSymbol method, Type parentType, params IEnumerable<string> methodNames)
