@@ -39,7 +39,6 @@
 		<Compile Remove="bin\**"/>
 		<EmbeddedResource Remove="bin\**"/>
 		<None Remove="bin\**"/>
-		<Compile Remove="Helpers\IdentifierAliasResolver.cs"/>
 	</ItemGroup>
 
 	<!-- Analyzer dll include AFTER removal so it isn't excluded -->
