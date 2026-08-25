@@ -34,8 +34,9 @@ public class LinqChunkOptimizationTests() : BaseTestWithRandomValues<Func<int[],
 		{
 			var xLength = x.Length;
 			var sum = xLength + 2;
+			var sum2 = xLength + 1;
 
-			return xLength + ((int) (sum * 1431655766L >> 32) - (sum >> 31)) + (xLength + 1) / 2 + x[..5].Length + x[(xLength - 4)..].Length;
+			return xLength + ((int) (sum * 1431655766L >> 32) - (sum >> 31)) + (sum2 + (sum2 >>> 31) >> 1) + x[..5].Length + x[(xLength - 4)..].Length;
 		}),
 	];
 }

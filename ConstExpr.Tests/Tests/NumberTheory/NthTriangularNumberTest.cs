@@ -7,6 +7,11 @@ public class NthTriangularNumberTest : BaseTestWithRandomValues<Func<int, int>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create(n => n * (n + 1) >> 1),
+		Create(n =>
+		{
+			var prod = n * (n + 1);
+
+			return prod + (prod >>> 31) >> 1;
+		})
 	];
 }

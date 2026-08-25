@@ -2,6 +2,7 @@ using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.Strategies;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.BinaryOptimizers.DivideStrategies;
@@ -23,7 +24,7 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 			return false;
 		}
 
-		var isPositive = IsPositive(context, context.Left.Syntax);
+		var isPositive = IsPositive(context, context.Left.Syntax, false);
 
 		if (context.Type.IsUnsignedInteger() || isPositive)
 		{
@@ -31,9 +32,9 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 			return true;
 		}
 
-		if (!IsSimpleExpression(context.Left.Syntax))
+		if (!IsPure(context.Left.Syntax))
 		{
-			// Complex expression - don't duplicate, use regular division
+			// Not provably side-effect-free - don't duplicate, use regular division
 			optimized = null;
 			return false;
 		}
@@ -55,9 +56,11 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 
 		if (bias == 1)
 		{
-			var adjusted = AddExpression(context.Left.Syntax, ParenthesizedExpression(signExtract));
+			// x >>> (bitSize - 1) - unsigned shift extracts the sign bit as 0/1 directly (no masking needed)
+			var signBit = BinaryExpression(SyntaxKind.UnsignedRightShiftExpression, context.Left.Syntax, CreateLiteral(bitSize - 1));
+			var adjusted = AddExpression(context.Left.Syntax, ParenthesizedExpression(signBit));
 
-			optimized = RightShiftExpression(ParenthesizedExpression(adjusted), CreateLiteral(power));
+			optimized = RightShiftExpression(ParenthesizeIfNeeded(adjusted), CreateLiteral(power));
 		}
 		else
 		{
@@ -67,11 +70,23 @@ public class DivideByPowerOfTwoToShiftStrategy : IntegerBinaryStrategy<Expressio
 			// x + ((x >> (bitSize - 1)) & (2^n - 1))
 			var adjusted = AddExpression(context.Left.Syntax, ParenthesizedExpression(maskedSign));
 
-			// (x + ((x >> (bitSize - 1)) & (2^n - 1))) >> n
-			optimized = RightShiftExpression(ParenthesizedExpression(adjusted), CreateLiteral(power));
+			// x + ((x >> (bitSize - 1)) & (2^n - 1)) >> n
+			optimized = RightShiftExpression(ParenthesizeIfNeeded(adjusted), CreateLiteral(power));
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	///   Wraps <paramref name="expression" /> in parentheses only if it will become the left operand of a
+	///   RightShiftExpression and its own precedence is lower than Shift - otherwise the parens are redundant
+	///   (e.g. Additive binds tighter than Shift, so `x + y` needs no parens before `>> n`).
+	/// </summary>
+	private static ExpressionSyntax ParenthesizeIfNeeded(ExpressionSyntax expression)
+	{
+		return expression.GetOperatorPrecedence() < OperatorPrecedence.Shift
+			? ParenthesizedExpression(expression)
+			: expression;
 	}
 
 	private static int GetBitSize(SpecialType specialType)

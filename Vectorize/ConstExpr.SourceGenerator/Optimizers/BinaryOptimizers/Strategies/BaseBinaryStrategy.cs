@@ -218,9 +218,9 @@ public abstract class BaseBinaryStrategy<TLeft, TRight> : IBinaryStrategy<TLeft,
 		};
 	}
 
-	protected bool IsPositive(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node)
+	protected bool IsPositive(BinaryOptimizeContext<TLeft, TRight> context, ExpressionSyntax node, bool includeConsecutiveIntegerProductProof = true)
 	{
-		if (IsConsecutiveIntegerProduct(context, node))
+		if (includeConsecutiveIntegerProductProof && IsConsecutiveIntegerProduct(context, node))
 		{
 			return true;
 		}
