@@ -15,6 +15,8 @@ public class BinaryAndOptimizer : BaseBinaryOptimizer
 		yield return new AndIdentityElementStrategy();
 		// Idempotency: x & x = x (for pure expressions)
 		yield return new AndIdempotencyStrategy();
+		// Self-complement: x & ~x = 0
+		yield return new AndSelfComplementStrategy();
 		// All-bits-set absorption: x & ~0 = x and ~0 & x = x
 		yield return new AndAllBitsSetStrategy();
 		// Absorption with Or: x & (x | y) = x and (x | y) & x = x

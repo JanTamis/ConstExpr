@@ -13,6 +13,7 @@ public class BinaryOrOptimizer : BaseBinaryOptimizer
 	{
 		yield return new OrIdentityElementStrategy();
 		yield return new OrIdempotencyStrategy();
+		yield return new OrSelfComplementStrategy();
 		yield return new OrAllBitsSetStrategy();
 		yield return new OrBooleanTrueStrategy();
 		yield return new OrAbsorptionStrategy();
