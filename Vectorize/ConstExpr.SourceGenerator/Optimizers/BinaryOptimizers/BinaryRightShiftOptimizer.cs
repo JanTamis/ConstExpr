@@ -14,5 +14,6 @@ public class BinaryRightShiftOptimizer : BaseBinaryOptimizer
 		yield return new RightShiftByZeroStrategy();
 		yield return new RightShiftZeroStrategy();
 		yield return new RightShiftCombineStrategy();
+		yield return new LeftShiftThenRightShiftMaskStrategy();
 	}
 }

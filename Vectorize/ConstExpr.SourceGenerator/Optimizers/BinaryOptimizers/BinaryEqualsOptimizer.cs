@@ -24,6 +24,7 @@ public class BinaryEqualsOptimizer : BaseBinaryOptimizer
 		yield return new EqualsBitwiseAndEvenStrategy();
 		yield return new EqualsBitwiseAndOddStrategy();
 		yield return new EqualsRightShiftZeroStrategy();
+		yield return new EqualsExclusiveOrZeroStrategy();
 		yield return new EqualsPopCountStrategy();
 		yield return new EqualsReverseStrategy();
 		yield return new EqualsVariableIsolationStrategy();

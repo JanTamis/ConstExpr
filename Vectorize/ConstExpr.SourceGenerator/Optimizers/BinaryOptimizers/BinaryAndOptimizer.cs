@@ -17,6 +17,8 @@ public class BinaryAndOptimizer : BaseBinaryOptimizer
 		yield return new AndIdempotencyStrategy();
 		// Self-complement: x & ~x = 0
 		yield return new AndSelfComplementStrategy();
+		// De Morgan: ~a & ~b = ~(a | b)
+		yield return new AndDeMorganStrategy();
 		// All-bits-set absorption: x & ~0 = x and ~0 & x = x
 		yield return new AndAllBitsSetStrategy();
 		// Absorption with Or: x & (x | y) = x and (x | y) & x = x
