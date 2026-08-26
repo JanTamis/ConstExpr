@@ -173,7 +173,6 @@ public enum OptimizationFlags
 	///   the per-invocation string function optimizers —
 	///   <code>
 	///   string.IsNullOrEmpty(s)       =>  s.Length == 0
-	///   string.IsNullOrWhiteSpace(s)  =>  s.AsSpan().IsWhiteSpace()
 	///   </code>
 	///   — and the general expression rewriter, which folds:
 	///   <code>
@@ -186,9 +185,17 @@ public enum OptimizationFlags
 	///   <para>
 	///     This only ever removes a null check the caller has already proven unnecessary — it never
 	///     narrows a type or changes what the method computes for any input that was reachable before.
-	///     The <c>string.IsNullOrWhiteSpace</c> rewrite additionally needs
-	///     <c>MemoryExtensions.IsWhiteSpace(ReadOnlySpan&lt;char&gt;)</c> (.NET 8+) and is skipped when
-	///     that API isn't available in the target compilation.
+	///   </para>
+	///   <para>
+	///     <c>string.IsNullOrWhiteSpace(s)</c> is folded regardless of this flag — the hybrid
+	///     scalar/SIMD rewrite it uses (see <c>IsNullOrWhiteSpaceFunctionOptimizer</c>) handles
+	///     <c>null</c> itself, so there's nothing this flag needs to prove before the fold applies.
+	///     What this flag still controls for that rewrite is which of two generated call sites is
+	///     emitted: with the flag on and nullability provably ruled out,
+	///     <c>IsWhiteSpaceFast(s.AsSpan())</c> (no null check); otherwise
+	///     <c>IsNullOrWhiteSpaceFast(s)</c> (checks <c>null</c> itself). Both route through the same
+	///     scalar-or-SearchValues logic, so this flag no longer trades correctness for speed here —
+	///     only a redundant null-check.
 	///   </para>
 	/// </summary>
 	UseNullableAnnotations = 1 << 13,

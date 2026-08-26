@@ -46,9 +46,19 @@ internal class StringOperationsTests
 		// IsBlank - alleen constanten
 		Console.WriteLine($"[CONST] IsBlank(\"   \"): {StringOperations.IsBlank("   ")}");
 		Console.WriteLine($"[CONST] IsBlank(\"hello\"): {StringOperations.IsBlank("hello")}");
+		Console.WriteLine($"[CONST] IsBlank(\"\"): {StringOperations.IsBlank("")}");
+		Console.WriteLine($"[CONST] IsBlank(long all-whitespace): {StringOperations.IsBlank(new string(' ', 200))}");
 
-		// IsBlank - mixed
+		// IsBlank - mixed (non-nullable parameter -> null-check-free IsWhiteSpaceFast call site)
 		Console.WriteLine($"[MIXED] IsBlank(varString): {StringOperations.IsBlank(varString)}");
+
+		// IsBlankOrNull - alleen constanten
+		Console.WriteLine($"[CONST] IsBlankOrNull(null): {StringOperations.IsBlankOrNull(null)}");
+		Console.WriteLine($"[CONST] IsBlankOrNull(\"hello\"): {StringOperations.IsBlankOrNull("hello")}");
+
+		// IsBlankOrNull - mixed (nullable parameter -> null-checking IsNullOrWhiteSpaceFast call site)
+		var varNullableString = varString;
+		Console.WriteLine($"[MIXED] IsBlankOrNull(varNullableString): {StringOperations.IsBlankOrNull(varNullableString)}");
 
 		// CountChar - alleen constanten
 		Console.WriteLine($"[CONST] CountChar(\"Mississippi\", 's'): {StringOperations.CountChar("Mississippi", 's')}");

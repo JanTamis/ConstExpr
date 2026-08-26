@@ -371,6 +371,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 
 			foreach (var additionalMethod in distinctAdditionalMethods)
 			{
+				// Fields were already emitted above, grouped by type - re-emitting them here would
+				// declare the same member twice in this file-scoped class (CS0102).
+				if (additionalMethod is FieldDeclarationSyntax)
+				{
+					continue;
+				}
+
 				code.WriteLine();
 				// Format at emission time to avoid expensive NormalizeWhitespace during processing
 				code.WriteLine(FormattingHelper.Render(additionalMethod), true);

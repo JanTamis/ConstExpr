@@ -1,5 +1,9 @@
 namespace ConstExpr.Tests.String;
 
+/// <summary>
+///   Nullable parameter -> CanBeNull stays true regardless of UseNullableAnnotations, so the call site
+///   is the null-checking IsNullOrWhiteSpaceFast(s).
+/// </summary>
 [InheritsTests]
 public class StringIsNullOrWhiteSpaceNullableTest : BaseTestWithRandomValues<Func<string?, bool>>
 {
@@ -7,6 +11,6 @@ public class StringIsNullOrWhiteSpaceNullableTest : BaseTestWithRandomValues<Fun
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		CreateDefault(),
+		Create("return IsNullOrWhiteSpaceFast(s);")
 	];
 }

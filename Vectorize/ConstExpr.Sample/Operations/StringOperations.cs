@@ -302,6 +302,14 @@ public static class StringOperations
 	}
 
 	/// <summary>
+	///   Checks if a (possibly null) string is null, empty, or consists only of whitespace
+	/// </summary>
+	public static bool IsBlankOrNull(string? input)
+	{
+		return String.IsNullOrWhiteSpace(input);
+	}
+
+	/// <summary>
 	///   Checks if strings are anagrams
 	/// </summary>
 	public static bool AreAnagrams(string? str1, string? str2)

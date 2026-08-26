@@ -13,10 +13,10 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 	private const ulong FnvPrime = 1099511628211UL;
 	public static DeteministicHashVisitor Instance = new();
 
-  /// <summary>
-  ///   Strips all trivia (whitespace, comments, etc.) from a syntax node for pure structural comparison.
-  /// </summary>
-  public static SyntaxNode StripAllTrivia(SyntaxNode node)
+	/// <summary>
+	///   Strips all trivia (whitespace, comments, etc.) from a syntax node for pure structural comparison.
+	/// </summary>
+	public static SyntaxNode StripAllTrivia(SyntaxNode node)
 	{
 		return node.ReplaceTokens(
 			node.DescendantTokens(),
@@ -24,11 +24,11 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 		);
 	}
 
-  /// <summary>
-  ///   Normalizes a syntax node by re-parsing it to remove parent/span information.
-  ///   This ensures true structural equivalence for comparison.
-  /// </summary>
-  public static T NormalizeForComparison<T>(T node) where T : SyntaxNode
+	/// <summary>
+	///   Normalizes a syntax node by re-parsing it to remove parent/span information.
+	///   This ensures true structural equivalence for comparison.
+	/// </summary>
+	public static T NormalizeForComparison<T>(T node) where T : SyntaxNode
 	{
 		if (node is null)
 		{
@@ -76,7 +76,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 			return 0;
 		}
 
-		return HashCombine((ulong)node.RawKind, base.Visit(node));
+		return HashCombine((ulong) node.RawKind, base.Visit(node));
 	}
 
 	public override ulong VisitIdentifierName(IdentifierNameSyntax node)
@@ -137,6 +137,19 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 	public override ulong VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
 	{
 		return Visit(node.Declaration);
+	}
+
+	public override ulong VisitFieldDeclaration(FieldDeclarationSyntax node)
+	{
+		// No dedicated case previously existed here, so every FieldDeclarationSyntax fell through to
+		// DefaultVisit - which hashes only node.RawKind, i.e. every field declaration hashed
+		// identically regardless of its type, name, or initializer. That silently collapsed distinct
+		// fields (e.g. two different static readonly fields hoisted by the same optimizer) into one
+		// entry wherever this hash backs a Distinct()/dictionary-key comparison, dropping the second
+		// field from the generated output without any error.
+		var hash = HashCombine(node.Modifiers.Select(m => HashString(m.ValueText)));
+
+		return HashCombine(hash, Visit(node.Declaration));
 	}
 
 	public override ulong VisitVariableDeclaration(VariableDeclarationSyntax node)
@@ -340,7 +353,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
 	public override ulong VisitArrayRankSpecifier(ArrayRankSpecifierSyntax node)
 	{
-		var hash = HashCombine(FnvOffsetBasis, (ulong)node.Rank);
+		var hash = HashCombine(FnvOffsetBasis, (ulong) node.Rank);
 
 		foreach (var size in node.Sizes)
 		{
@@ -408,7 +421,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
 	public override ulong DefaultVisit(SyntaxNode node)
 	{
-		return (ulong)node.RawKind;
+		return (ulong) node.RawKind;
 	}
 
 	public override ulong VisitQualifiedName(QualifiedNameSyntax node)
@@ -783,7 +796,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
 	public override ulong VisitSwitchExpression(SwitchExpressionSyntax node)
 	{
-		return HashCombine([ Visit(node.GoverningExpression), ..node.Arms.Select(Visit) ]);
+		return HashCombine([ Visit(node.GoverningExpression), .. node.Arms.Select(Visit) ]);
 	}
 
 	public override ulong VisitSwitchExpressionArm(SwitchExpressionArmSyntax node)
@@ -1094,7 +1107,7 @@ public class DeteministicHashVisitor : CSharpSyntaxVisitor<ulong>
 
 	public override ulong VisitListPattern(ListPatternSyntax node)
 	{
-		return HashCombine([ ..node.Patterns.Select(Visit), Visit(node.Designation) ]);
+		return HashCombine([ .. node.Patterns.Select(Visit), Visit(node.Designation) ]);
 	}
 
 	public override ulong VisitSlicePattern(SlicePatternSyntax node)
