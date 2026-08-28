@@ -55,6 +55,6 @@ public class LinqAggregateByOptimizationTests : BaseTestWithRandomValues<Func<in
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Count_X_e_aw(x) * 5 + Count_kVGBzg(x) + Count_WP_tfQ(x) + x.CountBy(v => v % 2).Count() + Count_BgXwWg(x);")
+		Create("return Count_X_e_aw(x) * 5 + Count_uBz_QA(x) + Count_WP_tfQ(x) + x.CountBy(v => v % 2).Count() + Count_BgXwWg(x);")
 	];
 }

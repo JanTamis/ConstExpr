@@ -51,12 +51,15 @@ public class OrderByLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
+		// keyA may be a lower-precedence expression (e.g. `sortA + 1`); without parentheses
+		// `keyA.CompareTo(keyB)` would bind as `sortA + 1.CompareTo(...)` and produce an
+		// invalid comparer that throws at runtime ("inconsistent results").
 		var comparer = ParenthesizedLambdaExpression()
 			.WithParameterList(ParameterList(SeparatedList([
 				Parameter(Identifier(paramA)),
 				Parameter(Identifier(paramB))
 			])))
-			.WithExpressionBody(CreateMethodInvocation(keyA, "CompareTo", keyB));
+			.WithExpressionBody(CreateMethodInvocation(ParenthesizeIfNeeded(keyA), "CompareTo", keyB));
 
 		resultStatements.Add(ExpressionStatement(CreateMethodInvocation(IdentifierName(BufferName), "Sort", comparer)));
 
@@ -66,5 +69,15 @@ public class OrderByLinqUnroller : BaseLinqUnroller
 			"item",
 			IdentifierName(BufferName),
 			Block(partialLoopBody)));
+	}
+
+	private static ExpressionSyntax ParenthesizeIfNeeded(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			IdentifierNameSyntax or MemberAccessExpressionSyntax or InvocationExpressionSyntax
+				or ParenthesizedExpressionSyntax or LiteralExpressionSyntax or ElementAccessExpressionSyntax => expr,
+			_ => ParenthesizedExpression(expr)
+		};
 	}
 }
