@@ -58,10 +58,6 @@ public class LinqAllOptimizationTests : BaseTestWithRandomValues<Func<int[], int
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
-			var callVal = VectorOperations.All<int, OperatorkNzSYw>(x);
-
-			return (Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorF8nEFw>(x)) << 3) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoronoWMw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoriNrkaQ>(x)) + Unsafe.BitCast<bool, byte>(callVal && callVal) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorJtMU7Q>(x));
-			"""),
+		Create("return (Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorF8nEFw>(x)) << 3) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, Operator2sjEFw>(x)) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoronoWMw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatoriNrkaQ>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorkNzSYw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.All<int, OperatorJtMU7Q>(x));")
 	];
 }

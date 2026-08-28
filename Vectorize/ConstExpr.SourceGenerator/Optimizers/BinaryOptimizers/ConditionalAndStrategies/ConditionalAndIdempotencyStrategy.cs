@@ -11,8 +11,7 @@ public class ConditionalAndIdempotencyStrategy : BooleanBinaryStrategy
 	public override bool TryOptimize(BinaryOptimizeContext<ExpressionSyntax, ExpressionSyntax> context, out ExpressionSyntax? optimized)
 	{
 		if (!base.TryOptimize(context, out optimized)
-		    || !LeftEqualsRight(context)
-		    || !IsPure(context.Left.Syntax))
+		    || !LeftEqualsRight(context))
 		{
 			return false;
 		}
