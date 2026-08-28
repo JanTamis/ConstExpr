@@ -20,8 +20,9 @@ public class LinqContainsOptimizationListTests : BaseTestWithRandomValues<Func<L
 		// Reverse().Contains() => Contains()
 		var d = x.AsEnumerable().Reverse().Contains(3) ? 1 : 0;
 
-		// Select(...).Contains() => Exists(...); v * 2 == 6 does NOT fold further to v == 3 — see
-		// LinqContainsOptimizationTests for why multiply-by-even-c can't isolate safely.
+		// Select(...).Contains() => Any(...), which AnyFunctionOptimizer vectorizes over the whole
+		// predicate. v * 2 == 6 does NOT fold further to v == 3 — see LinqContainsOptimizationTests
+		// for why multiply-by-even-c can't isolate safely.
 		var e = x.Select(v => v * 2).Contains(6) ? 1 : 0;
 
 		// Where(...).Contains() => Exists(...)
@@ -38,7 +39,7 @@ public class LinqContainsOptimizationListTests : BaseTestWithRandomValues<Func<L
 		Create("""
 			var collectionsMarshalAsSpan = CollectionsMarshal.AsSpan(x);
 
-			return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorWQ96KQ>(collectionsMarshalAsSpan)) * 5 + Unsafe.BitCast<bool, byte>(x.Exists(v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(collectionsMarshalAsSpan));
+			return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorWQ96KQ>(collectionsMarshalAsSpan)) * 5 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorgkHxxA>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(collectionsMarshalAsSpan));
 			""", Unknown),
 	];
 }

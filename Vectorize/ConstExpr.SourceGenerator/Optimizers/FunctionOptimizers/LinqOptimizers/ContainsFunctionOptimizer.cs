@@ -166,20 +166,8 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 						var resultPredicate = context.Visit(anyPredicate) as LambdaExpressionSyntax ?? anyPredicate;
 
-						if (IsInvokedOnArray(context, invocationSource))
-						{
-							if (IsSimpleEqualityLambda(resultPredicate, out var value))
-							{
-								result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(
-									context,
-									CreateInvocation(invocationSource, nameof(Enumerable.Contains), value));
-								return true;
-							}
-
-							result = CreateInvocation(ParseTypeName(nameof(Array)), nameof(Array.Exists), context.Visit(invocationSource) ?? invocationSource, resultPredicate);
-							return true;
-						}
-
+						// x => selector(x) == value collapses to a plain Contains when the projection
+						// isolates to a single value (e.g. identity, add-const, pow-2 multiply).
 						if (IsSimpleEqualityLambda(resultPredicate, out var resultValue))
 						{
 							result = TryOptimizeByOptimizer<ContainsFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Contains), resultValue));
@@ -188,14 +176,11 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 
 						invocationSource = context.Visit(invocationSource) ?? invocationSource;
 
-						// Use appropriate context.Method based on source type
-						if (IsInvokedOnList(context, invocationSource))
-						{
-							result = CreateInvocation(invocationSource, "Exists", resultPredicate);
-							return true;
-						}
-
-						result = CreateInvocation(invocationSource, nameof(Enumerable.Any), resultPredicate);
+						// Otherwise delegate to AnyFunctionOptimizer: it vectorizes the whole predicate
+						// (e.g. v => v << 1 == 6) into VectorOperations.Any for arrays and lists, and
+						// only falls back to Array.Exists / List.Exists / Enumerable.Any when the
+						// predicate can't be vectorized.
+						result = TryOptimizeByOptimizer<AnyFunctionOptimizer>(context, CreateInvocation(invocationSource, nameof(Enumerable.Any), resultPredicate));
 						return true;
 					}
 

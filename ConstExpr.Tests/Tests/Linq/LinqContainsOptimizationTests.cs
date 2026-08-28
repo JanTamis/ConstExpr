@@ -36,10 +36,11 @@ public class LinqContainsOptimizationTests : BaseTestWithRandomValues<Func<int[]
 		// Chained operations: Distinct().OrderBy().Reverse().Contains() => Contains()
 		var i = x.Distinct().OrderBy(v => v).Reverse().Contains(3) ? 1 : 0;
 
-		// Select(...).Contains() => Any(...); v * 2 == 6 does NOT fold further to v == 3 (unlike
-		// EqualsIntegerAdditiveTest's +/- cases) — multiply-by-even-c isn't a bijection mod 2^32
-		// (v = int.MinValue + 3 also satisfies v * 2 == 6 via wraparound), so the equality-isolation
-		// strategy correctly declines and this stays a standalone Array.Exists predicate below.
+		// Select(...).Contains() => Any(...), vectorized by AnyFunctionOptimizer over the whole
+		// predicate. v * 2 == 6 does NOT fold further to v == 3 (unlike EqualsIntegerAdditiveTest's
+		// +/- cases) — multiply-by-even-c isn't a bijection mod 2^32 (v = int.MinValue + 3 also
+		// satisfies v * 2 == 6 via wraparound), so the equality-isolation strategy correctly
+		// declines and the predicate v << 1 == 6 is vectorized as-is below.
 		var j = x.Select(v => v * 2).Contains(6) ? 1 : 0;
 
 		// Where(...).Contains() => Any(...)
@@ -53,6 +54,6 @@ public class LinqContainsOptimizationTests : BaseTestWithRandomValues<Func<int[]
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorWQ96KQ>(x)) * 10 + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(x));")
+		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorWQ96KQ>(x)) * 10 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorgkHxxA>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(x));")
 	];
 }
