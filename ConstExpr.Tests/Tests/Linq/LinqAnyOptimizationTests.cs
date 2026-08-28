@@ -63,7 +63,7 @@ public class LinqAnyOptimizationTests : BaseTestWithRandomValues<Func<int[], int
 			var callVal = VectorOperations.Any<int, Operator2sjEFw>(x);
 			var gt = x.Length > 0;
 
-			return Unsafe.BitCast<bool, byte>(gt) * 9 + Unsafe.BitCast<bool, byte>(callVal || gt) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(x)) + Unsafe.BitCast<bool, byte>(callVal) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));
+			return Unsafe.BitCast<bool, byte>(gt) * 9 + Unsafe.BitCast<bool, byte>(callVal || gt) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorLjB6KQ>(x)) + Unsafe.BitCast<bool, byte>(callVal) + 3 + Unsafe.BitCast<bool, byte>(TensorPrimitives.IsEvenIntegerAny(x));
 			"""),
 	];
 }

@@ -26,9 +26,9 @@ public class LinqContainsOptimizationComplexTests : BaseTestWithRandomValues<Fun
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var contains_FVnsrQVal = Contains_FVnsrQ(x);
+			var callVal = VectorOperations.Any<int, ContainsOperatorCwN6KQ>(x);
 
-			return (Unsafe.BitCast<bool, byte>(contains_FVnsrQVal) << 1) + Unsafe.BitCast<bool, byte>(contains_FVnsrQVal || Contains_ehiMwg(x)) + Unsafe.BitCast<bool, byte>(Contains_0o_2rA(x));
+			return (Unsafe.BitCast<bool, byte>(callVal) << 1) + Unsafe.BitCast<bool, byte>(callVal || VectorOperations.Any<int, ContainsOperator_7Nasw>(x)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperator2AN6KQ>(x));
 			""", Unknown),
 	];
 }

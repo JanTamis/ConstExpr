@@ -267,27 +267,23 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		    && TryGetContainsElementType(context, out var elementType)
 		    && elementType.IsVectorSupported())
 		{
-			var method = CreateVectorizedMethod(context, elementType);
+			var invocation = CreateVectorizedinvocation(searchValue, elementType, context);
 
 			if (IsInvokedOnArray(context, source))
 			{
-				context.AdditionalSyntax.TryAdd(method, false);
-
 				context.Usings.Add("System.Numerics");
 				context.Usings.Add("System.Runtime.InteropServices");
 
-				result = CreateInvocation(method.Identifier.Text, source);
+				result = invocation.WithArgumentList(ArgumentList(Argument(source)));
 				return true;
 			}
 
 			if (IsInvokedOnList(context, source))
 			{
-				context.AdditionalSyntax.TryAdd(method, false);
-
 				context.Usings.Add("System.Numerics");
 				context.Usings.Add("System.Runtime.InteropServices");
 
-				result = CreateInvocation(method.Identifier.Text, CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source));
+				result = invocation.WithArgumentList(ArgumentList(Argument(CreateInvocation(IdentifierName("CollectionsMarshal"), "AsSpan", source))));
 				return true;
 			}
 		}
@@ -331,66 +327,25 @@ public class ContainsFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enum
 		return elementType is not null;
 	}
 
-	private MethodDeclarationSyntax CreateVectorizedMethod(FunctionOptimizerContext context, ITypeSymbol elementType)
+	private InvocationExpressionSyntax CreateVectorizedinvocation(SyntaxNode item, ITypeSymbol elementType, FunctionOptimizerContext context)
 	{
 		var typeName = elementType.ToDisplayString();
 
-		var result = $$"""
-			private static bool Any(ReadOnlySpan<{{typeName}}> data)
+		var type = ParseTypeFromString<StructDeclarationSyntax>($$"""
+			private struct ContainsOperator{{item.GetDeterministicHashString()}} : IOperator<{{typeName}}>
 			{
-				if (Vector.IsHardwareAccelerated && data.Length >= Vector<{{typeName}}>.Count)
-				{
-					var vectors = MemoryMarshal.Cast<{{typeName}}, Vector<{{typeName}}>>(data);
-					
-					var needle = new Vector<{{typeName}}>({{context.VisitedParameters[0]}});
+				public static bool IsVectorizable => true;
 
-					var acc0 = Vector<{{typeName}}>.Zero;
-					var acc1 = Vector<{{typeName}}>.Zero;
-					var acc2 = Vector<{{typeName}}>.Zero;
-					var acc3 = Vector<{{typeName}}>.Zero;
-					var i = 0;
-					
-					for (; i <= vectors.Length - 4; i += 4)
-					{
-						acc0 |= Vector.Equals<{{typeName}}>(vectors[i], needle);
-						acc1 |= Vector.Equals<{{typeName}}>(vectors[i + 1], needle);
-						acc2 |= Vector.Equals<{{typeName}}>(vectors[i + 2], needle);
-						acc3 |= Vector.Equals<{{typeName}}>(vectors[i + 3], needle);
-					}
-					
-					acc0 |= acc1 | acc2 | acc3;
-					
-					for (; i < vectors.Length; i++)
-					{
-						acc0 |= Vector.Equals<{{typeName}}>(vectors[i], needle);
-					}
-					
-					if (Vector.AnyWhereAllBitsSet(acc0))
-						return true;
-					
-					var tail = data.Length & Vector<{{typeName}}>.Count - 1;
-					
-					for (var t = data.Length - tail; t < data.Length; t++)
-					{
-						if (Vector.AnyWhereAllBitsSet(Vector.Equals<{{typeName}}>(vectors[t], needle)))
-							return true;
-					}
-					
-					return false;
-				}
-				
-				for (var i = 0; i < data.Length; i++)
-				{
-					if (data[i] == {{context.VisitedParameters[0]}})
-						return true;
-				}
-
-				return false;
+				public static Vector<{{typeName}}> Invoke(Vector<{{typeName}}> vector) => Vector.Equals<{{typeName}}>(vector, Vector.Create<{{typeName}}>({{item}}));
+				public static bool Invoke({{typeName}} item) => item == {{item}};
 			}
-			""";
+			""");
 
-		var method = ParseMemberDeclaration(result) as MethodDeclarationSyntax ?? throw new InvalidOperationException("Failed to parse vectorized method declaration");
+		context.Usings.Add("ConstantExpression.Operations");
+		context.Usings.Add("ConstantExpression.Interfaces");
+		context.Usings.Add("System.Numerics");
+		context.AdditionalSyntax.TryAdd(type, false);
 
-		return method.WithIdentifier(Identifier($"{Name}_{method.Body.GetDeterministicHashString()}"));
+		return CreateInvocation("VectorOperations.Any", [ elementType.AsTypeSyntax(), ParseTypeName(type.Identifier.Text) ], [ ]);
 	}
 }

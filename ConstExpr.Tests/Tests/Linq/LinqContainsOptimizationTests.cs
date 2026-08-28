@@ -53,6 +53,6 @@ public class LinqContainsOptimizationTests : BaseTestWithRandomValues<Func<int[]
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return Unsafe.BitCast<bool, byte>(Contains__KFndQ(x)) * 10 + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(Contains_H_mKqw(x));"),
+		Create("return Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorWQ96KQ>(x)) * 10 + Unsafe.BitCast<bool, byte>(Array.Exists(x, v => v << 1 == 6)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorExtsXQ>(x));")
 	];
 }

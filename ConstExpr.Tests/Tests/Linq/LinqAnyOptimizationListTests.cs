@@ -34,7 +34,7 @@ public class LinqAnyOptimizationListTests : BaseTestWithRandomValues<Func<List<i
 		Create("""
 			var collectionsMarshalAsSpan = CollectionsMarshal.AsSpan(x);
 
-			return Unsafe.BitCast<bool, byte>(x.Count > 0) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorkNzSYw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(Contains_rph_Xw(collectionsMarshalAsSpan));
+			return Unsafe.BitCast<bool, byte>(x.Count > 0) * 3 + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, Operator2sjEFw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, OperatorkNzSYw>(collectionsMarshalAsSpan)) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorLjB6KQ>(collectionsMarshalAsSpan));
 			""", Unknown),
 	];
 }

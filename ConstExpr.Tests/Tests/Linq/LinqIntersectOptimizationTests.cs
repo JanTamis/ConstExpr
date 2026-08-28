@@ -64,6 +64,6 @@ public class LinqIntersectOptimizationTests : BaseTestWithRandomValues<Func<int[
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (Count_AEkyLw(x) << 1) + (Count_FQoOgw(x) << 1) + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + Unsafe.BitCast<bool, byte>(Contains_FVnsrQ(x)) + Count_N_W_CA(x) + Count_0S7iQA(x);"),
+		Create("return (Count_AEkyLw(x) << 1) + (Count_FQoOgw(x) << 1) + Count_w6J_9Q(x) + Count_VBWycg(x) + Count_utUoqA(x) + Count_w7iHXw(x) + Count_MK3tdQ(x) + Unsafe.BitCast<bool, byte>(VectorOperations.Any<int, ContainsOperatorCwN6KQ>(x)) + Count_N_W_CA(x) + Count_0S7iQA(x);")
 	];
 }
