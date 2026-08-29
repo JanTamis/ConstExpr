@@ -1093,7 +1093,7 @@ public sealed class TailRecursionRewriter
 				.Where(t => t.IsKind(SyntaxKind.IdentifierToken))
 				.Select(t => t.Text));
 
-		const string baseName = "_tre_acc";
+		const string baseName = "treAcc";
 
 		if (!used.Contains(baseName))
 		{

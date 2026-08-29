@@ -4,7 +4,7 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Tests for the accumulator shape of Tail-Recursion Elimination:
 ///   <c>return MethodName(…) * factor;</c> / <c>return factor + MethodName(…);</c> mixed
 ///   with base-case returns. The pending <c>*</c>/<c>+</c> operations are threaded through an
-///   introduced <c>_tre_acc</c> local so the recursion becomes a <c>while (true)</c> loop.
+///   introduced <c>treAcc</c> local so the recursion becomes a <c>while (true)</c> loop.
 ///   Only Unknown-argument cases exercise the rewriter — with known arguments the partial
 ///   rewriter constant-folds the whole recursion first.
 /// </summary>
@@ -30,16 +30,16 @@ public class AccumulatorRecursionFactorialTests : BaseTest<Func<int, long>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var _tre_acc = 1L;
+			var treAcc = 1L;
 
 			while (true)
 			{
 				if (n <= 1)
 				{
-					return _tre_acc;
+					return treAcc;
 				}
 
-				_tre_acc *= n;
+				treAcc *= n;
 				n -= 1;
 			}
 			""")

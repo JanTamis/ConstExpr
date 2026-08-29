@@ -3,7 +3,7 @@ namespace ConstExpr.Tests.Rewriter;
 /// <summary>
 ///   A base-case <c>return</c> nested inside a construct the rewriter does not descend into
 ///   (here a <c>for</c> loop) must abort the whole transform — otherwise it would escape with
-///   the bare base value while <c>_tre_acc</c> still holds pending factors.
+///   the bare base value while <c>treAcc</c> still holds pending factors.
 /// </summary>
 [InheritsTests]
 public class AccumulatorRecursionReturnInLoopNotRewrittenTests : BaseTest<Func<int, long>>

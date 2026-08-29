@@ -22,16 +22,16 @@ public class AccumulatorRecursionPowerTests : BaseTest<Func<long, int, long>>
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
 		Create("""
-			var _tre_acc = 1L;
+			var treAcc = 1L;
 
 			while (true)
 			{
 				if (e <= 0)
 				{
-					return _tre_acc;
+					return treAcc;
 				}
 
-				_tre_acc *= b;
+				treAcc *= b;
 				e -= 1;
 			}
 			""")
