@@ -227,6 +227,11 @@ public static class LinqUnroller
 		chain[^1].IsCountPreserved = !IsConstantCollectionArg(chain[0].Parameters[0], variables)
 		                             && chain.Skip(1).Take(chain.Length - 2).All(s => CountPreservingMethods.Contains(s.Method));
 
+		// Independent of the constant-source carve-out above: a filter anywhere in the chain means the
+		// terminal cannot assume element 0 of the source is the element it should seed from. Missing an
+		// entry from CountPreservingMethods only forces the slower first-flag path, never a wrong result.
+		chain[^1].HasElementDroppingStep = chain.Skip(1).Take(chain.Length - 2).Any(s => !CountPreservingMethods.Contains(s.Method));
+
 		if (!Unrollers.TryGetValue(chain[^1].Method, out var lastUnroller))
 		{
 			result = null;
@@ -817,6 +822,18 @@ public struct UnrolledLinqMethod(SemanticModel model, PossibleLinqMethod method,
 	///   Set on the terminal step by <see cref="LinqUnroller.TryUnrollLinqChain" />.
 	/// </summary>
 	public bool IsCountPreserved { get; set; }
+
+	/// <summary>
+	///   True when at least one intermediate chain step between the source and this terminal step
+	///   may drop elements (a filter such as <c>Where</c>, <c>Distinct</c>, <c>Take</c>, …), so the
+	///   first element the source yields is not necessarily the first element this terminal sees.
+	///   Sequence-seeded terminals (Max/Min/MaxBy/MinBy/seedless Aggregate) must seed from the first
+	///   element that survives the whole chain rather than peeling <c>collection[0]</c>.
+	///   Computed as the negation of the same all-1:1 test that drives <see cref="IsCountPreserved" />,
+	///   minus its constant-source carve-out. Set on the terminal step by
+	///   <see cref="LinqUnroller.TryUnrollLinqChain" />.
+	/// </summary>
+	public bool HasElementDroppingStep { get; set; }
 
 	public Func<SyntaxNode?, SyntaxNode?> Visit { get; set; } = visit;
 	public ExpressionSyntax[] Parameters { get; set; } = parameters;

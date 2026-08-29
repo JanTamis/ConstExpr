@@ -1258,6 +1258,18 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			return false;
 		}
 
+		// Any sub-expression reading `e.Current` changes value on every `MoveNext()` — see the
+		// `Current` arm below. The arm only rejects a *bare* `e.Current`; a compound like
+		// `e.Current * e.Current` or `e.Current.Length` is a BinaryExpression / MemberAccess that
+		// would still be hoisted into a single pre-loop local. Reject the whole expression when it
+		// contains a `.Current` read anywhere.
+		if (expr.DescendantNodesAndSelf()
+		    .OfType<MemberAccessExpressionSyntax>()
+		    .Any(m => m.Name.Identifier.Text is "Current"))
+		{
+			return false;
+		}
+
 		return expr switch
 		{
 			// Only consider "expensive" or complex expressions

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -10,6 +11,7 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 	private const string ResultName = "result";
 	private const string BestKeyName = "bestKey";
 	private const string KeyName = "key";
+	private const string FirstName = "first";
 
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
@@ -18,7 +20,27 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 			return;
 		}
 
-		if (IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType))
+		var isArrayLike = IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType);
+
+		if (!isArrayLike)
+		{
+			// var e = collection.GetEnumerator();
+			statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
+		}
+
+		if (method.HasElementDroppingStep)
+		{
+			// A filter precedes this step, so element 0 of the source is not necessarily the element to
+			// seed from. Track the first surviving element with `first`; the empty-sequence throw moves
+			// to UnrollUnderLoop. No `bestKey` local — the loop body recomputes `selector(result)` so
+			// that neither LICM nor CSE can hoist a per-iteration key out of the loop (both would, on
+			// the enumerator path, read `e.Current` before the first MoveNext).
+			statements.Add(CreateDefaultSeed(ResultName, method.MethodSymbol.ReturnType.AsTypeSyntax()));
+			statements.Add(CreateLocalDeclaration(FirstName, CreateLiteral(true)!));
+			return;
+		}
+
+		if (isArrayLike)
 		{
 			var countProperty = IsInvokedOnArray(method.CollectionType) ? "Length" : "Count";
 
@@ -39,9 +61,6 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 		}
 		else
 		{
-			// var e = collection.GetEnumerator();
-			statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
-
 			// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(
 				LogicalNotExpression(CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
@@ -70,19 +89,45 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 			? MemberAccessExpression(IdentifierName("e"), IdentifierName("Current"))
 			: elementName;
 
+		var selector = method.Visit(lambda) as LambdaExpressionSyntax ?? lambda;
+
+		if (method.HasElementDroppingStep)
+		{
+			// if (first) { result = element; first = false; }
+			// else if (selector(element) > selector(result)) { result = element; }
+			statements.Add(IfStatement(
+				IdentifierName(FirstName),
+				Block(
+					CreateAssignment(ResultName, element),
+					CreateAssignment(FirstName, CreateLiteral(false)!)),
+				ElseClause(IfStatement(
+					GreaterThanExpression(
+						ReplaceLambda(selector, element)!,
+						ReplaceLambda(selector, IdentifierName(ResultName))!),
+					CreateAssignment(ResultName, element)))));
+
+			return;
+		}
+
 		// var key = selector(item);
-		statements.Add(CreateLocalDeclaration(KeyName,
-			ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!));
+		statements.Add(CreateLocalDeclaration(KeyName, ReplaceLambda(selector, element)!));
 
 		// if (key > bestKey) { result = item; bestKey = key; }
-		var condition = GreaterThanExpression(IdentifierName(KeyName), IdentifierName(BestKeyName));
-		statements.Add(IfStatement(condition, Block(
-			CreateAssignment(ResultName, element),
-			CreateAssignment(BestKeyName, IdentifierName(KeyName)))));
+		statements.Add(IfStatement(
+			GreaterThanExpression(IdentifierName(KeyName), IdentifierName(BestKeyName)),
+			Block(
+				CreateAssignment(ResultName, element),
+				CreateAssignment(BestKeyName, IdentifierName(KeyName)))));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
+		if (method.HasElementDroppingStep)
+		{
+			statements.Add(IfStatement(IdentifierName(FirstName),
+				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
+		}
+
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 
@@ -91,7 +136,8 @@ public class MaxByLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
+			var start = method.HasElementDroppingStep ? CreateLiteral(0) : CreateLiteral(1);
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), start));
 		}
 		else
 		{

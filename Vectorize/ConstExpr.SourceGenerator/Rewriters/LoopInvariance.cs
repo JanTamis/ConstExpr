@@ -114,6 +114,15 @@ internal static class LoopInvariance
 		{
 			switch (node)
 			{
+				// `e.Current` yields a different element after every `MoveNext()`, so a declaration
+				// initialised from it (or from an expression built on it) is NOT loop-invariant even
+				// though it is side-effect free. Hoisting `var x = e.Current;` out of the loop reads
+				// the enumerator before the first `MoveNext` — the same trap CSE guards against.
+				case MemberAccessExpressionSyntax { Name.Identifier.Text: "Current" }:
+				{
+					return false;
+				}
+
 				// Safe leaf and structural nodes
 				case LiteralExpressionSyntax:
 				case IdentifierNameSyntax:

@@ -292,6 +292,17 @@ public abstract class BaseLinqUnroller
 				CreateLiteral(63))));
 	}
 
+	/// <summary>
+	///   <c>var name = default(T);</c> — a throwaway seed for an accumulator local whose real first
+	///   value is assigned inside the loop under a <c>first</c> flag. The fully-typed <c>default(T)</c>
+	///   form (rather than a bare <c>default</c> literal) keeps <c>var</c> inference valid even if a
+	///   later pass folds it, and needs no separate type annotation on the declaration.
+	/// </summary>
+	protected LocalDeclarationStatementSyntax CreateDefaultSeed(string variableName, TypeSyntax type)
+	{
+		return CreateLocalDeclaration(variableName, DefaultExpression(type));
+	}
+
 	protected static ExpressionStatementSyntax CreateAssignment(string variableName, ExpressionSyntax value)
 	{
 		return ExpressionStatement(

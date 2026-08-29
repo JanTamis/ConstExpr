@@ -37,11 +37,12 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			return true;
 		}
 
-		if (IsZeroLiteral(context.VisitedParameters[0]))
-		{
-			result = UpdateInvocation(context, currentSource, context.VisitedParameters.Skip(1));
-			return true;
-		}
+		// NOTE: `Aggregate(0, f)` is NOT equivalent to `Aggregate(f)` in general — the seeded overload
+		// folds `f(seed, element0)` as its first step and returns the seed for an empty sequence, while
+		// the seedless overload takes element0 as the seed and throws when empty. Rewriting one to the
+		// other is only sound when `f(0, x) == x` for all x, i.e. `f` is `(acc, v) => acc + v`, and that
+		// case is already handled by TryOptimizeAggregateToSum above. So no seed-stripping happens here;
+		// a genuinely seeded Aggregate falls through to the unroller, which honours the seed.
 
 		if (context.VisitedParameters is [ LambdaExpressionSyntax lambda ]
 		    && TryVectorize(context, currentSource, lambda, CreateVectorizedMethod, out result))
@@ -101,7 +102,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		if (context.VisitedParameters.Count == 2 && !IsZeroLiteral(context.VisitedParameters[0]))
 		{
 			var type = context.Method.TypeArguments[^1];
-			result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax)result, context.VisitedParameters[0], type);
+			result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
 		}
 
 		// For 3-arg overload: apply the result selector to the sum result
@@ -111,14 +112,14 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 			if (!IsZeroLiteral(context.VisitedParameters[0]))
 			{
 				var type = context.Method.TypeArguments[^1];
-				result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax)result, context.VisitedParameters[0], type);
+				result = OptimizeArithmetic(context, SyntaxKind.AddExpression, (ExpressionSyntax) result, context.VisitedParameters[0], type);
 			}
 
 			// Apply the result selector lambda: e.g. acc => acc * 2 applied to Sum() gives Sum() * 2 => Sum() << 1
 			if (TryGetLambda(context.VisitedParameters[2], out var resultSelectorLambda))
 			{
-				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax)result);
-				result = context.Visit((ExpressionSyntax)result) ?? result;
+				result = ReplaceExpression(resultSelectorLambda, (ExpressionSyntax) result);
+				result = context.Visit((ExpressionSyntax) result) ?? result;
 			}
 		}
 
@@ -178,7 +179,7 @@ public class AggregateFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enu
 		}
 
 		// Check if body is: acc + v (binary addition)
-		if (body is not BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } binaryExpr)
+		if (body is not BinaryExpressionSyntax { RawKind: (int) SyntaxKind.AddExpression } binaryExpr)
 		{
 			return false;
 		}

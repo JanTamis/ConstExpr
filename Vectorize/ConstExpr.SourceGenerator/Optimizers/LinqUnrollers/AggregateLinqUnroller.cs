@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -9,13 +10,39 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 public class AggregateLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "result";
+	private const string FirstName = "first";
+
+	/// <summary>
+	///   Seedless <c>Aggregate((acc, v) =&gt; ...)</c> behind a filter: the seed is the first element
+	///   that survives the chain, not <c>collection[0]</c>. The 2/3-arg seeded overloads always fold
+	///   every element through <c>func</c> starting from the explicit seed, so they never take this path.
+	/// </summary>
+	private static bool UseFirstFlag(UnrolledLinqMethod method)
+	{
+		return method.Parameters.Length == 1 && method.HasElementDroppingStep;
+	}
 
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
 		if (method.Parameters.Length == 1)
 		{
-			if (IsInvokedOnArray(method.CollectionType)
-			    || IsInvokedOnCollection(method.CollectionType))
+			var isArrayLike = IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType);
+
+			if (!isArrayLike)
+			{
+				// using var e = collection.GetEnumerator();
+				statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
+			}
+
+			if (UseFirstFlag(method))
+			{
+				// var result = default(T); var first = true;  (result overwritten on the first survivor)
+				statements.Add(CreateDefaultSeed(ResultName, method.MethodSymbol.ReturnType.AsTypeSyntax()));
+				statements.Add(CreateLocalDeclaration(FirstName, CreateLiteral(true)!));
+				return;
+			}
+
+			if (isArrayLike)
 			{
 				// var result = collection[0];
 				var elementAccess = ElementAccessExpression(IdentifierName("collection"), CreateLiteral(0));
@@ -24,9 +51,6 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			}
 			else
 			{
-				// using var e = collection.GetEnumerator();
-				statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
-
 				// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
 				statements.Add(IfStatement(LogicalNotExpression(CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
 					CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
@@ -83,11 +107,35 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			finalBody = bodyWithResult.ReplaceNodes(identifiers, (_, _) => element);
 		}
 
+		if (UseFirstFlag(method))
+		{
+			// if (first) { result = element; first = false; }
+			// else { result = func(result, element); }
+			var foldAssign = method.Visit(CreateAssignment(ResultName, finalBody)) as StatementSyntax
+			                 ?? CreateAssignment(ResultName, finalBody);
+
+			statements.Add(IfStatement(
+				IdentifierName(FirstName),
+				Block(
+					CreateAssignment(ResultName, element),
+					CreateAssignment(FirstName, CreateLiteral(false)!)),
+				ElseClause(Block(foldAssign))));
+
+			return;
+		}
+
 		statements.Add(method.Visit(CreateAssignment(ResultName, finalBody)) as ExpressionStatementSyntax);
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
+		if (UseFirstFlag(method))
+		{
+			// if (first) throw new InvalidOperationException("Sequence contains no elements");
+			statements.Add(IfStatement(IdentifierName(FirstName),
+				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
+		}
+
 		if (method.Parameters.Length == 3
 		    && TryGetLambda(method.Parameters[2], out var lambda))
 		{
@@ -109,7 +157,8 @@ public class AggregateLinqUnroller : BaseLinqUnroller
 			{
 				var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
 
-				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
+				var start = UseFirstFlag(method) ? CreateLiteral(0) : CreateLiteral(1);
+				resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), start));
 			}
 			else
 			{

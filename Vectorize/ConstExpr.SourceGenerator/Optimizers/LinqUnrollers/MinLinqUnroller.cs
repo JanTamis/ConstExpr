@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ConstExpr.SourceGenerator.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -8,10 +9,28 @@ namespace ConstExpr.SourceGenerator.Optimizers.LinqUnrollers;
 public class MinLinqUnroller : BaseLinqUnroller
 {
 	private const string ResultName = "value";
+	private const string FirstName = "first";
 
 	public override void UnrollAboveLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
-		if (IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType))
+		var isArrayLike = IsInvokedOnArray(method.CollectionType) || IsInvokedOnCollection(method.CollectionType);
+
+		if (!isArrayLike)
+		{
+			// var e = collection.GetEnumerator();
+			statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
+		}
+
+		if (method.HasElementDroppingStep)
+		{
+			// A filter sits between the source and here — seed from the first element that survives the
+			// chain (tracked by `first`) and defer the empty-sequence throw to UnrollUnderLoop.
+			statements.Add(CreateDefaultSeed(ResultName, method.MethodSymbol.ReturnType.AsTypeSyntax()));
+			statements.Add(CreateLocalDeclaration(FirstName, CreateLiteral(true)!));
+			return;
+		}
+
+		if (isArrayLike)
 		{
 			var countProperty = IsInvokedOnArray(method.CollectionType) ? "Length" : "Count";
 
@@ -34,9 +53,6 @@ public class MinLinqUnroller : BaseLinqUnroller
 		}
 		else
 		{
-			// var e = collection.GetEnumerator();
-			statements.Add(CreateLocalDeclaration("e", CreateMethodInvocation(IdentifierName("collection"), "GetEnumerator")));
-
 			// if (!e.MoveNext()) throw new InvalidOperationException("Sequence contains no elements");
 			statements.Add(IfStatement(
 				LogicalNotExpression(CreateMethodInvocation(IdentifierName("e"), "MoveNext")),
@@ -65,13 +81,37 @@ public class MinLinqUnroller : BaseLinqUnroller
 			? ReplaceLambda(method.Visit(lambda) as LambdaExpressionSyntax ?? lambda, element)!
 			: element;
 
+		if (method.HasElementDroppingStep)
+		{
+			// if (first) { value = candidate; first = false; }
+			// else if (candidate < value) { value = candidate; }
+			// `candidate` is spelled inline rather than bound to a local: on the enumerator path it is
+			// `e.Current`, which LICM would wrongly hoist out of the loop if it were a `var` declaration.
+			statements.Add(IfStatement(
+				IdentifierName(FirstName),
+				Block(
+					CreateAssignment(ResultName, candidate),
+					CreateAssignment(FirstName, CreateLiteral(false)!)),
+				ElseClause(IfStatement(
+					LessThanExpression(candidate, IdentifierName(ResultName)),
+					CreateAssignment(ResultName, candidate)))));
+
+			return;
+		}
+
 		// if (candidate < value) { value = candidate; }
-		var condition = LessThanExpression(candidate, IdentifierName(ResultName));
-		statements.Add(IfStatement(condition, CreateAssignment(ResultName, candidate)));
+		statements.Add(IfStatement(LessThanExpression(candidate, IdentifierName(ResultName)),
+			CreateAssignment(ResultName, candidate)));
 	}
 
 	public override void UnrollUnderLoop(UnrolledLinqMethod method, List<StatementSyntax> statements)
 	{
+		if (method.HasElementDroppingStep)
+		{
+			statements.Add(IfStatement(IdentifierName(FirstName),
+				CreateThrowExpression<InvalidOperationException>("Sequence contains no elements")));
+		}
+
 		statements.Add(ReturnStatement(IdentifierName(ResultName)));
 	}
 
@@ -80,7 +120,8 @@ public class MinLinqUnroller : BaseLinqUnroller
 		if (IsInvokedOnArray(collectionType) || IsInvokedOnCollection(collectionType))
 		{
 			var countProperty = IsInvokedOnArray(collectionType) ? "Length" : "Count";
-			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), CreateLiteral(1)));
+			var start = method.HasElementDroppingStep ? CreateLiteral(0) : CreateLiteral(1);
+			resultStatements.Add(CreateForLoop(collectionName, "i", countProperty, Block(statements), start));
 		}
 		else
 		{

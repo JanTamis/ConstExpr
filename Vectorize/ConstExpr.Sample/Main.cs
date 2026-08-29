@@ -43,4 +43,5 @@ LoopBreakReturnTests.RunTests(varInt2, varString, varInt);
 MathOperationsTests.RunTests(varInt, varInt2, varInt3, varInt4);
 StringOperationsTests.RunTests(varString);
 ArrayOperationsTests.RunTests(varInt, varInt2, varInt3, new[] { varInt, varInt2, varInt3, varInt4, varInt5 });
+LinqSeedTests.RunTests(varInt, varInt2, varInt3);
 // RegexOperationsTests.RunTests(varString, varInt);
