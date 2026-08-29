@@ -311,7 +311,7 @@ public class AnyFunctionOptimizer() : BaseLinqFunctionOptimizer(nameof(Enumerabl
 				public static bool IsVectorizable => true;
 
 				public static Vector<{{typeName}}> Invoke(Vector<{{typeName}}> vector) => {{ReplaceIdentifier(vectorizedCode, lambda, "vector")}};
-				public static bool Invoke({{typeName}} item) => {{ReplaceIdentifier(lambda.Body, lambda, "item")}};
+				public static bool Invoke({{typeName}} item) => {{ReplaceIdentifier(context.Visit(lambda.Body) ?? lambda.Body, lambda, "item")}};
 			}
 			""");
 
