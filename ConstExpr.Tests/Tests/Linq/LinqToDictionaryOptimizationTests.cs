@@ -70,6 +70,6 @@ public class LinqToDictionaryOptimizationTests : BaseTestWithRandomValues<Func<i
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return (ToDictionary_1EegoQ(x).Count << 3) + (ToDictionary_sCunBg(x).Count << 1) + ToDictionary_3VBgJQ(x).Count + ToDictionary___qgkw(x).Count + ToDictionary_at7ziQ(x).Count + ToDictionary_XXbqPA(x).Count + ToDictionary_nBFL_A(x).Count + ToDictionary_vxO49g(x).Count;"),
+		Create("return (ToDictionary_Hx_3Mg(x).Count << 3) + (ToDictionary_TIy6ow(x).Count << 1) + ToDictionary_BX_1kA(x).Count + ToDictionary_rmdLJQ(x).Count + ToDictionary_hYqFfw(x).Count + ToDictionary_XXbqPA(x).Count + ToDictionary_nBFL_A(x).Count + ToDictionary_vxO49g(x).Count;")
 	];
 }

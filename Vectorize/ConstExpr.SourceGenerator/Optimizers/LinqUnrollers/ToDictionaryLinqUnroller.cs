@@ -25,9 +25,17 @@ public class ToDictionaryLinqUnroller : BaseLinqUnroller
 		var keyTypeName = method.Model.Compilation.GetMinimalString(keyType);
 		var valueTypeName = method.Model.Compilation.GetMinimalString(valueType);
 
-		// var result = new Dictionary<TKey, TValue>();
+		// When every intermediate chain step preserves element count and the source size is known,
+		// the dictionary ends up with exactly that many entries - pre-size it so the loop never rehashes.
+		// var result = new Dictionary<TKey, TValue>(collection.Length);
+		// Otherwise fall back to a growing dictionary: var result = new Dictionary<TKey, TValue>();
+		var capacity = method.IsCountPreserved
+			? GetCollectionSizeExpression(method.CollectionType)
+			: null;
+
 		statements.Add(CreateLocalDeclaration(ResultName,
-			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {valueTypeName}>"), [ ])));
+			ObjectCreationExpression(IdentifierName($"Dictionary<{keyTypeName}, {valueTypeName}>"),
+				capacity is null ? [ ] : [ capacity ])));
 	}
 
 	public override void UnrollLoopBody(UnrolledLinqMethod method, List<StatementSyntax> statements, ref ExpressionSyntax elementName)
