@@ -15,6 +15,14 @@ internal class MathOperationsTests
 		// Factorial - mixed
 		Console.WriteLine($"[MIXED] Factorial(varInt2): {MathOperations.Factorial(varInt2)}");
 
+		// FactorialRecursive (accumulator recursion) - const + mixed
+		Console.WriteLine($"[CONST] FactorialRecursive(6): {MathOperations.FactorialRecursive(6)}");
+		Console.WriteLine($"[MIXED] FactorialRecursive(varInt2): {MathOperations.FactorialRecursive(varInt2)}");
+
+		// SumTo (accumulator recursion, + on the right) - const + mixed
+		Console.WriteLine($"[CONST] SumTo(10): {MathOperations.SumTo(10)}");
+		Console.WriteLine($"[MIXED] SumTo(varInt): {MathOperations.SumTo(varInt)}");
+
 		// Fibonacci - alleen constanten
 		Console.WriteLine($"[CONST] Fibonacci(10): {MathOperations.Fibonacci(10)}");
 		Console.WriteLine($"[CONST] Fibonacci(15): {MathOperations.Fibonacci(15)}");

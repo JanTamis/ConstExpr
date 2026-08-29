@@ -241,7 +241,7 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		newBody = ExceptionGuardSimplifier.Simplify(newBody!) as BlockSyntax;
 
 		// Same shared pipeline the generator runs, so the harness cannot drift from it.
-		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings) as BlockSyntax ?? newBody;
+		newBody = OptimizationPipeline.Apply(newBody!, state.Method.ParameterList, state.Method.Identifier, attribute, parameters, state.SemanticModel, symbolStore, additionalSyntax, usings, state.Method.ReturnType) as BlockSyntax ?? newBody;
 
 		// NOTE: FormattingHelper.Format is not idempotent (BlockFormattingRewriter's grouping/spacing
 		// heuristics can shift output on a second pass), and every other rendered comparison string in

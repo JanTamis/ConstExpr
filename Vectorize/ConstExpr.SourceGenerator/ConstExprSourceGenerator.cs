@@ -548,9 +548,13 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			}
 
 			var partialVisitor = new ConstExprPartialRewriter(model, loader, (node, ex) =>
-			{
-				exceptions.TryAdd(node, ex);
-			}, variablesPartial, additionalItems, usings, attribute, symbolStore, token);
+				{
+					exceptions.TryAdd(node, ex);
+				}, variablesPartial, additionalItems, usings, attribute, symbolStore, token,
+				// HandleStaticMethodInvocation reads this as a recursion guard; without a non-null set
+				// a self-recursive [ConstExpr] method inlines into itself forever. The test harness
+				// already passes one — the generator has to as well.
+				new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default));
 
 			var timer = Stopwatch.StartNew();
 
@@ -562,7 +566,7 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 			var result2 = DeadCodePruner.Prune(result, variablesPartial, semanticModel);
 			result2 = ExceptionGuardSimplifier.Simplify(result2);
 
-			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore, additionalItems, usings!);
+			result2 = OptimizationPipeline.Apply(result2, methodDecl.ParameterList, methodDecl.Identifier, attribute, variablesPartial, semanticModel, symbolStore, additionalItems, usings!, methodDecl.ReturnType);
 
 			// Format using Roslyn formatter instead of NormalizeWhitespace
 			// var text = FormattingHelper.Render(methodDecl.WithBody((BlockSyntax)result));

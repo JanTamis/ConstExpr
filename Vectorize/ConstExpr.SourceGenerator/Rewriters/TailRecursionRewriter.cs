@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,30 +10,33 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace ConstExpr.SourceGenerator.Rewriters;
 
 /// <summary>
-///   Performs Tail-Recursion Elimination (TRE): rewrites a method body that contains
-///   only tail-recursive calls into an equivalent iterative <c>while (true)</c> loop.
-///   A recursive call at position <em>P</em> is a tail call when <em>P</em> is the
-///   last operation before the method returns, i.e. the call result is immediately
-///   returned without any further processing.
+///   Performs Tail-Recursion Elimination (TRE): rewrites a self-recursive method body
+///   into an equivalent iterative <c>while (true)</c> loop.
 ///   Supported shapes
 ///   ----------------
 ///   <list type="bullet">
 ///     <item>
 ///       <description>
-///         <c>return MethodName(arg0, arg1, …);</c> — direct unconditional tail call.
+///         <b>Plain tail recursion.</b> <c>return MethodName(arg0, arg1, …);</c> — the
+///         recursive call is the whole returned expression. Every recursive call in the
+///         body must be in tail position.
 ///       </description>
 ///     </item>
 ///     <item>
 ///       <description>
-///         Conditional tail calls mixed with base-case returns, e.g.
-///         <c>if (n &lt;= 1) return 1; return Factorial(n - 1) * n;</c> — NOT supported
-///         (the multiplication makes the last call non-tail). Only when the final
-///         <c>return</c> is a bare <c>return MethodName(…);</c> is TRE applied.
+///         <b>Accumulator recursion.</b> <c>return MethodName(…) * factor;</c> or
+///         <c>return factor + MethodName(…);</c> (either operand order), mixed with
+///         base-case returns, e.g. <c>if (n &lt;= 1) return 1; return Factorial(n - 1) * n;</c>.
+///         The pending <c>* factor</c> / <c>+ factor</c> operations are threaded through an
+///         introduced accumulator local. Only <c>+</c> and <c>*</c> are handled, and only
+///         for <c>int</c> / <c>long</c> results — where reassociating the (unchecked,
+///         wrapping) operation is exact. Floating-point, <c>decimal</c>, wider unsigned and
+///         sub-<c>int</c> results are left unchanged.
 ///       </description>
 ///     </item>
 ///   </list>
 ///   The rewriter operates on a <see cref="MethodDeclarationSyntax" /> and replaces its
-///   body with a <c>while (true) { … }</c> where every tail call is turned into
+///   body with a <c>while (true) { … }</c> where every recursive call is turned into
 ///   parameter assignments followed by <c>continue;</c>.
 ///   The rewriter is conservative: if any structural invariant is not met, the original
 ///   body is returned unchanged.
@@ -40,8 +46,12 @@ public sealed class TailRecursionRewriter
 	/// <summary>
 	///   Attempts to apply tail-recursion elimination to the given method.
 	///   Returns the original body unchanged when TRE cannot be applied safely.
+	///   <paramref name="returnType" /> is the method's declared result type; it is required
+	///   for the accumulator shape (the introduced accumulator local is declared with it) and
+	///   ignored by the plain shape. When it is <see langword="null" /> only the plain shape
+	///   is attempted.
 	/// </summary>
-	public static BlockSyntax Apply(MethodDeclarationSyntax method)
+	public static BlockSyntax Apply(MethodDeclarationSyntax method, TypeSyntax? returnType = null)
 	{
 		var body = method.Body;
 
@@ -60,18 +70,25 @@ public sealed class TailRecursionRewriter
 			return body;
 		}
 
-		// Verify the method has at least one tail-recursive call and that ALL recursive
-		// calls are in tail position (no recursive call in non-tail position).
-		if (!HasTailRecursiveCall(body, methodName))
+		// Shape 1 — plain tail recursion: at least one `return MethodName(args);` and every
+		// recursive call already in tail position.
+		if (HasTailRecursiveCall(body, methodName) && !HasNonTailRecursiveCall(body, methodName))
 		{
-			return body;
+			return ApplyPlainTailRecursion(body, methodName, paramNames);
 		}
 
-		if (HasNonTailRecursiveCall(body, methodName))
+		// Shape 2 — accumulator recursion: `return MethodName(args) (+|*) factor;`. The
+		// recursive call is not in tail position, so shape 1 rejected it above.
+		if (TryApplyAccumulatorRecursion(body, methodName, paramNames, returnType, out var accumulated))
 		{
-			return body;
+			return accumulated;
 		}
 
+		return body;
+	}
+
+	private static BlockSyntax ApplyPlainTailRecursion(BlockSyntax body, string methodName, List<string> paramNames)
+	{
 		// Rewrite: replace every `return MethodName(args);` with parameter reassignments
 		// + `continue`, then wrap everything in `while (true) { … }`.
 		var newStatements = RewriteStatements(body.Statements, methodName, paramNames);
@@ -549,5 +566,548 @@ public sealed class TailRecursionRewriter
 		}
 
 		return result;
+	}
+
+	// ── Accumulator recursion ────────────────────────────────────────
+
+	/// <summary>
+	///   Rewrites <c>return MethodName(args) (+|*) factor;</c> style recursion (mixed with
+	///   base-case returns) into a loop that threads the pending <c>+</c>/<c>*</c> operations
+	///   through an introduced accumulator local.
+	/// </summary>
+	private static bool TryApplyAccumulatorRecursion(
+		BlockSyntax body,
+		string methodName,
+		List<string> paramNames,
+		TypeSyntax? returnType,
+		[NotNullWhen(true)] out BlockSyntax? result)
+	{
+		result = null;
+
+		// v1 scope: only `int` / `long` results. For those, reassociating the wrapping
+		// (unchecked) `+` / `*` accumulator is exact. Wider unsigned, sub-`int`, floating and
+		// `decimal` results each need a cast on assignment or an associativity opt-in.
+		if (returnType is null || !IsIntOrLong(returnType))
+		{
+			return false;
+		}
+
+		// An explicit checked/unchecked region could make the reassociation observable.
+		if (body.DescendantNodes().Any(n => n is CheckedExpressionSyntax or CheckedStatementSyntax))
+		{
+			return false;
+		}
+
+		var recursiveCalls = body.DescendantNodes()
+			.OfType<InvocationExpressionSyntax>()
+			.Where(inv => IsCallToMethod(inv, methodName))
+			.ToList();
+
+		if (recursiveCalls.Count == 0)
+		{
+			return false;
+		}
+
+		// Every recursive call must be `MethodName(args) op factor` returned directly (or as one
+		// arm of a `return cond ? … : …;`), the factor free of recursion, and all sites must
+		// share the same operator and the full parameter arity.
+		var accumulatorOperator = SyntaxKind.None;
+
+		foreach (var call in recursiveCalls)
+		{
+			if (!TryGetAccumulatorContext(call, methodName, out var op))
+			{
+				return false;
+			}
+
+			if (accumulatorOperator == SyntaxKind.None)
+			{
+				accumulatorOperator = op;
+			}
+			else if (accumulatorOperator != op)
+			{
+				return false;
+			}
+
+			if (call.ArgumentList.Arguments.Count != paramNames.Count)
+			{
+				return false;
+			}
+		}
+
+		var accumulatorName = MakeAccumulatorName(body);
+
+		var rewritten = RewriteAccumulatorStatements(body.Statements, methodName, paramNames, accumulatorOperator, accumulatorName);
+
+		if (rewritten is null)
+		{
+			return false;
+		}
+
+		var flatStatements = FlattenTopLevel(rewritten);
+
+		while (flatStatements.Count > 0 && flatStatements[^1] is ContinueStatementSyntax)
+		{
+			flatStatements.RemoveAt(flatStatements.Count - 1);
+		}
+
+		var accumulatorDeclaration = LocalDeclarationStatement(
+			VariableDeclaration(returnType.WithoutTrivia())
+				.WithVariables(SingletonSeparatedList(
+					VariableDeclarator(Identifier(accumulatorName))
+						.WithInitializer(EqualsValueClause(IdentityLiteral(accumulatorOperator, returnType))))));
+
+		var whileLoop = WhileStatement(CreateLiteral(true), Block(List(flatStatements)));
+
+		result = Block(accumulatorDeclaration, whileLoop);
+		return true;
+	}
+
+	/// <summary>
+	///   Verifies that <paramref name="call" /> sits in accumulator position: a direct operand
+	///   of a <c>+</c> / <c>*</c> whose other operand carries no recursion, and that binary is
+	///   the whole returned expression (directly, or as one arm of a ternary return).
+	/// </summary>
+	private static bool TryGetAccumulatorContext(InvocationExpressionSyntax call, string methodName, out SyntaxKind accumulatorOperator)
+	{
+		accumulatorOperator = SyntaxKind.None;
+
+		var parent = call.Parent;
+
+		while (parent is ParenthesizedExpressionSyntax paren)
+		{
+			parent = paren.Parent;
+		}
+
+		if (parent is not BinaryExpressionSyntax binary
+		    || !TryMatchAccumulatorBinary(binary, methodName, out var matchedCall, out _)
+		    || matchedCall != call)
+		{
+			return false;
+		}
+
+		var binaryParent = binary.Parent;
+
+		while (binaryParent is ParenthesizedExpressionSyntax paren)
+		{
+			binaryParent = paren.Parent;
+		}
+
+		if (binaryParent is ReturnStatementSyntax)
+		{
+			accumulatorOperator = binary.Kind();
+			return true;
+		}
+
+		if (binaryParent is ConditionalExpressionSyntax conditional
+		    && (Unparenthesize(conditional.WhenTrue) == binary || Unparenthesize(conditional.WhenFalse) == binary))
+		{
+			var conditionalParent = conditional.Parent;
+
+			while (conditionalParent is ParenthesizedExpressionSyntax paren)
+			{
+				conditionalParent = paren.Parent;
+			}
+
+			if (conditionalParent is ReturnStatementSyntax)
+			{
+				accumulatorOperator = binary.Kind();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool TryMatchAccumulatorBinary(
+		BinaryExpressionSyntax binary,
+		string methodName,
+		[NotNullWhen(true)] out InvocationExpressionSyntax? recursiveCall,
+		[NotNullWhen(true)] out ExpressionSyntax? factor)
+	{
+		recursiveCall = null;
+		factor = null;
+
+		if (!binary.IsKind(SyntaxKind.AddExpression) && !binary.IsKind(SyntaxKind.MultiplyExpression))
+		{
+			return false;
+		}
+
+		var left = Unparenthesize(binary.Left);
+		var right = Unparenthesize(binary.Right);
+
+		if (left is InvocationExpressionSyntax leftCall
+		    && IsCallToMethod(leftCall, methodName)
+		    && !ContainsRecursiveCall(binary.Right, methodName))
+		{
+			recursiveCall = leftCall;
+			factor = binary.Right;
+			return true;
+		}
+
+		if (right is InvocationExpressionSyntax rightCall
+		    && IsCallToMethod(rightCall, methodName)
+		    && !ContainsRecursiveCall(binary.Left, methodName))
+		{
+			recursiveCall = rightCall;
+			factor = binary.Left;
+			return true;
+		}
+
+		return false;
+	}
+
+	private static List<StatementSyntax>? RewriteAccumulatorStatements(
+		SyntaxList<StatementSyntax> statements,
+		string methodName,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		var result = new List<StatementSyntax>(statements.Count);
+
+		foreach (var stmt in statements)
+		{
+			var rewritten = RewriteAccumulatorStatement(stmt, methodName, paramNames, accumulatorOperator, accumulatorName);
+
+			if (rewritten is null)
+			{
+				return null;
+			}
+
+			result.AddRange(rewritten);
+		}
+
+		return result;
+	}
+
+	private static List<StatementSyntax>? RewriteAccumulatorStatement(
+		StatementSyntax stmt,
+		string methodName,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		switch (stmt)
+		{
+			case ReturnStatementSyntax { Expression: { } expression }:
+			{
+				var inner = Unparenthesize(expression);
+
+				// return MethodName(args) op factor;
+				if (inner is BinaryExpressionSyntax binary
+				    && TryMatchAccumulatorBinary(binary, methodName, out var recursiveCall, out var factor))
+				{
+					return BuildAccumulatorStep(recursiveCall, factor, paramNames, accumulatorOperator, accumulatorName);
+				}
+
+				// return cond ? <base> : MethodName(args) op factor;   (either arm order)
+				if (inner is ConditionalExpressionSyntax conditional)
+				{
+					var rewrittenTernary = RewriteAccumulatorTernary(conditional, methodName, paramNames, accumulatorOperator, accumulatorName);
+
+					if (rewrittenTernary is not null)
+					{
+						return [ rewrittenTernary ];
+					}
+				}
+
+				// Base case: a return with no recursive call — fold the pending accumulator in.
+				if (!ContainsRecursiveCall(expression, methodName))
+				{
+					return [ ReturnStatement(FoldAccumulatorIntoBase(expression, accumulatorOperator, accumulatorName)) ];
+				}
+
+				return null;
+			}
+			case IfStatementSyntax ifStmt:
+			{
+				var rewrittenIf = RewriteAccumulatorIfStatement(ifStmt, methodName, paramNames, accumulatorOperator, accumulatorName);
+				return rewrittenIf is null ? null : [ rewrittenIf ];
+			}
+			case BlockSyntax block:
+			{
+				var inner = RewriteAccumulatorStatements(block.Statements, methodName, paramNames, accumulatorOperator, accumulatorName);
+				return inner is null ? null : [ Block(List(inner)) ];
+			}
+			default:
+			{
+				// Keep only statements we fully understand. A `return` we did not rewrite — one
+				// nested in a loop / switch / try / using we pass through untouched — would escape
+				// with the bare base value while the accumulator still holds pending factors, and
+				// the surrounding `while (true)` would loop on it. Bail rather than miscompile.
+				return ContainsRecursiveCall(stmt, methodName) || ContainsOwnReturn(stmt)
+					? null
+					: [ stmt ];
+			}
+		}
+	}
+
+	private static List<StatementSyntax>? BuildAccumulatorStep(
+		InvocationExpressionSyntax recursiveCall,
+		ExpressionSyntax factor,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		var assignments = BuildParameterAssignments(recursiveCall.ArgumentList.Arguments, paramNames);
+
+		if (assignments is null)
+		{
+			return null;
+		}
+
+		var step = new List<StatementSyntax>(assignments.Count + 2)
+		{
+			// acc = acc <op> (factor);  — evaluated with the current parameter values, before
+			// they are reassigned for the next iteration.
+			ExpressionStatement(AssignmentExpression(
+				IdentifierName(accumulatorName),
+				BinaryExpression(accumulatorOperator, IdentifierName(accumulatorName), MaybeParenthesize(factor))))
+		};
+
+		step.AddRange(assignments);
+		step.Add(ContinueStatement());
+		return step;
+	}
+
+	private static StatementSyntax? RewriteAccumulatorTernary(
+		ConditionalExpressionSyntax ternary,
+		string methodName,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		var whenTrue = Unparenthesize(ternary.WhenTrue);
+		var whenFalse = Unparenthesize(ternary.WhenFalse);
+
+		InvocationExpressionSyntax? recursiveCall = null;
+		ExpressionSyntax? factor = null;
+		ExpressionSyntax? baseExpression = null;
+		var recursiveIsWhenTrue = false;
+
+		if (whenFalse is BinaryExpressionSyntax falseBinary
+		    && TryMatchAccumulatorBinary(falseBinary, methodName, out recursiveCall, out factor))
+		{
+			baseExpression = ternary.WhenTrue;
+		}
+		else if (whenTrue is BinaryExpressionSyntax trueBinary
+		         && TryMatchAccumulatorBinary(trueBinary, methodName, out recursiveCall, out factor))
+		{
+			baseExpression = ternary.WhenFalse;
+			recursiveIsWhenTrue = true;
+		}
+
+		if (recursiveCall is null || factor is null || baseExpression is null || ContainsRecursiveCall(baseExpression, methodName))
+		{
+			return null;
+		}
+
+		var step = BuildAccumulatorStep(recursiveCall, factor, paramNames, accumulatorOperator, accumulatorName);
+
+		if (step is null)
+		{
+			return null;
+		}
+
+		var baseCondition = recursiveIsWhenTrue
+			? PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, ParenthesizedExpression(ternary.Condition))
+			: ternary.Condition;
+
+		var baseReturn = ReturnStatement(FoldAccumulatorIntoBase(baseExpression, accumulatorOperator, accumulatorName));
+		var ifBase = IfStatement(baseCondition, Block(SingletonList<StatementSyntax>(baseReturn)));
+
+		var statements = new List<StatementSyntax>(step.Count + 1) { ifBase };
+		statements.AddRange(step);
+
+		return Block(List(statements));
+	}
+
+	private static IfStatementSyntax? RewriteAccumulatorIfStatement(
+		IfStatementSyntax ifStmt,
+		string methodName,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		var thenRewritten = RewriteAccumulatorStatementToBlock(ifStmt.Statement, methodName, paramNames, accumulatorOperator, accumulatorName);
+
+		if (thenRewritten is null)
+		{
+			return null;
+		}
+
+		ElseClauseSyntax? elseClause = null;
+
+		if (ifStmt.Else is { } originalElse)
+		{
+			StatementSyntax? elseBody = originalElse.Statement is IfStatementSyntax nestedIf
+				? RewriteAccumulatorIfStatement(nestedIf, methodName, paramNames, accumulatorOperator, accumulatorName)
+				: RewriteAccumulatorStatementToBlock(originalElse.Statement, methodName, paramNames, accumulatorOperator, accumulatorName);
+
+			if (elseBody is null)
+			{
+				return null;
+			}
+
+			elseClause = ElseClause(elseBody);
+		}
+
+		return ifStmt.WithStatement(thenRewritten).WithElse(elseClause);
+	}
+
+	private static BlockSyntax? RewriteAccumulatorStatementToBlock(
+		StatementSyntax stmt,
+		string methodName,
+		List<string> paramNames,
+		SyntaxKind accumulatorOperator,
+		string accumulatorName)
+	{
+		if (stmt is BlockSyntax block)
+		{
+			var inner = RewriteAccumulatorStatements(block.Statements, methodName, paramNames, accumulatorOperator, accumulatorName);
+			return inner is null ? null : Block(List(inner));
+		}
+
+		var single = RewriteAccumulatorStatement(stmt, methodName, paramNames, accumulatorOperator, accumulatorName);
+		return single is null ? null : Block(List(single));
+	}
+
+	private static ExpressionSyntax FoldAccumulatorIntoBase(ExpressionSyntax baseExpression, SyntaxKind accumulatorOperator, string accumulatorName)
+	{
+		// acc <op> identity  ==  acc, so a bare identity base collapses to just the accumulator.
+		if (IsIdentityLiteral(Unparenthesize(baseExpression), accumulatorOperator))
+		{
+			return IdentifierName(accumulatorName);
+		}
+
+		return BinaryExpression(accumulatorOperator, IdentifierName(accumulatorName), MaybeParenthesize(baseExpression));
+	}
+
+	private static ExpressionSyntax IdentityLiteral(SyntaxKind accumulatorOperator, TypeSyntax returnType)
+	{
+		var value = accumulatorOperator == SyntaxKind.MultiplyExpression ? 1 : 0;
+
+		// The pipeline may rewrite `long acc = 1;` to `var acc = 1;`, which would silently make the
+		// accumulator `int` — so the literal itself has to carry the width (`1L`, not `1`).
+		var isLong = returnType switch
+		{
+			PredefinedTypeSyntax predefined => predefined.Keyword.IsKind(SyntaxKind.LongKeyword),
+			IdentifierNameSyntax { Identifier.Text: "Int64" } => true,
+			QualifiedNameSyntax { Right.Identifier.Text: "Int64" } => true,
+			_ => false
+		};
+
+		return isLong ? CreateLiteral((long) value) : CreateLiteral(value);
+	}
+
+	private static bool IsIdentityLiteral(ExpressionSyntax expression, SyntaxKind accumulatorOperator)
+	{
+		if (expression is not LiteralExpressionSyntax literal || literal.Token.Value is not { } value)
+		{
+			return false;
+		}
+
+		try
+		{
+			var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+			return accumulatorOperator == SyntaxKind.MultiplyExpression ? number == 1 : number == 0;
+		}
+		catch (Exception e) when (e is FormatException or InvalidCastException or OverflowException)
+		{
+			return false;
+		}
+	}
+
+	private static ExpressionSyntax MaybeParenthesize(ExpressionSyntax expression)
+	{
+		return expression switch
+		{
+			IdentifierNameSyntax or LiteralExpressionSyntax or InvocationExpressionSyntax
+				or MemberAccessExpressionSyntax or ElementAccessExpressionSyntax
+				or ParenthesizedExpressionSyntax => expression,
+			_ => ParenthesizedExpression(expression)
+		};
+	}
+
+	private static bool IsIntOrLong(TypeSyntax type)
+	{
+		return type switch
+		{
+			PredefinedTypeSyntax predefined => predefined.Keyword.IsKind(SyntaxKind.IntKeyword)
+			                                   || predefined.Keyword.IsKind(SyntaxKind.LongKeyword),
+			IdentifierNameSyntax { Identifier.Text: "Int32" or "Int64" } => true,
+			QualifiedNameSyntax { Right.Identifier.Text: "Int32" or "Int64" } => true,
+			_ => false
+		};
+	}
+
+	private static bool ContainsRecursiveCall(SyntaxNode node, string methodName)
+	{
+		return node.DescendantNodesAndSelf()
+			.OfType<InvocationExpressionSyntax>()
+			.Any(inv => IsCallToMethod(inv, methodName));
+	}
+
+	/// <summary>
+	///   True when <paramref name="node" /> contains a <c>return</c> that belongs to the method
+	///   itself — a <c>return</c> inside a nested local function or lambda does not count.
+	/// </summary>
+	private static bool ContainsOwnReturn(SyntaxNode node)
+	{
+		return node.DescendantNodesAndSelf()
+			.OfType<ReturnStatementSyntax>()
+			.Any(returnStatement =>
+			{
+				foreach (var ancestor in returnStatement.Ancestors())
+				{
+					if (ancestor == node)
+					{
+						return true;
+					}
+
+					if (ancestor is LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax)
+					{
+						return false;
+					}
+				}
+
+				return true;
+			});
+	}
+
+	private static ExpressionSyntax Unparenthesize(ExpressionSyntax expression)
+	{
+		while (expression is ParenthesizedExpressionSyntax paren)
+		{
+			expression = paren.Expression;
+		}
+
+		return expression;
+	}
+
+	private static string MakeAccumulatorName(BlockSyntax body)
+	{
+		var used = new HashSet<string>(
+			body.DescendantTokens()
+				.Where(t => t.IsKind(SyntaxKind.IdentifierToken))
+				.Select(t => t.Text));
+
+		const string baseName = "_tre_acc";
+
+		if (!used.Contains(baseName))
+		{
+			return baseName;
+		}
+
+		for (var i = 0;; i++)
+		{
+			var candidate = baseName + i;
+
+			if (!used.Contains(candidate))
+			{
+				return candidate;
+			}
+		}
 	}
 }

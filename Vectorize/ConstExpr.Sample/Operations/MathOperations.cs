@@ -36,6 +36,34 @@ public static class MathOperations
 	}
 
 	/// <summary>
+	///   Factorial written as accumulator recursion: <c>Factorial(n - 1) * n</c>.
+	///   Exercises the accumulator shape of tail-recursion elimination.
+	/// </summary>
+	public static long FactorialRecursive(int n)
+	{
+		if (n <= 1)
+		{
+			return 1;
+		}
+
+		return FactorialRecursive(n - 1) * n;
+	}
+
+	/// <summary>
+	///   Sum of 1..n written as accumulator recursion: <c>n + SumTo(n - 1)</c>
+	///   (recursive call on the right, <c>+</c> accumulator).
+	/// </summary>
+	public static int SumTo(int n)
+	{
+		if (n <= 0)
+		{
+			return 0;
+		}
+
+		return n + SumTo(n - 1);
+	}
+
+	/// <summary>
 	///   Calculates the nth Fibonacci number
 	/// </summary>
 	public static long Fibonacci(int n)

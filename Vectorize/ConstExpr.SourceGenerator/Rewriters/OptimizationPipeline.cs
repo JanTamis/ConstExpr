@@ -39,7 +39,8 @@ public static class OptimizationPipeline
 	/// </summary>
 	public static SyntaxNode Apply(SyntaxNode body, ParameterListSyntax parameters, SyntaxToken methodName,
 	                               ConstExprAttribute attribute, IDictionary<string, VariableItem> variables, SemanticModel semanticModel,
-	                               ConcurrentDictionary<ulong, ISymbol> symbolStore, IDictionary<SyntaxNode, bool> additionalMethods, ISet<string> usings)
+	                               ConcurrentDictionary<ulong, ISymbol> symbolStore, IDictionary<SyntaxNode, bool> additionalMethods, ISet<string> usings,
+	                               TypeSyntax? returnType = null)
 	{
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.CopyPropagation))
 		{
@@ -148,9 +149,13 @@ public static class OptimizationPipeline
 		if (attribute.Optimizations.HasFlag(OptimizationFlags.TailRecursionElimination) && body is BlockSyntax recursiveBody)
 		{
 			// Wrapped in a stand-in declaration: the rewriter only reads the name and parameters off it.
-			body = Prune(TailRecursionRewriter.Apply(MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), methodName)
-				.WithParameterList(parameters)
-				.WithBody(recursiveBody)));
+			// The declared result type is passed separately — the accumulator shape needs it and the
+			// stand-in cannot carry it (callers that lack it fall back to plain tail recursion only).
+			body = Prune(TailRecursionRewriter.Apply(
+				MethodDeclaration(returnType ?? PredefinedType(Token(SyntaxKind.VoidKeyword)), methodName)
+					.WithParameterList(parameters)
+					.WithBody(recursiveBody),
+				returnType));
 		}
 
 		// Runs last so the loop guard sees any loop tail-recursion elimination just introduced.
