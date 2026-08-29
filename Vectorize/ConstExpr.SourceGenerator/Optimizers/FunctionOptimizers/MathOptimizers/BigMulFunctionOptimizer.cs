@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,6 +8,10 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class BigMulFunctionOptimizer() : BaseMathFunctionOptimizer("BigMul", n => n is 2)
 {
+	// `(long)a * (long)b` / `(ulong)a * (ulong)b` is exactly what Math.BigMul(int,int) / (uint,uint)
+	// compute — a widening multiply that cannot overflow. Integer-only, no edge cases. Safe in strict mode.
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
+
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var left = context.VisitedParameters[0];

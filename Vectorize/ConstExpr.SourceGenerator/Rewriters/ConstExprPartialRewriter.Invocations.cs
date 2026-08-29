@@ -124,8 +124,10 @@ public partial class ConstExprPartialRewriter
 				return Visit(optimized);
 			}
 		}
-		// Try math optimizers
-		else if (attribute.MathOptimizations.HasFlag(FastMathFlags.NoNaN))
+		// Try math optimizers. Each optimizer opts in through its own RequiredFlags (default
+		// FastMathFlags.NoNaN, so trig/log/approximation rewrites stay gated on it) — a handful are
+		// exact for every input and mark themselves FastMathFlags.Strict so they run unconditionally.
+		else
 		{
 			var tempNode = node.WithExpression(VisitMemoized(node.Expression) as ExpressionSyntax ?? node.Expression);
 			var optimized = TryOptimizeMathMethod(semanticModel, targetMethod, tempNode, argumentExpressions, originalArguments);
@@ -554,12 +556,33 @@ public partial class ConstExprPartialRewriter
 			return null;
 		}
 
+		var enabled = _mathOptimizers.Where(IsMathOptimizerEnabled).ToList();
+
+		// In strict mode only a handful of exact optimizers are enabled; skip building the context
+		// (a per-call allocation) when the current math mode leaves nothing that could fire.
+		if (enabled.Count == 0)
+		{
+			return null;
+		}
+
 		var context = GetFunctionOptimizerContext(model, targetMethod, node, visitedArguments, originalArguments);
 
-		return _mathOptimizers
+		return enabled
 			.WhereSelect<BaseMathFunctionOptimizer, SyntaxNode>((optimizer, out optimized) => optimizer.TryOptimize(context, out optimized))
 			.FirstOrDefault();
+	}
 
+	/// <summary>
+	///   A math optimizer runs when its <see cref="BaseMathFunctionOptimizer.RequiredFlags" /> lists
+	///   <see cref="FastMathFlags.Strict" /> (always) or any flag the attribute has set. Mirrors the
+	///   <see cref="Optimizers.BinaryOptimizers.Strategies.IBinaryStrategy.RequiredFlags" /> convention.
+	/// </summary>
+	private bool IsMathOptimizerEnabled(BaseMathFunctionOptimizer optimizer)
+	{
+		var required = optimizer.RequiredFlags;
+
+		return required.Contains(FastMathFlags.Strict)
+		       || required.Any(f => attribute.MathOptimizations.HasFlag(f));
 	}
 
 	/// <summary>

@@ -12,6 +12,21 @@ public abstract class BaseMathFunctionOptimizer(string name, Func<int, bool> isV
 {
 	public string Name { get; } = name;
 	public Func<int, bool> IsValidParameterCount { get; } = isValidParameterCount;
+
+	/// <summary>
+	///   Which fast-math flags let this optimizer run, following the
+	///   <see cref="Optimizers.BinaryOptimizers.Strategies.IBinaryStrategy.RequiredFlags" /> convention:
+	///   <see cref="FastMathFlags.Strict" /> in the list means "always", otherwise the optimizer runs
+	///   only when the attribute has one of the listed flags set.
+	///   <para>
+	///     The default is <see cref="FastMathFlags.NoNaN" />: most math rewrites here are
+	///     approximations, or assume NaN-free operands, or diverge on a signed zero / overflow edge —
+	///     all of which a fast-math user has opted into. An optimizer whose output matches the BCL
+	///     method bit-for-bit for every input overrides this with <c>[FastMathFlags.Strict]</c>.
+	///   </para>
+	/// </summary>
+	public virtual FastMathFlags[] RequiredFlags => [ FastMathFlags.NoNaN ];
+
 	protected abstract bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result);
 
 	public override bool TryOptimize(FunctionOptimizerContext context, [NotNullWhen(true)] out SyntaxNode? result)

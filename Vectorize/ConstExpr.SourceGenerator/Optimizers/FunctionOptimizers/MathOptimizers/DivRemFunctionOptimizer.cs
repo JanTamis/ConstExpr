@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using ConstExpr.Core.Enumerators;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
 
@@ -6,6 +7,10 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.MathOptimizers
 
 public class DivRemFunctionOptimizer() : BaseMathFunctionOptimizer("DivRem", n => n is 2)
 {
+	// (a / b, a % b) is the exact definition of every 2-arg Math.DivRem overload (all integer):
+	// same quotient, same remainder, same DivideByZero / Overflow throws. Safe in strict mode.
+	public override FastMathFlags[] RequiredFlags => [ FastMathFlags.Strict ];
+
 	protected override bool TryOptimizeMath(FunctionOptimizerContext context, ITypeSymbol paramType, [NotNullWhen(true)] out SyntaxNode? result)
 	{
 		var left = context.VisitedParameters[0];
