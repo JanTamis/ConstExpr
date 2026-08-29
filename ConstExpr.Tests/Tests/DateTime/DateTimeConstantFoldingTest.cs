@@ -4,7 +4,8 @@ namespace ConstExpr.Tests.DateTime;
 ///   The DateTime family is not in <c>MethodPurityAnalyzer.PureTypes</c>, but the reflective
 ///   full-eval path folds its culture-/timezone-independent static methods and
 ///   <c>new DateTime(...)</c> property chains anyway when every argument is constant.
-///   (<c>DateOnly.FromDayNumber(n).DayNumber</c> is a known un-folded gap — see Tier 2.1 notes.)
+///   (<c>DateOnly.FromDayNumber(n).DayNumber</c> — a static factory returning a struct followed by
+///   a property read — now folds too; see <see cref="DateOnlyFromDayNumberFoldTest" />.)
 /// </summary>
 [InheritsTests]
 public class DateTimeConstantFoldingTest : BaseTest<Func<(bool, int, int)>>

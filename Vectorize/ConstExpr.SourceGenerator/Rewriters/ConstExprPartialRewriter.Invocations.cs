@@ -1552,6 +1552,38 @@ public partial class ConstExprPartialRewriter
 
 		var hasLiteral = TryGetLiteralValue(node.Expression, out var instanceValue) || TryGetLiteralValue(expression, out instanceValue);
 
+		// `SomeStruct.Factory(consts).Property` - a static factory method returning a value that is not
+		// itself literal-representable (e.g. `DateOnly.FromDayNumber(738946)`), whose result then has a
+		// property read. The invocation folded to nothing in `Visit(node.Expression)` above because
+		// TryCreateLiteral can't render a `DateOnly`, and TryGetLiteralValue has no invocation case, so
+		// `instanceValue` is still null here. Re-run the static call reflectively (constant args only, so
+		// it's side-effect-free on tracked state - no MarkStateMutated needed) to recover the concrete
+		// instance the member access below reads off of.
+		if (!hasLiteral
+		    && node.Expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } staticFactoryInvocation
+		    && semanticModel.TryGetSymbol(staticFactoryInvocation, symbolStore, out IMethodSymbol? factoryMethod)
+		    && factoryMethod is { IsStatic: true, ReturnsVoid: false })
+		{
+			var factoryArguments = new List<object>(staticFactoryInvocation.ArgumentList.Arguments.Count);
+
+			foreach (var factoryArgument in staticFactoryInvocation.ArgumentList.Arguments)
+			{
+				if (TryGetLiteralValue(Visit(factoryArgument.Expression), out var factoryArgumentValue)
+				    || TryGetLiteralValue(factoryArgument.Expression, out factoryArgumentValue))
+				{
+					factoryArguments.Add(factoryArgumentValue);
+				}
+			}
+
+			if (factoryArguments.Count == factoryMethod.Parameters.Length
+			    && loader.TryExecuteMethod(factoryMethod, null, new VariableItemDictionary(variables), factoryArguments, out var factoryResult)
+			    && factoryResult is not null)
+			{
+				instanceValue = factoryResult;
+				hasLiteral = true;
+			}
+		}
+
 		if (semanticModel.TryGetSymbol(node, symbolStore, out ISymbol? symbol))
 		{
 			var result = TryEvaluateMemberAccess(symbol, instanceValue);
