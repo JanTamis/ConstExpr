@@ -23,6 +23,9 @@ internal static class LinqSeedTests
 		Report("MaxOfNegatives(mixed)", LinqSeedOperations.MaxOfNegatives(mixed),
 			mixed.Where(v => v < 0).Max());
 
+		Report("MaxByIdentityOfNegatives(mixed)", LinqSeedOperations.MaxByIdentityOfNegatives(mixed),
+			mixed.Where(v => v < 0).MaxBy(v => v));
+
 		Report("MinOfNegatives(mixed)", LinqSeedOperations.MinOfNegatives(mixed),
 			mixed.Where(v => v < 0).Min());
 

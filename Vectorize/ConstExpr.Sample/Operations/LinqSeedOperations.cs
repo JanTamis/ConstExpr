@@ -23,6 +23,12 @@ public static class LinqSeedOperations
 		return numbers.Where(v => v < 0).Max();
 	}
 
+	/// <summary>Filter then MaxBy with identity selector — must rewrite to Max() with element type int.</summary>
+	public static int MaxByIdentityOfNegatives(params int[] numbers)
+	{
+		return numbers.Where(v => v < 0).MaxBy(v => v);
+	}
+
 	/// <summary>Filter then Min.</summary>
 	public static int MinOfNegatives(params int[] numbers)
 	{

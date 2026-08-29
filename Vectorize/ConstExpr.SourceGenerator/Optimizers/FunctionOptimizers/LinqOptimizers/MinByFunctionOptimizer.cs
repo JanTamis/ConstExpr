@@ -29,7 +29,10 @@ public class MinByFunctionOptimizer() : BaseLinqFunctionOptimizer("MinBy", n => 
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Min));
+			// MinBy(v => v) == Min(). Carry the source element type (MinBy's TSource) onto the
+			// synthesized Min<TSource>() so the unroller types its helper as `int`, not the
+			// arity-1 fallback overload (`decimal`).
+			result = CreateAnnotatedSimpleInvocation(context, source, nameof(Enumerable.Min), context.Method.TypeArguments.Take(1).ToArray());
 			return true;
 		}
 

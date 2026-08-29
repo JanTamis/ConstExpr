@@ -29,7 +29,10 @@ public class MaxByFunctionOptimizer() : BaseLinqFunctionOptimizer("MaxBy", n => 
 
 		if (IsIdentityLambda(lambda))
 		{
-			result = CreateSimpleInvocation(source, nameof(Enumerable.Max));
+			// MaxBy(v => v) == Max(). Carry the source element type (MaxBy's TSource) onto the
+			// synthesized Max<TSource>() so the unroller types its helper as `int`, not the
+			// arity-1 fallback overload (`decimal`).
+			result = CreateAnnotatedSimpleInvocation(context, source, nameof(Enumerable.Max), context.Method.TypeArguments.Take(1).ToArray());
 			return true;
 		}
 
