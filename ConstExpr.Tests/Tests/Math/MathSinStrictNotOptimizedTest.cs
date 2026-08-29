@@ -13,8 +13,10 @@ public class MathSinStrictNotOptimizedTest() : BaseTest<Func<double, double>>(Fa
 {
 	public override string TestMethod => GetString(x => System.Math.Sin(x));
 
+	// CreateDefault() asserts the pipeline leaves the body byte-identical to the source — the point
+	// is "not rewritten", independent of how the call spells out.
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return System.Math.Sin(x);")
+		CreateDefault()
 	];
 }

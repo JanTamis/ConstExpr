@@ -16,8 +16,10 @@ public class GenericMathClampStrictNotOptimizedTest() : BaseTest<Func<int, int, 
 {
 	public override string TestMethod => GetString((x, lo, hi) => Int32.Clamp(x, lo, hi));
 
+	// CreateDefault() asserts the pipeline leaves the body byte-identical to the source — robust to
+	// whether the call renders as int.Clamp or Int32.Clamp.
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("return int.Clamp(x, lo, hi);")
+		CreateDefault()
 	];
 }
