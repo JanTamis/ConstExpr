@@ -29,7 +29,8 @@ public class AccumulatorRecursionFactorialTests : BaseTest<Func<int, long>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create(n =>
+		{
 			var treAcc = 1L;
 
 			while (true)
@@ -42,6 +43,6 @@ public class AccumulatorRecursionFactorialTests : BaseTest<Func<int, long>>
 				treAcc *= n;
 				n -= 1;
 			}
-			""")
+		})
 	];
 }

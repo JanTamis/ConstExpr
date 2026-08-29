@@ -21,7 +21,8 @@ public class AccumulatorRecursionPowerTests : BaseTest<Func<long, int, long>>
 
 	public override IEnumerable<KeyValuePair<string?, object?[]>> TestCases =>
 	[
-		Create("""
+		Create((b, e) =>
+		{
 			var treAcc = 1L;
 
 			while (true)
@@ -34,6 +35,6 @@ public class AccumulatorRecursionPowerTests : BaseTest<Func<long, int, long>>
 				treAcc *= b;
 				e -= 1;
 			}
-			""")
+		})
 	];
 }
