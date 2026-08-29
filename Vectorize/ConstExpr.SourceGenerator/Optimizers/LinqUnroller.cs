@@ -132,8 +132,13 @@ public static class LinqUnroller
 				? genericName.TypeArgumentList.Arguments.ToArray()
 				: [ ];
 
-			// check if memberAccess.Expression is not a Type e.g Int32 or Int64
-			if (memberAccess.Expression is IdentifierNameSyntax identifier
+			// A static call on a type, not a method on a sequence: `int.Max(a, b)`, `Int32.Clamp(...)`,
+			// `Math.Max(...)`. The "receiver" is a type name, so this is not a LINQ chain and must not be
+			// unrolled as one (`int.Max` would otherwise become an Enumerable.Max over the type keyword).
+			// PredefinedTypeSyntax catches the `int`/`long`/`double`/... keyword forms; the IdentifierName
+			// branch catches the `Int32`/`Int64`/... BCL-name forms.
+			if (memberAccess.Expression is PredefinedTypeSyntax
+			    || memberAccess.Expression is IdentifierNameSyntax identifier
 			    && Type.GetType($"System.{identifier.Identifier.Text}") != null)
 			{
 				return [ ];

@@ -1268,6 +1268,16 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			// Calls that appear as expression statements are called for their side effects —
 			// extracting them to a variable would elide the side effect on subsequent uses.
 			InvocationExpressionSyntax invocation when sideEffectCalls.Contains(invocation) => false,
+			// `e.MoveNext()` advances the enumerator and `e.Current` returns a different element after
+			// each advance: they are the textbook case of a repeated expression that is NOT a common
+			// subexpression. Two `e.MoveNext()` occurrences (the priming call and the loop condition)
+			// would otherwise hoist to one `var eMoveNext = e.MoveNext();`, turning `while (e.MoveNext())`
+			// into `while (eMoveNext)` — an infinite loop. `GetEnumerator` is here for a related but
+			// distinct reason: merging two `x.GetEnumerator()` calls would share one enumerator across
+			// what the source wrote as two independent iterations. Name-based, like the rest of this
+			// switch: no type info is available here (see the lambda comment below), and a false
+			// positive only costs a hoist.
+			InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.Text: "MoveNext" or "MoveNextAsync" or "GetEnumerator" } } => false,
 			// Avoid CSE for expressions containing lambdas, as 'var' might fail to infer the delegate type.
 			// (No purity check on the callee: by the time CSE runs, earlier passes have already rebuilt
 			// the tree, so nodes here are no longer part of the tree any SemanticModel was built for —
@@ -1280,6 +1290,9 @@ public sealed class CommonSubexpressionEliminator(bool allowReassociation = fals
 			// with different arguments still share this identical callee sub-expression, so without this
 			// guard it looks like an ordinary repeated member access and gets hoisted into nonsense.
 			MemberAccessExpressionSyntax ma when ma.Parent is InvocationExpressionSyntax invocation && invocation.Expression == ma => false,
+			// `e.Current` (see the MoveNext arm above): its value changes on every `MoveNext()`, so a
+			// per-iteration read must not hoist to a single `var eCurrent = e.Current;` outside the loop.
+			MemberAccessExpressionSyntax { Name.Identifier.Text: "Current" } => false,
 			// A property getter is as legitimate a candidate as a method call — same reasoning, same
 			// trust level — and the receiver itself must be a safe shape to re-read.
 			MemberAccessExpressionSyntax ma => IsSafeReceiver(ma.Expression, lValues, sideEffectCalls, mutatedNames),

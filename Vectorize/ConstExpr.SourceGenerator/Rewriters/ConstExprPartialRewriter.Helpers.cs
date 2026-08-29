@@ -432,20 +432,82 @@ public partial class ConstExprPartialRewriter
 		{
 			var data = model.AnalyzeDataFlow(block, block);
 
-			if (!data.Succeeded)
+			if (data is { Succeeded: true })
 			{
-				return [ ];
+				// Get all variables that are written to within the block
+				return data.WrittenInside
+					.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
+					.Select(symbol => symbol.Name);
 			}
-
-			// Get all variables that are written to within the block
-			var assignedVariables = data.WrittenInside
-				.Where(symbol => symbol is ILocalSymbol or IParameterSymbol)
-				.Select(symbol => symbol.Name);
-
-			return assignedVariables;
 		}
 
-		return [ ];
+		// AnalyzeDataFlow only works on nodes that belong to a syntax tree the compilation knows.
+		// A rewritten/synthesized block (e.g. a loop the LINQ unroller assembled) has its own
+		// throwaway tree, so the model lookup fails - and returning nothing here would claim
+		// "nothing is written", leaving a mutated loop counter tracked with its stale initial value.
+		// Fall back to a syntactic scan of the same write channels the flow analysis reports:
+		// assignment targets, ++/-- operands and ref/out arguments. This descends into nested lambda
+		// and local-function bodies (so an inner `for (var i = ...)` also reports `i`), which is
+		// slightly broader than WrittenInside's scoping - but over-reporting only costs folds.
+		return SyntacticallyAssignedVariables(block);
+	}
+
+	private static IEnumerable<string> SyntacticallyAssignedVariables(SyntaxNode node)
+	{
+		var names = new HashSet<string>();
+
+		foreach (var descendant in node.DescendantNodesAndSelf())
+		{
+			switch (descendant)
+			{
+				case AssignmentExpressionSyntax assignment:
+				{
+					AddBaseIdentifier(assignment.Left);
+					break;
+				}
+				case PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression or (int) SyntaxKind.PreDecrementExpression } prefix:
+				{
+					AddBaseIdentifier(prefix.Operand);
+					break;
+				}
+				case PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression or (int) SyntaxKind.PostDecrementExpression } postfix:
+				{
+					AddBaseIdentifier(postfix.Operand);
+					break;
+				}
+				case ArgumentSyntax { RefKindKeyword.RawKind: (int) SyntaxKind.RefKeyword or (int) SyntaxKind.OutKeyword } argument:
+				{
+					AddBaseIdentifier(argument.Expression);
+					break;
+				}
+			}
+		}
+
+		return names;
+
+		void AddBaseIdentifier(ExpressionSyntax expr)
+		{
+			while (true)
+			{
+				switch (expr)
+				{
+					case ParenthesizedExpressionSyntax parenthesized:
+						expr = parenthesized.Expression;
+						continue;
+					case ElementAccessExpressionSyntax elementAccess:
+						expr = elementAccess.Expression;
+						continue;
+					case MemberAccessExpressionSyntax memberAccess:
+						expr = memberAccess.Expression;
+						continue;
+					case IdentifierNameSyntax identifier:
+						names.Add(identifier.Identifier.Text);
+						return;
+					default:
+						return;
+				}
+			}
+		}
 	}
 
 	/// <summary>
