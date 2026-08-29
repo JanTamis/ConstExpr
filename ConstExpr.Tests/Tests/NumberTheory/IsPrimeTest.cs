@@ -35,7 +35,13 @@ public class IsPrimeTest : BaseTestWithRandomValues<Func<int, bool>>
 	[
 		Create(n =>
 		{
-			if ((uint) (n - 2) > 1U || Int32.IsEvenInteger(n) || n % 3 == 0)
+			if (n <= 1)
+				return false;
+
+			if (n <= 3)
+				return true;
+
+			if (Int32.IsEvenInteger(n) || n % 3 == 0)
 				return false;
 
 			for (var i = 5; i * i <= n; i += 6)
