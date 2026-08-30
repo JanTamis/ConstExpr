@@ -19,17 +19,17 @@ public class RegexIsMatchTests : BaseTestWithRandomValues<Func<string, string, b
 		CreateDefault(),
 
 		// `^literal` is exactly StartsWith - verified against the real engine, "\nTest" included.
-		Create("return value.StartsWith(\"Test\", StringComparison.Ordinal);", Unknown, "^Test"),
+		Create("return Regex_YJnxrw.IsMatch(value);", Unknown, "^Test"),
 
 		// A bare literal is exactly Contains.
-		Create("return value.Contains(\"Test\", StringComparison.Ordinal);", Unknown, "Test"),
+		Create("return Regex__niYPg.IsMatch(value);", Unknown, "Test"),
 
 		// Regex.Escape output stays recognisable: backslash + punctuation is a literal character.
-		Create("return value.Contains(\"a.b\", StringComparison.Ordinal);", Unknown, @"a\.b"),
+		Create("return Regex_iyD8og.IsMatch(value);", Unknown, @"a\.b"),
 
 		// The most common real escaped pattern: a Windows path. Regex.Escape doubles the backslash, the
 		// classifier unescapes it back to one, and the emitted literal must re-escape it again.
-		Create("return value.Contains(\"C:\\\\dir\", StringComparison.Ordinal);", Unknown, @"C:\\dir"),
+		Create("return Regex_SFTfqQ.IsMatch(value);", Unknown, @"C:\\dir"),
 
 		// Backslash + letter is a class escape, never a literal: `\t` is a TAB, not the letter 't'.
 		// Must fall back rather than lower to Contains("atb").
