@@ -1513,6 +1513,16 @@ public partial class ConstExprPartialRewriter
 			return expression;
 		}
 
+		// `Regex.Match(input, pattern).Success` -> `Regex.IsMatch(input, pattern)` and
+		// `Regex.Matches(input, pattern).Count` -> `Regex.Count(input, pattern)`. Unlike the constant fold
+		// above these need nothing to be known about the pattern - they only change which result object
+		// gets built, never what the engine matches - so they fire on fully runtime inputs too, dropping a
+		// whole `Match` / `MatchCollection` allocation each.
+		if (TryElideRegexResultObject(node, expression, out var elidedRegexCall))
+		{
+			return elidedRegexCall;
+		}
+
 		// `new Lookup_xxx().Count` (ToLookupFunctionOptimizer's compile-time-generated ILookup struct) -
 		// node's real symbol resolves fine (it's the original tree's genuine ILookup<TKey,TElement>.Count
 		// property), but the instance is a struct this same generator pass is still emitting, so neither
@@ -1717,6 +1727,70 @@ public partial class ConstExprPartialRewriter
 	///   itself literal-representable (e.g. Value/Success/Index/Length/Count) - a property like Groups isn't,
 	///   and TryCreateLiteral failing is exactly the signal to leave the member access for normal processing.
 	/// </summary>
+	/// <summary>
+	///   Elides the result object of a <c>Regex</c> call whose only consumer is a property that a cheaper
+	///   overload returns directly: <c>Match(...).Success</c> becomes <c>IsMatch(...)</c> (no
+	///   <see cref="Match" /> allocated) and <c>Matches(...).Count</c> becomes <c>Count(...)</c> (no
+	///   <see cref="MatchCollection" /> allocated).
+	///   <para>
+	///     Both rewrites are shape-independent: they leave the pattern, the options and the matching
+	///     semantics completely untouched, so unlike the anchor/literal lowerings they need no constant
+	///     pattern and no <c>RegexOptions.None</c> gate. Verified equivalent across zero-width matches,
+	///     the empty pattern, lookarounds and anchors, in both the static and instance forms.
+	///   </para>
+	/// </summary>
+	private bool TryElideRegexResultObject(MemberAccessExpressionSyntax node, SyntaxNode? visitedExpression, [NotNullWhen(true)] out ExpressionSyntax? result)
+	{
+		result = null;
+
+		if (node.Expression is not InvocationExpressionSyntax regexInvocation
+		    || !semanticModel.TryGetSymbol(regexInvocation, symbolStore, out IMethodSymbol? regexMethod)
+		    || regexMethod.ContainingType.ToDisplayString() != "System.Text.RegularExpressions.Regex")
+		{
+			return false;
+		}
+
+		string replacement;
+
+		switch (regexMethod.Name)
+		{
+			case nameof(Regex.Match) when node.Name.Identifier.Text == nameof(Match.Success):
+				replacement = nameof(Regex.IsMatch);
+				break;
+			case nameof(Regex.Matches) when node.Name.Identifier.Text == nameof(MatchCollection.Count):
+				// Regex.Count is .NET 7+; leave the call as written when the target compilation lacks it.
+				if (!semanticModel.Compilation.GetTypeByMetadataName("System.Text.RegularExpressions.Regex").HasMethod("Count"))
+				{
+					return false;
+				}
+
+				replacement = "Count";
+				break;
+			default:
+				return false;
+		}
+
+		// Rename on the *visited* expression, not the original: by this point the Regex optimizers have
+		// already hoisted the constant pattern into a `private static readonly Regex` field and turned the
+		// static call into an instance call on it, and renaming there keeps that hoist. When the pattern
+		// wasn't constant the visited expression is still the original static call - whose overloads line
+		// up argument-for-argument with the instance ones - so the same rename is valid either way.
+		//
+		// Note this means the replacement does NOT get re-optimized as an IsMatch call, so a literal
+		// pattern reached this way stops at `Regex_xxx.IsMatch(x)` rather than lowering all the way to
+		// `x.Contains(..)`. Rebuilding the call from the original invocation and re-Visiting it was tried
+		// to close that gap; the synthetic node comes back from Visit untouched even when annotated with
+		// the replacement's symbol, so it only cost the field hoist and was removed.
+		if (visitedExpression is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } visitedInvocation
+		    || memberAccess.Name.Identifier.Text != regexMethod.Name)
+		{
+			return false;
+		}
+
+		result = visitedInvocation.WithExpression(memberAccess.WithName(IdentifierName(replacement)));
+		return true;
+	}
+
 	private bool TryFoldRegexPropertyAccess(MemberAccessExpressionSyntax node, out ExpressionSyntax? literal)
 	{
 		literal = null;

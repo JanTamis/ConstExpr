@@ -109,6 +109,19 @@ internal partial class RegexOperationsTests
 		// CountSplit - mixed
 		Console.WriteLine($"[MIXED] CountSplit(varString, 'e'): {RegexOperations.CountSplit(varString, 'e')}");
 
+
+		// ContainsPattern - alleen constanten
+		Console.WriteLine($"[CONST] ContainsPattern(\"Hello World\", \"World\"): {RegexOperations.ContainsPattern("Hello World", "World")}");
+		Console.WriteLine($"[CONST] ContainsPattern(\"Hello World\", \"xyz\"): {RegexOperations.ContainsPattern("Hello World", "xyz")}");
+		// ContainsPattern - mixed
+		Console.WriteLine($"[MIXED] ContainsPattern(varString, \"String\"): {RegexOperations.ContainsPattern(varString, "String")}");
+
+		// CountWordTokens - alleen constanten
+		Console.WriteLine($"[CONST] CountWordTokens(\"Hello big world\"): {RegexOperations.CountWordTokens("Hello big world")}");
+		Console.WriteLine($"[CONST] CountWordTokens(\"\"): {RegexOperations.CountWordTokens("")}");
+		// CountWordTokens - mixed
+		Console.WriteLine($"[MIXED] CountWordTokens(varString): {RegexOperations.CountWordTokens(varString)}");
+
 		Console.WriteLine();
 	}
 }

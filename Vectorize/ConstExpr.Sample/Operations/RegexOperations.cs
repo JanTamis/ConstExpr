@@ -182,6 +182,35 @@ public static class RegexOperations
 	}
 
 	/// <summary>
+	///   Checks whether a pattern occurs anywhere in the input.
+	///   Written as Match(..).Success so the generator can drop the Match allocation and call IsMatch.
+	/// </summary>
+	public static bool ContainsPattern(string input, string pattern)
+	{
+		if (String.IsNullOrEmpty(input) || String.IsNullOrEmpty(pattern))
+		{
+			return false;
+		}
+
+		return Regex.Match(input, Regex.Escape(pattern)).Success;
+	}
+
+	/// <summary>
+	///   Counts the word-like tokens in a string.
+	///   Written as Matches(..).Count so the generator can drop the MatchCollection allocation and
+	///   call Count.
+	/// </summary>
+	public static int CountWordTokens(string input)
+	{
+		if (String.IsNullOrEmpty(input))
+		{
+			return 0;
+		}
+
+		return Regex.Matches(input, @"\w+").Count;
+	}
+
+	/// <summary>
 	///   Splits a string by a single-character delimiter and returns the number of parts
 	/// </summary>
 	public static int CountSplit(string input, char delimiter)

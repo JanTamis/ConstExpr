@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text.RegularExpressions;
-using ConstExpr.SourceGenerator.Extensions;
 using ConstExpr.SourceGenerator.Models;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizers;
@@ -30,6 +26,8 @@ namespace ConstExpr.SourceGenerator.Optimizers.FunctionOptimizers.RegexOptimizer
 ///     </item>
 ///   </list>
 ///   The <c>input</c> and <c>replacement</c>/<c>evaluator</c> arguments may be runtime values.
+///   Unlike every other static <c>Regex</c> overload the replacement sits *between* the pattern and
+///   the options, so the constructor arguments cannot simply be "everything after the input".
 /// </summary>
 public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", n => n is 3 or 4 or 5)
 {
@@ -41,13 +39,17 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 
 		// Pattern (param[1]) must be a compile-time constant.
 		if (!TryGetLiteralValue(context.VisitedParameters[1], context, out _))
+		{
 			return false;
+		}
 
 		// For 4+ argument overloads the options (param[3]) must also be constant.
 		if (context.VisitedParameters.Count >= 4 && !TryGetLiteralValue(context.VisitedParameters[3], context, out _))
+		{
 			return false;
+		}
 
-		// Timeout (param[4] for 5-arg overloads) passes through — goes straight into the Regex constructor.
+		// Timeout (param[4] for 5-arg overloads) passes through - goes straight into the Regex constructor.
 
 		// Collect the constructor arguments for the cached Regex: pattern + optional options + optional timeout.
 		var ctorArgs = context.VisitedParameters.Count switch
@@ -57,34 +59,8 @@ public class ReplaceFunctionOptimizer() : BaseRegexFunctionOptimizer("Replace", 
 			_ => new List<ExpressionSyntax> { context.VisitedParameters[1], context.VisitedParameters[3], context.VisitedParameters[4] }
 		};
 
-		// Build a deterministic field name from the constant constructor arguments.
-		var patternKey = String.Concat(
-			ctorArgs.Select(s => TryGetLiteralValue(s, context, out var lit) && lit is string str ? str : s.ToFullString())
-		);
-		var variableName = $"Regex_{patternKey.GetDeterministicHashString()}";
-
-		var field = FieldDeclaration(VariableDeclaration(IdentifierName(nameof(Regex)))
-				.WithVariables(
-					SingletonSeparatedList(
-						VariableDeclarator(Identifier(variableName))
-							.WithInitializer(EqualsValueClause(
-								ObjectCreationExpression(IdentifierName(nameof(Regex)))
-									.WithArgumentList(ArgumentList(SeparatedList(ctorArgs.Select(Argument)))))
-							))
-				))
-			.WithModifiers(TokenList(Token(SyntaxKind.PrivateKeyword), Token(SyntaxKind.StaticKeyword), Token(SyntaxKind.ReadOnlyKeyword)));
-
-		context.AdditionalSyntax.Add(field, true);
-
-		// Instance Replace takes (input, replacement) — drop the pattern and options arguments.
-		result = InvocationExpression(
-				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-					IdentifierName(variableName),
-					IdentifierName(context.Method.Name)))
-			.WithArgumentList(ArgumentList(SeparatedList([
-				Argument(context.VisitedParameters[0]), // input
-				Argument(context.VisitedParameters[2]) // replacement or MatchEvaluator
-			])));
+		// Instance Replace takes (input, replacement) - drop the pattern and options arguments.
+		result = GetRegexInvocation(context, ctorArgs, [ context.VisitedParameters[0], context.VisitedParameters[2] ]);
 
 		return true;
 	}
