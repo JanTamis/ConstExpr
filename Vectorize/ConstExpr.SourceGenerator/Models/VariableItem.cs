@@ -28,5 +28,13 @@ public class VariableItem(ITypeSymbol type, bool hasValue, object? value, bool c
 	/// </summary>
 	public HashSet<int>? UnknownIndices { get; set; }
 
+	/// <summary>
+	///   For an inlined local (<see cref="CanBeInlined" />) that merely aliases another tracked buffer
+	///   (<c>var a = arr;</c>): the name of that buffer's variable. The declaration of <c>a</c> is removed, so
+	///   an element write through it (<c>a[0] = 9;</c>) has to be applied to - and spelled through - the
+	///   aliased variable, or the write never reaches the tracked value and <c>a</c> itself is undeclared.
+	/// </summary>
+	public string? BufferAlias { get; set; }
+
 	public bool HasUnknownElements => UnknownIndices is { Count: > 0 };
 }

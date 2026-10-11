@@ -83,6 +83,7 @@ public partial class ConstExprPartialRewriter
 				? castOperand
 				: value;
 			existing.Type = operation.Type ?? operation.Symbol.Type;
+			existing.BufferAlias = TryGetBufferAlias(node.Initializer?.Value, existing.Type);
 
 			return null;
 		}
@@ -100,6 +101,36 @@ public partial class ConstExprPartialRewriter
 		item.Type ??= operation.Type ?? operation.Symbol.Type;
 
 		return HandleExistingVariableDeclaration(node, item, name, value);
+	}
+
+	/// <summary>
+	///   When <paramref name="initializer" /> is a plain reference to a tracked array/list (<c>var a = arr;</c>)
+	///   and <paramref name="type" /> is a reference type, the name of the variable that really holds the
+	///   buffer - following a chain of such aliases (<c>var a = b;</c> where <c>b</c> aliases <c>arr</c>).
+	///   A value-type alias (<c>Span&lt;T&gt;</c>, a struct) is deliberately not one: writing through a copy
+	///   must not be retargeted at the original.
+	/// </summary>
+	private string? TryGetBufferAlias(ExpressionSyntax? initializer, ITypeSymbol? type)
+	{
+		if (initializer is not IdentifierNameSyntax { Identifier.Text: var name } || type is not { IsReferenceType: true })
+		{
+			return null;
+		}
+
+		// The chain can't be longer than the number of tracked variables; the bound only guards a cycle.
+		for (var depth = 0; depth <= variables.Count && variables.TryGetValue(name, out var target); depth++)
+		{
+			if (target.BufferAlias is { } next)
+			{
+				name = next;
+			}
+			else
+			{
+				return target is { HasValue: true, Value: Array or IList } ? name : null;
+			}
+		}
+
+		return null;
 	}
 
 	/// <summary>
@@ -999,6 +1030,20 @@ public partial class ConstExprPartialRewriter
 	}
 
 	/// <summary>
+	///   The expression an element-access receiver really denotes: for an inlined local that aliases a tracked
+	///   buffer (see <see cref="VariableItem.BufferAlias" />) the aliased variable's name, otherwise
+	///   <paramref name="receiver" /> unchanged.
+	/// </summary>
+	private ExpressionSyntax ResolveBufferAlias(ExpressionSyntax receiver)
+	{
+		return receiver is IdentifierNameSyntax { Identifier.Text: var name }
+		       && variables.TryGetValue(name, out var variable)
+		       && variable is { CanBeInlined: true, BufferAlias: { } aliased }
+			? IdentifierName(aliased)
+			: receiver;
+	}
+
+	/// <summary>
 	///   Handles element access assignment.
 	/// </summary>
 	private SyntaxNode? HandleElementAccessAssignment(AssignmentExpressionSyntax node, ElementAccessExpressionSyntax elementAccess, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue, SyntaxKind kind)
@@ -1009,13 +1054,17 @@ public partial class ConstExprPartialRewriter
 		VariableItem? receiver = null;
 		object? instanceVal;
 
-		if (elementAccess.Expression is IdentifierNameSyntax { Identifier.Text: var receiverName }
+		// `var a = arr; a[0] = 9;`: the declaration of `a` is gone (it was inlined), so the write is applied
+		// to - and later emitted through - the variable it aliases.
+		var receiverExpression = ResolveBufferAlias(elementAccess.Expression);
+
+		if (receiverExpression is IdentifierNameSyntax { Identifier.Text: var receiverName }
 		    && variables.TryGetValue(receiverName, out receiver)
 		    && receiver is { HasValue: true, IsAltered: false, Value: Array })
 		{
 			instanceVal = receiver.Value;
 		}
-		else if (!hasRightValue || !TryGetLiteralValue(elementAccess.Expression, out instanceVal))
+		else if (!hasRightValue || !TryGetLiteralValue(receiverExpression, out instanceVal))
 		{
 			return null;
 		}

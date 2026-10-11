@@ -1044,7 +1044,7 @@ public partial class ConstExprPartialRewriter
 	{
 		result = null;
 
-		if (elementAccess.Expression is not IdentifierNameSyntax { Identifier.Text: var receiverName }
+		if (ResolveBufferAlias(elementAccess.Expression) is not IdentifierNameSyntax { Identifier.Text: var receiverName }
 		    || !variables.TryGetValue(receiverName, out var receiver)
 		    || receiver is not { HasValue: true, IsAltered: false, Value: Array arr })
 		{

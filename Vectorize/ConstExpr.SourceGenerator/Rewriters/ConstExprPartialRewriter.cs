@@ -321,8 +321,29 @@ public partial class ConstExprPartialRewriter(
 
 		if (ShouldPreserveIdentifier(node))
 		{
+			// The declaration of an inlined alias (`var a = arr;`) is gone, so `a[0] = 9` has to be spelled
+			// through the variable it aliases - and that one is the one being altered.
+			if (TryGetInlinedAliasTarget(variable, out var aliasTarget))
+			{
+				var aliased = variables.TryGetValue(aliasTarget, out var aliasedVariable) ? aliasedVariable : variable;
+
+				aliased.IsAltered = true;
+				return IdentifierName(aliasTarget).WithTypeSymbolAnnotation(aliased.Type, symbolStore);
+			}
+
 			variable.IsAltered = true;
 			return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
+		}
+
+		// A local that aliases a local buffer (`var b = new[] { 1, 2 }; var a = b;`) holds a snapshot of it from
+		// the declaration - stale as soon as a write went through either name. Read the buffer itself instead.
+		// (A caller-owned buffer keeps the identifier it was declared with, which never goes stale.)
+		if (variable is { CanBeInlined: true, BufferAlias: { } bufferAlias }
+		    && variables.TryGetValue(bufferAlias, out var aliasedBuffer)
+		    && !IsCallerOwnedBuffer(aliasedBuffer.Value, out _)
+		    && Visit(IdentifierName(bufferAlias)) is ExpressionSyntax aliasedRead)
+		{
+			return aliasedRead;
 		}
 
 		// For inlinable variables with expression values, try to get constant value first for const variables
@@ -495,6 +516,37 @@ public partial class ConstExprPartialRewriter(
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	///   The variable an inlined local stands for when it is used as a write target (<c>a[0] = 9</c>), where
+	///   its value can't be substituted like a read. Only a plain reference-type alias qualifies: a known
+	///   buffer (<see cref="VariableItem.BufferAlias" />) or any other tracked variable it was initialized from.
+	///   A value-type local (a struct, a <c>Span&lt;T&gt;</c>) is a copy, so writing through the original instead
+	///   would change what the code does.
+	/// </summary>
+	private bool TryGetInlinedAliasTarget(VariableItem variable, [NotNullWhen(true)] out string? target)
+	{
+		target = null;
+
+		if (variable is not { CanBeInlined: true, Type.IsReferenceType: true })
+		{
+			return false;
+		}
+
+		if (variable.BufferAlias is { } bufferAlias)
+		{
+			target = bufferAlias;
+			return true;
+		}
+
+		if (variable.Value is IdentifierNameSyntax { Identifier.Text: var aliased } && variables.ContainsKey(aliased))
+		{
+			target = aliased;
+			return true;
+		}
+
+		return false;
 	}
 
 	private static bool ShouldPreserveIdentifier(IdentifierNameSyntax node)
