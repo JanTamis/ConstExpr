@@ -1066,6 +1066,15 @@ public partial class ConstExprPartialRewriter
 
 		foreach (var invocation in node.DescendantNodes().OfType<InvocationExpressionSyntax>())
 		{
+			// A buffer mutated through an argument (`Array.Reverse(data)`, `span.Sort()`) - see GetMutatedArgumentNames.
+			if (semanticModel.TryGetSymbol(invocation, symbolStore, out IMethodSymbol? argumentMutatingMethod))
+			{
+				foreach (var mutatedName in GetMutatedArgumentNames(invocation, argumentMutatingMethod))
+				{
+					MarkVariableAsAltered(mutatedName);
+				}
+			}
+
 			if (invocation.Expression is not MemberAccessExpressionSyntax
 			    {
 				    Expression: IdentifierNameSyntax { Identifier.Text: var receiverName },

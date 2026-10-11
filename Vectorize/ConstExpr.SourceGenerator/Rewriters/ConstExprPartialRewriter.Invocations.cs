@@ -49,6 +49,7 @@ public partial class ConstExprPartialRewriter
 
 		var originalArguments = node.ArgumentList.Arguments;
 		var argumentExpressions = new ExpressionSyntax[originalArguments.Count];
+		var mutatedArgumentNames = new HashSet<string>(GetMutatedArgumentNames(node, targetMethod));
 
 		for (var i = 0; i < originalArguments.Count; i++)
 		{
@@ -60,7 +61,11 @@ public partial class ConstExprPartialRewriter
 			// not valid C# in an out/ref slot and silently breaks the by-ref write the call depends on.
 			// Always keep the original lvalue for these; constant-argument extraction below still reads
 			// the variable's current value straight off that same identifier.
+			// The same goes for a buffer the call mutates in place (`Array.Reverse(data)`): visiting would
+			// inline it to a throwaway collection literal, and both the emitted call and any reflective
+			// execution would then mutate a copy instead of the caller-aliased (and tracked) object.
 			argumentExpressions[i] = originalArguments[i].RefOrOutKeyword.IsKind(SyntaxKind.RefKeyword, SyntaxKind.OutKeyword)
+			                         || originalExpression is IdentifierNameSyntax { Identifier.Text: var argumentName } && mutatedArgumentNames.Contains(argumentName)
 				? originalExpression
 				: Visit(originalExpression) as ExpressionSyntax ?? originalExpression;
 		}
@@ -110,6 +115,16 @@ public partial class ConstExprPartialRewriter
 		if (!executed && node.Expression is MemberAccessExpressionSyntax receiverMemberAccess)
 		{
 			MarkReceiverAsAlteredIfNeeded(targetMethod, receiverMemberAccess.Expression, receiverMemberAccess.Name.Identifier.Text);
+		}
+
+		// Same reasoning for a buffer mutated through an argument (`Array.Sort(data, comparer)` with a
+		// runtime comparer): if the call did not run here, the tracked contents are stale from now on.
+		if (!executed)
+		{
+			foreach (var mutatedName in mutatedArgumentNames)
+			{
+				MarkVariableAsAltered(mutatedName);
+			}
 		}
 
 		// Try string optimizers
@@ -179,8 +194,9 @@ public partial class ConstExprPartialRewriter
 		// calls on a plain identifier receiver skip the visit. Must happen here, before `node` is
 		// rebound below - HandleInstanceMethodInvocation's own copy of this guard only protects
 		// against a second, redundant visit once this one has already preserved the receiver.
-		var expression = node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax } mutatingReceiverAccessOuter
-		                 && IsLikelyMutatingMethod(targetMethod, mutatingReceiverAccessOuter.Name.Identifier.Text)
+		var expression = node.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: var receiverName } } mutatingReceiverAccessOuter
+		                 && (IsLikelyMutatingMethod(targetMethod, mutatingReceiverAccessOuter.Name.Identifier.Text)
+		                     || mutatedArgumentNames.Contains(receiverName))
 			? mutatingReceiverAccessOuter
 			: VisitMemoized(node.Expression) as ExpressionSyntax ?? node.Expression;
 
@@ -232,6 +248,125 @@ public partial class ConstExprPartialRewriter
 		variable.IsAltered = true;
 		variable.HasValue = false;
 		variable.Value = null;
+	}
+
+	private void MarkVariableAsAltered(string name)
+	{
+		if (variables.TryGetValue(name, out var variable))
+		{
+			variable.IsAltered = true;
+			variable.HasValue = false;
+			variable.Value = null;
+		}
+	}
+
+	/// <summary>
+	///   Tracked identifiers whose object <paramref name="invocation" /> may mutate in place through a by-value
+	///   argument: <c>data</c> in <c>Array.Reverse(data)</c>, <c>Array.Fill(data, 0)</c>, <c>src.CopyTo(dst)</c>,
+	///   and the receiver of a reduced extension call such as <c>span.Sort()</c> (its <c>this</c> parameter).
+	///   <see cref="IsLikelyMutatingMethod" /> deliberately ignores static and extension methods and only
+	///   looks at an instance call's receiver, so it covers none of these. A call qualifies when it returns
+	///   void (a void call with a mutable buffer argument exists for its side effect) or is a known
+	///   non-void writer (<c>TryCopyTo</c>, <c>Encoding.GetBytes(..., byte[], ...)</c>); a parameter qualifies when
+	///   its type can expose writable storage (array, <c>Span&lt;T&gt;</c>, <c>Memory&lt;T&gt;</c>, a non-string class
+	///   or a non-read-only interface). Ref/out arguments are handled separately and skipped here.
+	/// </summary>
+	private IEnumerable<string> GetMutatedArgumentNames(InvocationExpressionSyntax invocation, IMethodSymbol targetMethod)
+	{
+		var unreducedMethod = targetMethod.ReducedFrom ?? targetMethod;
+
+		if (!targetMethod.ReturnsVoid && !IsKnownNonVoidArgumentWriter(unreducedMethod))
+		{
+			yield break;
+		}
+
+		if (targetMethod.ReducedFrom is not null
+		    && invocation.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: var receiverName } }
+		    && unreducedMethod.Parameters is [ { RefKind: RefKind.None } thisParameter, .. ]
+		    && IsTrackedMutableBuffer(receiverName, thisParameter.Type))
+		{
+			yield return receiverName;
+		}
+
+		var arguments = invocation.ArgumentList.Arguments;
+
+		for (var i = 0; i < arguments.Count; i++)
+		{
+			if (arguments[i] is not { RefKindKeyword.RawKind: (int) SyntaxKind.None, Expression: IdentifierNameSyntax { Identifier.Text: var argumentName } } argument)
+			{
+				continue;
+			}
+
+			if (GetParameterType(targetMethod, argument, i, arguments.Count) is { } parameterType
+			    && IsTrackedMutableBuffer(argumentName, parameterType))
+			{
+				yield return argumentName;
+			}
+		}
+	}
+
+	/// <summary>
+	///   The declared type an argument binds to: matched by name for a named argument, by position otherwise, and
+	///   the element type for an argument expanded into a <see langword="params" /> array.
+	/// </summary>
+	private static ITypeSymbol? GetParameterType(IMethodSymbol method, ArgumentSyntax argument, int index, int argumentCount)
+	{
+		if (argument.NameColon is { Name.Identifier.ValueText: var name })
+		{
+			return method.Parameters.FirstOrDefault(p => p.Name == name)?.Type;
+		}
+
+		if (method.Parameters.Length == 0)
+		{
+			return null;
+		}
+
+		var last = method.Parameters[^1];
+
+		if (last is { IsParams: true, Type: IArrayTypeSymbol paramsArray }
+		    && index >= method.Parameters.Length - 1
+		    && (index > method.Parameters.Length - 1 || argumentCount != method.Parameters.Length))
+		{
+			return paramsArray.ElementType;
+		}
+
+		return index < method.Parameters.Length ? method.Parameters[index].Type : null;
+	}
+
+	private bool IsTrackedMutableBuffer(string name, ITypeSymbol parameterType)
+	{
+		return variables.TryGetValue(name, out var variable)
+		       && IsMutableBufferType(parameterType)
+		       && (variable.Type is null || IsMutableBufferType(variable.Type));
+	}
+
+	private static bool IsMutableBufferType(ITypeSymbol type)
+	{
+		switch (type)
+		{
+			case IArrayTypeSymbol:
+				return true;
+			case { SpecialType: SpecialType.System_Array }:
+				return true;
+			case { SpecialType: SpecialType.System_String or SpecialType.System_Object or SpecialType.System_ValueType }:
+				return false;
+			case INamedTypeSymbol { TypeKind: TypeKind.Delegate }:
+				return false;
+			case INamedTypeSymbol { IsValueType: true } valueType:
+				return valueType.OriginalDefinition.ToDisplayString() is "System.Span<T>" or "System.Memory<T>";
+			case INamedTypeSymbol { TypeKind: TypeKind.Interface } interfaceType:
+				return interfaceType.Name is not ("IEnumerable" or "IEnumerator") && !interfaceType.Name.StartsWith("IReadOnly", StringComparison.Ordinal);
+			case INamedTypeSymbol { TypeKind: TypeKind.Class }:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private static bool IsKnownNonVoidArgumentWriter(IMethodSymbol method)
+	{
+		return method.Name is "TryCopyTo" or "TryFormat" or "TryWrite"
+		       || method.Name is "GetBytes" or "GetChars" && method.ContainingType.ToDisplayString() == "System.Text.Encoding";
 	}
 
 	private static bool IsLikelyMutatingMethod(IMethodSymbol? targetMethod, string methodName)
