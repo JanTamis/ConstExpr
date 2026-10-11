@@ -30,7 +30,11 @@ public partial class ConstExprPartialRewriter
 
 		// When switch value is unknown, we need to visit all sections to rewrite them,
 		// but then invalidate any variables assigned within the switch since we don't
-		// know which branch will execute at runtime
+		// know which branch will execute at runtime. In-place receiver mutations (`list.Add(x)`)
+		// aren't assignments, so they're demoted up front instead - otherwise each section would
+		// reflectively execute its call on the shared tracked object (see VisitIfStatement).
+		InvalidateMutatingReceiverValues(node);
+
 		var result = VisitSwitchStatementSections(node, visitedGoverning as ExpressionSyntax ?? node.Expression);
 
 		InvalidateAssignedVariables(node);

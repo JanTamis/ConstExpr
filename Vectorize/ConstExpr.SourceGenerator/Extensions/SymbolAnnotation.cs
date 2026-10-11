@@ -86,14 +86,9 @@ public static class SymbolAnnotation
 	{
 		symbol = null;
 
-		if (node is null)
-		{
-			return false;
-		}
+		var annotation = node?.GetAnnotations(TypeSymbolKind).FirstOrDefault();
 
-		var annotation = node.GetAnnotations(TypeSymbolKind).FirstOrDefault();
-
-		if (annotation?.Data is not null
+		if (annotation?.Data != null
 		    && symbolStore.TryGetValue(UInt64.Parse(annotation.Data), out var s)
 		    && s is ITypeSymbol type)
 		{

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading;
 using ConstExpr.Core.Attributes;
 using ConstExpr.SourceGenerator.Extensions;
@@ -383,6 +384,8 @@ public class ExpressionRewriter(
 
 				if (expArgs.Length == arguments.Count)
 				{
+					ApplyImplicitArgumentConversions(expArgs, methodDeclaration);
+
 					if (targetMethod.IsStatic)
 					{
 						return Expression.Call(methodDeclaration, expArgs);
@@ -402,6 +405,28 @@ public class ExpressionRewriter(
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	///   Mirrors the implicit argument conversions C# applies at a call site (e.g. the <c>int</c> literal in
+	///   <c>Math.Pow(x, 2)</c> binding to a <c>double</c> parameter). Expression trees never convert
+	///   implicitly, so without this <see cref="Expression.Call(System.Reflection.MethodInfo, Expression[])" /> throws on the
+	///   type
+	///   mismatch and the whole enclosing lambda silently fails to compile to a delegate.
+	/// </summary>
+	private static void ApplyImplicitArgumentConversions(Expression[] arguments, MethodInfo method)
+	{
+		var parameters = method.GetParameters();
+
+		for (var i = 0; i < arguments.Length && i < parameters.Length; i++)
+		{
+			var parameterType = parameters[i].ParameterType;
+
+			if (!parameterType.IsByRef && arguments[i].Type != parameterType)
+			{
+				arguments[i] = Expression.Convert(arguments[i], parameterType);
+			}
+		}
 	}
 
 	public override Expression? VisitMemberAccessExpression(MemberAccessExpressionSyntax node)

@@ -42,6 +42,21 @@ public partial class ConstExprPartialRewriter
 		// cannot tell which branch will execute at runtime. Each branch must be visited with
 		// the pre-if state, and afterwards any variable written in either branch must be
 		// marked as unknown so downstream code doesn't rely on a specific branch's value.
+		//
+		// An in-place mutation (`list.Add(i)`) is not an assignment, so InvalidateAssignedVariables
+		// below never sees it, and the snapshot only holds the receiver's object *reference*: a
+		// branch that reflectively executes Add on the tracked List mutates that very object, so
+		// restoring the snapshot hands the mutated list straight back and a later `list.ToArray()`
+		// folds to every conditionally-added element. Demote such receivers to runtime first -
+		// before the snapshot (else Restore re-enables them) and before visiting (else the call is
+		// executed and dropped from the branch).
+		InvalidateMutatingReceiverValues(node.Statement);
+
+		if (node.Else is not null)
+		{
+			InvalidateMutatingReceiverValues(node.Else.Statement);
+		}
+
 		var savedState = SaveVariableState();
 		var statement = Visit(node.Statement);
 
@@ -425,6 +440,7 @@ public partial class ConstExprPartialRewriter
 			if (iteratorCount++ >= attribute.MaxUnrollIterations)
 			{
 				InvalidateAssignedVariables(node);
+				InvalidateMutatingReceiverValues(node);
 				return base.VisitDoStatement(node);
 			}
 
@@ -473,6 +489,7 @@ public partial class ConstExprPartialRewriter
 			if (iteratorCount++ >= attribute.MaxUnrollIterations)
 			{
 				InvalidateAssignedVariables(node);
+				InvalidateMutatingReceiverValues(node);
 				return base.VisitWhileStatement(node);
 			}
 
@@ -530,6 +547,7 @@ public partial class ConstExprPartialRewriter
 				// loop's break target.
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
+				InvalidateMutatingReceiverValues(node);
 
 				// A break and an orphaned continue can be resolved together: the break becomes a
 				// goto to the shared trailing label (below) while each continue becomes a goto to
@@ -560,6 +578,7 @@ public partial class ConstExprPartialRewriter
 
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
+				InvalidateMutatingReceiverValues(node);
 				return base.VisitForEachStatement(
 					node.WithExpression(collection as ExpressionSyntax ?? node.Expression));
 			}
@@ -575,6 +594,7 @@ public partial class ConstExprPartialRewriter
 			{
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
+				InvalidateMutatingReceiverValues(node);
 
 				var continueUnrolled = TryUnrollForEachLoop(node, items, unrollContinueGoto: true);
 
@@ -587,6 +607,7 @@ public partial class ConstExprPartialRewriter
 
 				RestoreVariableState(savedState);
 				InvalidateAssignedVariablesForForEach(node, names);
+				InvalidateMutatingReceiverValues(node);
 				return base.VisitForEachStatement(
 					node.WithExpression(collection as ExpressionSyntax ?? node.Expression));
 			}
@@ -595,6 +616,7 @@ public partial class ConstExprPartialRewriter
 		}
 
 		InvalidateAssignedVariablesForForEach(node, names);
+		InvalidateMutatingReceiverValues(node);
 
 		return base.VisitForEachStatement(node);
 	}
@@ -780,6 +802,11 @@ public partial class ConstExprPartialRewriter
 
 			if (elementType is null)
 			{
+				// Falls back to a runtime loop whose body is visited once: nothing it writes or
+				// mutates in place may keep its pre-loop value.
+				InvalidateAssignedVariables(node);
+				InvalidateMutatingReceiverValues(node);
+
 				return base.VisitForEachStatement(node);
 			}
 		}
@@ -1018,8 +1045,25 @@ public partial class ConstExprPartialRewriter
 		}
 	}
 
+	/// <summary>
+	///   Demotes to runtime every tracked variable whose object <paramref name="node" /> mutates in place: the
+	///   receiver of a mutating call (<c>list.Add(x)</c>) and the target of an element write
+	///   (<c>arr[i] = x</c>, <c>arr[i]++</c>, <c>arr[i] += x</c>). Neither is an assignment to the variable itself,
+	///   so <see cref="InvalidateAssignedVariables" /> misses both, and a variable-state snapshot only holds the
+	///   object reference - so an in-place mutation performed while visiting a speculative path survives
+	///   <see cref="RestoreVariableState" />.
+	/// </summary>
 	private void InvalidateMutatingReceiverValues(StatementSyntax node)
 	{
+		foreach (var target in node.DescendantNodes().Select(GetElementWriteTarget))
+		{
+			if (target is not null && variables.TryGetValue(target, out var targetVariable))
+			{
+				targetVariable.IsAltered = true;
+				targetVariable.HasValue = false;
+			}
+		}
+
 		foreach (var invocation in node.DescendantNodes().OfType<InvocationExpressionSyntax>())
 		{
 			if (invocation.Expression is not MemberAccessExpressionSyntax
@@ -1050,6 +1094,25 @@ public partial class ConstExprPartialRewriter
 			receiverVariable.IsAltered = true;
 			receiverVariable.HasValue = false;
 		}
+	}
+
+	/// <summary>
+	///   The identifier written through an element access by <paramref name="node" /> (<c>arr</c> in
+	///   <c>arr[i] = x</c>, <c>arr[i] op= x</c>, <c>arr[i]++</c>, <c>--arr[i]</c>), or <see langword="null" />.
+	/// </summary>
+	private static string? GetElementWriteTarget(SyntaxNode node)
+	{
+		var written = node switch
+		{
+			AssignmentExpressionSyntax assignment => assignment.Left,
+			PrefixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PreIncrementExpression or (int) SyntaxKind.PreDecrementExpression } prefix => prefix.Operand,
+			PostfixUnaryExpressionSyntax { RawKind: (int) SyntaxKind.PostIncrementExpression or (int) SyntaxKind.PostDecrementExpression } postfix => postfix.Operand,
+			_ => null
+		};
+
+		return written is ElementAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: var name } }
+			? name
+			: null;
 	}
 
 	/// <summary>
