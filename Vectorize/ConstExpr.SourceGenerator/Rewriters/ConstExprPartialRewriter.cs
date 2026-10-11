@@ -307,9 +307,66 @@ public partial class ConstExprPartialRewriter(
 			// Element-access increments (e.g. counts[c]++) that fold this far are on a fully
 			// tracked array, so the literal placeholder is safe — DeadCodePruner removes it.
 			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } or PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } => node,
+			// A discarded pure call executed at compile time (e.g. LINQ `data.Reverse();`) folds to its
+			// value - `[3, 2, 1];` is not a legal statement (CS0201) and the value is unused, so the whole
+			// statement becomes a no-op. Only for a side-effect-free value: anything still holding a
+			// call/assignment/etc. keeps its statement.
+			ExpressionSyntax expr when !IsStatementExpression(expr) && IsDiscardableValue(expr) => EmptyStatement(),
 			ExpressionSyntax expr => node.WithExpression(expr),
 			_ => result
 		};
+	}
+
+	/// <summary>
+	///   True for the expression kinds C# accepts as an expression statement (assignment, call,
+	///   increment/decrement, await, object creation, conditional access).
+	/// </summary>
+	private static bool IsStatementExpression(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			InvocationExpressionSyntax => true,
+			AssignmentExpressionSyntax => true,
+			BaseObjectCreationExpressionSyntax => true,
+			AwaitExpressionSyntax => true,
+			ConditionalAccessExpressionSyntax => true,
+			PrefixUnaryExpressionSyntax unary => unary.IsKind(SyntaxKind.PreIncrementExpression) || unary.IsKind(SyntaxKind.PreDecrementExpression),
+			PostfixUnaryExpressionSyntax unary => unary.IsKind(SyntaxKind.PostIncrementExpression) || unary.IsKind(SyntaxKind.PostDecrementExpression),
+			_ => false
+		};
+	}
+
+	/// <summary>
+	///   True for a fully folded value whose evaluation can be dropped without losing a side effect:
+	///   literals, <c>default</c>, plain identifiers, and collection expressions / casts / parentheses /
+	///   unary <c>+</c>/<c>-</c> built only from those.
+	/// </summary>
+	private static bool IsDiscardableValue(ExpressionSyntax expr)
+	{
+		return expr switch
+		{
+			LiteralExpressionSyntax => true,
+			DefaultExpressionSyntax => true,
+			IdentifierNameSyntax => true,
+			ParenthesizedExpressionSyntax parenthesized => IsDiscardableValue(parenthesized.Expression),
+			CastExpressionSyntax cast => IsDiscardableValue(cast.Expression),
+			PrefixUnaryExpressionSyntax unary when unary.IsKind(SyntaxKind.UnaryMinusExpression) || unary.IsKind(SyntaxKind.UnaryPlusExpression) => IsDiscardableValue(unary.Operand),
+			CollectionExpressionSyntax collection => AreDiscardableElements(collection),
+			_ => false
+		};
+	}
+
+	private static bool AreDiscardableElements(CollectionExpressionSyntax collection)
+	{
+		foreach (var element in collection.Elements)
+		{
+			if (element is not ExpressionElementSyntax { Expression: var expression } || !IsDiscardableValue(expression))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private static bool ShouldPreserveIdentifier(IdentifierNameSyntax node)

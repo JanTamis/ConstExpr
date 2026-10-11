@@ -76,6 +76,17 @@ public partial class ConstExprPartialRewriter
 			InvalidateAssignedVariables(node.Else.Statement);
 		}
 
+		// Nothing left to do in either branch (e.g. the only statement was a discarded pure call that
+		// folded away): the whole if is a no-op as long as evaluating the condition is side-effect free.
+		if (@else is null
+		    && IsEmptyStatement(statement)
+		    && condition is ExpressionSyntax conditionExpression
+		    && LoopInvariance.IsPureExpression(conditionExpression)
+		    && !conditionExpression.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>().Any())
+		{
+			return null;
+		}
+
 		if (@else is null)
 		{
 			var mergeCandidate = node
@@ -233,7 +244,7 @@ public partial class ConstExprPartialRewriter
 		return statement switch
 		{
 			null => true,
-			BlockSyntax { Statements.Count: 0 } => true,
+			BlockSyntax block => block.Statements.All(IsEmptyStatement),
 			EmptyStatementSyntax => true,
 			_ => false
 		};
