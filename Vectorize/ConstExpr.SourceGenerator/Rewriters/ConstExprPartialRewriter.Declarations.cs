@@ -515,6 +515,13 @@ public partial class ConstExprPartialRewriter
 	/// </summary>
 	private SyntaxNode? HandleTupleAssignment(AssignmentExpressionSyntax node, TupleExpressionSyntax leftTuple, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
 	{
+		// A target that is an element access writes into a tracked array: the identifier-only paths below
+		// never see that write, so a later read of the array would fold against its stale contents.
+		if (leftTuple.Arguments.Any(a => a.Expression is ElementAccessExpressionSyntax))
+		{
+			return HandleTupleElementAccessAssignment(node, leftTuple, rightExpr, hasRightValue, rightValue);
+		}
+
 		if (hasRightValue)
 		{
 			var rightType = rightValue?.GetType();
@@ -528,6 +535,167 @@ public partial class ConstExprPartialRewriter
 		{
 			return HandleTupleToTupleAssignment(node, leftTuple, rightTuple, rightExpr);
 		}
+
+		return node.WithRight(rightExpr);
+	}
+
+	/// <summary>
+	///   Handles a tuple deconstruction assignment with at least one element-access target
+	///   (<c>(a[0], a[1]) = (a[1], a[0])</c>). Every right-hand value is already evaluated by the time this
+	///   runs (swap semantics), so the writes are applied to the tracked buffers one by one through
+	///   <see cref="HandleElementAccessAssignment" />, exactly like separate <c>a[i] = v</c> statements: a
+	///   write into a local array folds away, a write into a caller-owned buffer is emitted (see
+	///   <see cref="EmitCallerOwnedWrite" />) - together as one tuple assignment, so the swap stays atomic at
+	///   runtime. When any value or target cannot be resolved, nothing is folded: every receiver is marked
+	///   altered and the assignment stays as written.
+	/// </summary>
+	private SyntaxNode HandleTupleElementAccessAssignment(AssignmentExpressionSyntax node, TupleExpressionSyntax leftTuple, ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue)
+	{
+		var leftArgs = leftTuple.Arguments;
+
+		if (!TryGetTupleElementValues(rightExpr, hasRightValue, rightValue, leftArgs.Count, out var values, out var literals))
+		{
+			return KeepTupleAssignmentAsWritten(node, leftArgs, rightExpr);
+		}
+
+		var emittedTargets = new List<ExpressionSyntax>();
+		var emittedValues = new List<ExpressionSyntax>();
+
+		for (var i = 0; i < leftArgs.Count; i++)
+		{
+			switch (leftArgs[i].Expression)
+			{
+				case ElementAccessExpressionSyntax elementAccess:
+				{
+					var write = AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, elementAccess, literals[i]);
+					var result = HandleElementAccessAssignment(write, elementAccess, literals[i], true, values[i], SyntaxKind.EqualsToken);
+
+					if (result is null)
+					{
+						return KeepTupleAssignmentAsWritten(node, leftArgs, rightExpr);
+					}
+
+					// A folded (local) write comes back as a bare value; an emitted one as `owner[i] = value`.
+					if (result is AssignmentExpressionSyntax emitted)
+					{
+						emittedTargets.Add(emitted.Left);
+						emittedValues.Add(emitted.Right);
+					}
+					break;
+				}
+				case IdentifierNameSyntax { Identifier.Text: var name } target when variables.TryGetValue(name, out var variable):
+				{
+					variable.Value = values[i];
+					variable.HasValue = true;
+					variable.IsInitialized = true;
+
+					emittedTargets.Add(target);
+					emittedValues.Add(literals[i]);
+					break;
+				}
+				default:
+				{
+					return KeepTupleAssignmentAsWritten(node, leftArgs, rightExpr);
+				}
+			}
+		}
+
+		switch (emittedTargets.Count)
+		{
+			// Every write was into a local array: it is folded into the tracked value and every later read
+			// folds against it, so the statement collapses to a placeholder value DeadCodePruner drops.
+			case 0:
+			{
+				return literals[0];
+			}
+			case 1:
+			{
+				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, emittedTargets[0], emittedValues[0]);
+			}
+			default:
+			{
+				return AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+					TupleExpression(SeparatedList(emittedTargets.Select(e => Argument(e)))),
+					TupleExpression(SeparatedList(emittedValues.Select(e => Argument(e)))));
+			}
+		}
+	}
+
+	/// <summary>
+	///   Splits the right-hand side of a tuple deconstruction into one literal value (and its spelling) per
+	///   target. Fails when it is not a tuple of <paramref name="count" /> known, spellable values.
+	/// </summary>
+	private bool TryGetTupleElementValues(ExpressionSyntax rightExpr, bool hasRightValue, object? rightValue, int count, out object?[] values, out ExpressionSyntax[] literals)
+	{
+		values = new object?[count];
+		literals = new ExpressionSyntax[count];
+
+		if (hasRightValue && rightValue is not null && rightValue.GetType().Name.StartsWith("ValueTuple"))
+		{
+			var fields = rightValue.GetType().GetFields();
+
+			if (fields.Length != count)
+			{
+				return false;
+			}
+
+			for (var i = 0; i < count; i++)
+			{
+				values[i] = fields[i].GetValue(rightValue);
+
+				if (!TryCreateLiteral(values[i], out var literal))
+				{
+					return false;
+				}
+
+				literals[i] = literal;
+			}
+
+			return true;
+		}
+
+		if (rightExpr is TupleExpressionSyntax rightTuple && rightTuple.Arguments.Count == count)
+		{
+			for (var i = 0; i < count; i++)
+			{
+				if (!TryGetLiteralValue(rightTuple.Arguments[i].Expression, out values[i])
+				    || !TryCreateLiteral(values[i], out var literal))
+				{
+					return false;
+				}
+
+				literals[i] = literal;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	///   Fallback for a tuple deconstruction whose writes cannot be tracked: the assignment stays as written
+	///   and every tracked variable it may write to (a plain target, or the receiver of an element target)
+	///   stops folding, so no later read observes a stale value.
+	/// </summary>
+	private SyntaxNode KeepTupleAssignmentAsWritten(AssignmentExpressionSyntax node, SeparatedSyntaxList<ArgumentSyntax> leftArgs, ExpressionSyntax rightExpr)
+	{
+		foreach (var leftArg in leftArgs)
+		{
+			var targetName = leftArg.Expression switch
+			{
+				IdentifierNameSyntax identifier => identifier.Identifier.Text,
+				ElementAccessExpressionSyntax { Expression: IdentifierNameSyntax receiver } => receiver.Identifier.Text,
+				_ => null
+			};
+
+			if (targetName is not null)
+			{
+				MarkVariableAsAltered(targetName);
+			}
+		}
+
+		MarkStateMutated();
 
 		return node.WithRight(rightExpr);
 	}
