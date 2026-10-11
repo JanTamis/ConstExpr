@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -887,6 +888,11 @@ public partial class ConstExprPartialRewriter
 				var arr = instanceVal as Array;
 				var (effectiveValue, effectiveExpr) = CombineForCompoundElementAssignment(kind, arr, indexConsts, rightValue, rightExpr);
 
+				if (IsCallerOwnedBuffer(arr, out var ownerName) && ownerName is null)
+				{
+					return null;
+				}
+
 				var result = HandleArrayElementAssignment(arr, indexConsts, arrayOp.Indices.Length, effectiveValue, effectiveExpr);
 
 				// A constant overwrite makes the element known again.
@@ -895,7 +901,7 @@ public partial class ConstExprPartialRewriter
 					known.Remove(knownIndex);
 				}
 
-				return result;
+				return result is null ? null : EmitCallerOwnedWrite(arr!, ownerName, indexConsts, result, node);
 			}
 
 			case IPropertyReferenceOperation propOp:
@@ -910,7 +916,14 @@ public partial class ConstExprPartialRewriter
 				{
 					var (shadowValue, shadowExpr) = CombineForCompoundElementAssignment(kind, shadowArray, indexConsts, rightValue, rightExpr);
 
-					return HandleArrayElementAssignment(shadowArray, indexConsts, propOp.Arguments.Length, shadowValue, shadowExpr);
+					if (IsCallerOwnedBuffer(shadowArray, out var shadowOwnerName) && shadowOwnerName is null)
+					{
+						return null;
+					}
+
+					var shadowResult = HandleArrayElementAssignment(shadowArray, indexConsts, propOp.Arguments.Length, shadowValue, shadowExpr);
+
+					return shadowResult is null ? null : EmitCallerOwnedWrite(shadowArray, shadowOwnerName, indexConsts, shadowResult, node);
 				}
 
 				if (hasRightValue && propOp.Property.IsIndexer && instanceVal is not null && indexConsts.Length == propOp.Arguments.Length)
@@ -925,6 +938,11 @@ public partial class ConstExprPartialRewriter
 						effectiveValue = ObjectExtensions.ExecuteBinaryOperation(kind, currentValue, rightValue);
 					}
 
+					if (IsCallerOwnedBuffer(instanceVal, out var listOwnerName) && listOwnerName is null)
+					{
+						return null;
+					}
+
 					if (loader.TryExecuteMethod(propOp.Property.SetMethod, instanceVal, new VariableItemDictionary(variables), indexConsts.Append(effectiveValue), out _))
 					{
 						// Mirrors the array branch above: instanceVal is the same reference as the tracked
@@ -932,7 +950,9 @@ public partial class ConstExprPartialRewriter
 						// it in place - any later read of this element already observes the write. The
 						// assignment statement can therefore collapse to its right-hand value, exactly like a
 						// folded array-element write, letting DeadCodePruner drop it once nothing reads it.
-						return TryCreateLiteral(effectiveValue, out var combinedLiteral) ? combinedLiteral : rightExpr;
+						var folded = TryCreateLiteral(effectiveValue, out var combinedLiteral) ? combinedLiteral : rightExpr;
+
+						return EmitCallerOwnedWrite(instanceVal, listOwnerName, indexConsts, folded, node);
 					}
 				}
 
@@ -941,6 +961,48 @@ public partial class ConstExprPartialRewriter
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	///   The result of an element write that was just applied to the tracked <paramref name="buffer" />.
+	///   For a local buffer that is <paramref name="folded" />, the written value - a placeholder
+	///   <see cref="DeadCodePruner" /> drops, since every later read folds against the tracked object. A
+	///   caller-owned buffer (<paramref name="ownerName" /> set) is the caller's object, possibly aliased
+	///   there, so the write itself is emitted as <c>owner[index] = value</c> - read back from the buffer, so
+	///   a compound or converting write spells its final element value. Later reads keep folding.
+	/// </summary>
+	private SyntaxNode EmitCallerOwnedWrite(object buffer, string? ownerName, object?[] indexConsts, SyntaxNode folded, AssignmentExpressionSyntax node)
+	{
+		if (ownerName is null)
+		{
+			return folded;
+		}
+
+		object? written = null;
+		var hasWritten = false;
+
+		if (buffer is Array array)
+		{
+			hasWritten = TryGetArrayElementValue(array, indexConsts, out written);
+		}
+		else if (buffer is IList list && indexConsts is [ int index ] && index >= 0 && index < list.Count)
+		{
+			written = list[index];
+			hasWritten = true;
+		}
+
+		if (hasWritten && TryCreateCallerOwnedWrite(ownerName, indexConsts, written, out var write))
+		{
+			MarkCallerOwnedBufferMutated(buffer);
+			return write;
+		}
+
+		// The write happened, but its index or value has no literal spelling. Keep the statement as written
+		// and stop folding this buffer: from here on its contents are whatever the runtime write produced.
+		MarkVariableAsAltered(ownerName);
+		MarkStateMutated();
+
+		return node;
 	}
 
 	/// <summary>

@@ -19,8 +19,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///     aliased away the same way.
 ///   </para>
 /// </summary>
+// Not a random-value test: the method writes into its (caller-owned) argument, and the folded-random
+// harness can only express `return <value>;` - the write has to stay in the output.
 [InheritsTests]
-public class BoundsCheckEliminationSpanTests : BaseTestWithRandomValues<Func<int[], int, int>>
+public class BoundsCheckEliminationSpanTests : BaseTest<Func<int[], int, int>>
 {
 	public override string TestMethod => GetString((array, i) =>
 	{
@@ -39,6 +41,13 @@ public class BoundsCheckEliminationSpanTests : BaseTestWithRandomValues<Func<int
 			Unsafe.Add(ref arrayRef, i) = i;
 
 			return Unsafe.Add(ref arrayRef, i) + arrayRef;
-		}, [ Unknown, Unknown ])
+		}, [ Unknown, Unknown ]),
+		Create("""
+			ref var arrayRef = ref MemoryMarshal.GetArrayDataReference(array);
+
+			Unsafe.Add(ref arrayRef, 2) = 2;
+
+			return 7;
+			""", new[] { 5, 6, 7 }, 2)
 	];
 }

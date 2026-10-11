@@ -486,7 +486,23 @@ public abstract class BaseTest<TDelegate>(FastMathFlags mathOptimizations = Fast
 		// may mutate its argument, and `parameters` is also handed to the rewriter afterwards as the
 		// "known" input to fold from - if the real invocation mutated the same array/list object in
 		// place, the rewriter would start folding from the post-mutation state instead of the original.
-		return _capturedMethod!.DynamicInvoke(parameters.Select(CloneParameterForInvocation).ToArray());
+		var clonedParameters = parameters.Select(CloneParameterForInvocation).ToArray();
+		var result = _capturedMethod!.DynamicInvoke(clonedParameters);
+
+		// The expected body is a bare `return <value>;`, which cannot carry a write to the caller's
+		// argument. A method that mutates one (`arr[0] = 9;`, an in-place swap) must keep that write in
+		// its generated body, so the folded expectation would only match an output that wrongly drops it.
+		for (var i = 0; i < parameters.Length; i++)
+		{
+			if (parameters[i] is IList original
+			    && clonedParameters[i] is IList invoked
+			    && !original.Cast<object?>().SequenceEqual(invoked.Cast<object?>()))
+			{
+				throw new InvalidOperationException($"CreateFolded cannot describe a method that mutates its argument (parameter {i}); use Create(...) with an explicit expected body.");
+			}
+		}
+
+		return result;
 	}
 
 	/// <summary>

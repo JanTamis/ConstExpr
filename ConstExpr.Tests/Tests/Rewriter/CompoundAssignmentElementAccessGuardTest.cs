@@ -11,8 +11,10 @@ namespace ConstExpr.Tests.Rewriter;
 ///   Here <c>result[1] = result[0] + numbers[1]</c> must NOT become <c>result[1] += numbers[1]</c>,
 ///   because <c>result[0]</c> and <c>result[1]</c> are different elements.
 /// </summary>
+// Not a random-value test: the method writes into its (caller-owned) argument, and the folded-random
+// harness can only express `return <value>;` - the write has to stay in the output.
 [InheritsTests]
-public class CompoundAssignmentElementAccessGuardTest : BaseTestWithRandomValues<Func<int[], int[], int[]>>
+public class CompoundAssignmentElementAccessGuardTest : BaseTest<Func<int[], int[], int[]>>
 {
 	public override string TestMethod => GetString((result, numbers) =>
 	{
@@ -33,6 +35,13 @@ public class CompoundAssignmentElementAccessGuardTest : BaseTestWithRandomValues
 			Unsafe.Add(ref resultRef, 1) = resultRef + Unsafe.Add(ref numbersRef, 1);
 
 			return result;
-		})
+		}),
+		Create("""
+			ref var resultRef = ref MemoryMarshal.GetArrayDataReference(result);
+
+			Unsafe.Add(ref resultRef, 1) = 21;
+
+			return result;
+			""", new[] { 1, 2, 3 }, new[] { 10, 20, 30 })
 	];
 }

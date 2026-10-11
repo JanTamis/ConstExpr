@@ -1104,6 +1104,30 @@ public partial class ConstExprPartialRewriter
 			return false;
 		}
 
+		// A caller-owned array must receive the increment at runtime too (see EmitCallerOwnedWrite). As a
+		// statement it becomes `owner[i] = updated;`; inside a larger expression it stays `owner[i]++` so the
+		// expression still observes the previous value.
+		if (IsCallerOwnedBuffer(arr, out var ownerName))
+		{
+			if (ownerName is null || !TryCreateCallerOwnedWrite(ownerName, indexConsts, updated, out var write))
+			{
+				return false;
+			}
+
+			if (node.Parent is ExpressionStatementSyntax || !returnPreviousValue)
+			{
+				result = write;
+			}
+			else
+			{
+				result = ((PostfixUnaryExpressionSyntax) node).WithOperand(((AssignmentExpressionSyntax) write).Left);
+			}
+
+			arr.SetValue(updated, index);
+			MarkCallerOwnedBufferMutated(arr);
+			return true;
+		}
+
 		arr.SetValue(updated, index);
 		result = lit;
 		return true;

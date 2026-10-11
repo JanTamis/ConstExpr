@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -56,6 +57,17 @@ public partial class ConstExprPartialRewriter(
 	private long _visitMemoFingerprint;
 	private long _mutationTicks;
 
+	/// <summary>
+	///   Buffers (arrays, lists) the caller handed in, mapped to the parameter name that holds them -
+	///   captured on the first <see cref="Visit" />, before the body has run and any local holds a value.
+	///   An element write into one of these must reach the caller's object at runtime, so it is emitted
+	///   instead of being folded away like a write into a local.
+	/// </summary>
+	private Dictionary<object, string>? _callerOwnedBuffers;
+
+	/// <summary>Caller-owned buffers that received an emitted element write; see <see cref="IsMutatedCallerOwnedBuffer" />.</summary>
+	private HashSet<object>? _mutatedCallerOwnedBuffers;
+
 	#endregion
 
 	#region Base Visit Overrides
@@ -63,6 +75,8 @@ public partial class ConstExprPartialRewriter(
 	[return: NotNullIfNotNull(nameof(node))]
 	public override SyntaxNode? Visit(SyntaxNode? node)
 	{
+		_callerOwnedBuffers ??= CollectCallerOwnedBuffers();
+
 		try
 		{
 			return base.Visit(node);
@@ -193,6 +207,106 @@ public partial class ConstExprPartialRewriter(
 		}
 	}
 
+	private sealed class ObjectReferenceComparer : IEqualityComparer<object>
+	{
+		public static readonly ObjectReferenceComparer Instance = new();
+
+		public new bool Equals(object? x, object? y)
+		{
+			return ReferenceEquals(x, y);
+		}
+
+		public int GetHashCode(object obj)
+		{
+			return RuntimeHelpers.GetHashCode(obj);
+		}
+	}
+
+	private Dictionary<object, string> CollectCallerOwnedBuffers()
+	{
+		var result = new Dictionary<object, string>(ObjectReferenceComparer.Instance);
+
+		foreach (var pair in variables)
+		{
+			if (pair.Value is { HasValue: true, Value: Array or IList } && !result.ContainsKey(pair.Value.Value))
+			{
+				result.Add(pair.Value.Value, pair.Key);
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	///   Whether <paramref name="buffer" /> belongs to the caller. <paramref name="name" /> is the parameter
+	///   that still holds it, or <see langword="null" /> when that parameter was reassigned since - the
+	///   write is then real but cannot be spelled through any name this rewriter can vouch for.
+	/// </summary>
+	private bool IsCallerOwnedBuffer(object? buffer, out string? name)
+	{
+		name = null;
+
+		if (buffer is null || _callerOwnedBuffers is null || !_callerOwnedBuffers.TryGetValue(buffer, out var parameterName))
+		{
+			return false;
+		}
+
+		if (variables.TryGetValue(parameterName, out var parameter) && ReferenceEquals(parameter.Value, buffer))
+		{
+			name = parameterName;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	///   Builds <c>name[i, …] = value</c> with literal indices and value, the form an element write into a
+	///   caller-owned buffer is emitted in. Literals only: the original index/value expressions can read
+	///   locals that are pruned once everything folds, and re-emitting an index like <c>i++</c> would repeat
+	///   its side effect.
+	/// </summary>
+	private bool TryCreateCallerOwnedWrite(string name, object?[] indices, object? value, [NotNullWhen(true)] out ExpressionSyntax? write)
+	{
+		write = null;
+
+		var indexLiterals = new List<ArgumentSyntax>(indices.Length);
+
+		foreach (var index in indices)
+		{
+			if (!TryCreateLiteral(index, out var indexLiteral))
+			{
+				return false;
+			}
+
+			indexLiterals.Add(Argument(indexLiteral));
+		}
+
+		if (!TryCreateLiteral(value, out var valueLiteral))
+		{
+			return false;
+		}
+
+		write = AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
+			ElementAccessExpression(IdentifierName(name), BracketedArgumentList(SeparatedList(indexLiterals))),
+			valueLiteral);
+
+		return true;
+	}
+
+	private void MarkCallerOwnedBufferMutated(object buffer)
+	{
+		(_mutatedCallerOwnedBuffers ??= new HashSet<object>(ObjectReferenceComparer.Instance)).Add(buffer);
+	}
+
+	/// <summary>
+	///   A caller-owned buffer that was written through keeps its identity: <c>return arr;</c> has to hand
+	///   back the caller's (now updated) object, not a fresh collection literal holding the same elements.
+	/// </summary>
+	private bool IsMutatedCallerOwnedBuffer(object? buffer)
+	{
+		return buffer is not null && _mutatedCallerOwnedBuffers?.Contains(buffer) == true;
+	}
+
 	public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
 	{
 		return null;
@@ -234,6 +348,19 @@ public partial class ConstExprPartialRewriter(
 			}
 
 			return result;
+		}
+
+		// The whole buffer escapes (returned, passed on) after a write was emitted into it: it must stay the
+		// caller's object. A local initialized from it (`Span<int> buf = array;`) is an alias from the start,
+		// so it keeps the name too - inlining a literal there would make `buf` track (and the emitted code
+		// hold) a copy, and a write through `buf` would never reach the caller. Reads through the buffer
+		// (`arr[0]`, `arr.Length`) still fold below.
+		if (variable.Value is { } buffer
+		    && !IsAccessReceiver(node)
+		    && (IsMutatedCallerOwnedBuffer(buffer)
+		        || node.Parent is EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax } && IsCallerOwnedBuffer(buffer, out _)))
+		{
+			return node.WithTypeSymbolAnnotation(variable.Type, symbolStore);
 		}
 
 		// If variable has a known constant value and hasn't been altered, inline it.
@@ -305,7 +432,8 @@ public partial class ConstExprPartialRewriter(
 			// For increment/decrement of a plain (possibly symbolic/unknown) variable that evaluate
 			// to literals, keep the original syntax so the real runtime increment still happens.
 			// Element-access increments (e.g. counts[c]++) that fold this far are on a fully
-			// tracked array, so the literal placeholder is safe — DeadCodePruner removes it.
+			// tracked LOCAL array, so the literal placeholder is safe — DeadCodePruner removes it.
+			// A caller-owned array never gets here: its write is emitted (see EmitCallerOwnedWrite).
 			LiteralExpressionSyntax when node.Expression is PostfixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } or PrefixUnaryExpressionSyntax { Operand: IdentifierNameSyntax } => node,
 			// A discarded pure call executed at compile time (e.g. LINQ `data.Reverse();`) folds to its
 			// value - `[3, 2, 1];` is not a legal statement (CS0201) and the value is unused, so the whole
@@ -375,6 +503,17 @@ public partial class ConstExprPartialRewriter(
 		{
 			ElementAccessExpressionSyntax { Expression: var expression } elementAccess when expression == node => IsWritableStorageAccess(elementAccess),
 			MemberAccessExpressionSyntax { Expression: var expression } memberAccess when expression == node => IsWritableStorageAccess(memberAccess),
+			_ => false
+		};
+	}
+
+	private static bool IsAccessReceiver(IdentifierNameSyntax node)
+	{
+		return node.Parent switch
+		{
+			ElementAccessExpressionSyntax elementAccess => elementAccess.Expression == node,
+			MemberAccessExpressionSyntax memberAccess => memberAccess.Expression == node,
+			ConditionalAccessExpressionSyntax conditionalAccess => conditionalAccess.Expression == node,
 			_ => false
 		};
 	}

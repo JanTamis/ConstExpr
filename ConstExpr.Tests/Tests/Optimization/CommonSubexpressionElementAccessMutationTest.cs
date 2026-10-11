@@ -6,18 +6,11 @@ namespace ConstExpr.Tests.Optimization;
 // Regression: `arr[k]` is read, then `arr` is written via an indexer, then `arr[k]` is read again.
 // The two reads are NOT the same value, so CSE must not merge them. A buggy pass tracks only plain
 // identifier assignments as mutations and misses the indexer write, hoisting a single `arr[k]`.
+// Not a random-value test: the method writes into its (caller-owned) argument, and the folded-random
+// harness can only express `return <value>;` - the write has to stay in the output.
 [InheritsTests]
-public class CommonSubexpressionElementAccessMutationTest : BaseTestWithRandomValues<Func<int[], int, int>>
+public class CommonSubexpressionElementAccessMutationTest : BaseTest<Func<int[], int, int>>
 {
-	// arr[k] and arr[0] need a non-empty array and an in-range k. A full-range random int never is, so every
-	// draw threw and was discarded - the random pass checked nothing at all. Capped to 0-3 against the
-	// generator's 0-8 element arrays.
-	protected override int MaxRandomMagnitudeBits => 2;
-
-	// Floor well under the count actually achieved, so a future generator or seed change that silently
-	// starves this class again fails loudly instead of quietly checking one case.
-	protected override int MinRandomTestCaseCount => 2;
-
 	public override string TestMethod => GetString((arr, k) =>
 	{
 		var x = arr[k];
@@ -37,6 +30,18 @@ public class CommonSubexpressionElementAccessMutationTest : BaseTestWithRandomVa
 			var y = Unsafe.Add(ref arrRef, k);
 
 			return (x << 1) + (y << 1);
-		})
+		}),
+		Create("""
+			ref var arrRef = ref MemoryMarshal.GetArrayDataReference(arr);
+			arrRef = 9;
+
+			return 20;
+			""", new[] { 1, 2, 3 }, 0),
+		Create("""
+			ref var arrRef = ref MemoryMarshal.GetArrayDataReference(arr);
+			arrRef = 9;
+
+			return 8;
+			""", new[] { 1, 2, 3 }, 1)
 	];
 }
