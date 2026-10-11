@@ -31,6 +31,16 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 	public bool ShouldThrow { get; set; } = true;
 
+	/// <summary>
+	///   Throw when an invocation cannot be executed instead of evaluating it to <see langword="null" />. A
+	///   caller that folds a whole body to a literal must set this: a void call that silently fails (e.g. the
+	///   in-place <c>MemoryExtensions.Reverse&lt;T&gt;(Span&lt;T&gt;)</c>, which reflection cannot invoke with a
+	///   ref-struct argument) would otherwise just vanish and the rest of the body would read stale state.
+	/// </summary>
+	public bool FailOnUnexecutedInvocation { get; set; }
+
+	private sealed class UnexecutedInvocationException(string message) : Exception(message);
+
 	public override object? DefaultVisit(IOperation operation, IDictionary<string, object?> argument)
 	{
 		if (operation.ConstantValue is { HasValue: true, Value: var value })
@@ -158,7 +168,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		{
 			if (indexers.All(i => i is int or char))
 			{
-				return arr.GetValue(indexers.Select(i => i is char c ? c : (int)i).ToArray());
+				return arr.GetValue(indexers.Select(i => i is char c ? c : (int) i).ToArray());
 			}
 
 			if (indexers.All(i => i is long))
@@ -170,7 +180,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 
 			if (indexers.All(i => i.GetType() == rangeType))
 			{
-				var range = (ValueTuple<int, int>)rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
+				var range = (ValueTuple<int, int>) rangeType.GetMethod("GetOffsetAndLength").Invoke(indexers[0], [ arr.Length ]);
 				var result = Array.CreateInstance(arr.GetType().GetElementType(), range.Item2);
 
 				Array.Copy(arr, range.Item1, result, 0, range.Item2);
@@ -262,7 +272,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			{
 				if (indices.All(a => a is int or char))
 				{
-					arr.SetValue(value, indices.Select(a => a is char c ? c : (int)a).ToArray());
+					arr.SetValue(value, indices.Select(a => a is char c ? c : (int) a).ToArray());
 				}
 				else if (indices.All(a => a is long))
 				{
@@ -526,7 +536,10 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 					variables.Add(parameterName, arguments[i]);
 				}
 
-				var visitor = new ConstExprOperationVisitor(model, loader, exceptionHandler, token);
+				var visitor = new ConstExprOperationVisitor(model, loader, exceptionHandler, token)
+				{
+					FailOnUnexecutedInvocation = FailOnUnexecutedInvocation
+				};
 
 				switch (methodOperation)
 				{
@@ -546,7 +559,11 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 			}
 		}
 
-		loader.TryExecuteMethod(targetMethod, instance, argument, arguments, out var value);
+		if (!loader.TryExecuteMethod(targetMethod, instance, argument, arguments, out var value) && FailOnUnexecutedInvocation)
+		{
+			throw new UnexecutedInvocationException($"Could not execute '{targetMethod}' at compile time.");
+		}
+
 		return value;
 	}
 
@@ -898,7 +915,7 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 				var indices = arrayElement.Indices.Select(s => Visit(s, argument)).ToArray();
 
 				if (indices.All(i => i is int or char))
-					arr.SetValue(newValue, indices.Select(i => i is char c ? c : (int)i).ToArray());
+					arr.SetValue(newValue, indices.Select(i => i is char c ? c : (int) i).ToArray());
 				else if (indices.All(i => i is long))
 					arr.SetValue(newValue, indices.Cast<long>().ToArray());
 			}
@@ -1082,17 +1099,17 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		return operation.Type?.SpecialType switch
 		{
 			SpecialType.System_Boolean => false,
-			SpecialType.System_Byte => (byte)0,
-			SpecialType.System_Char => (char)0,
+			SpecialType.System_Byte => (byte) 0,
+			SpecialType.System_Char => (char) 0,
 			SpecialType.System_DateTime => default(DateTime),
 			SpecialType.System_Decimal => 0M,
 			SpecialType.System_Double => 0D,
-			SpecialType.System_Int16 => (short)0,
+			SpecialType.System_Int16 => (short) 0,
 			SpecialType.System_Int32 => 0,
 			SpecialType.System_Int64 => 0L,
-			SpecialType.System_SByte => (sbyte)0,
+			SpecialType.System_SByte => (sbyte) 0,
 			SpecialType.System_Single => 0F,
-			SpecialType.System_UInt16 => (ushort)0,
+			SpecialType.System_UInt16 => (ushort) 0,
 			SpecialType.System_UInt32 => 0U,
 			SpecialType.System_UInt64 => 0UL,
 			_ => Activator.CreateInstance(loader.GetType(operation.Type))
@@ -1429,7 +1446,8 @@ public class ConstExprOperationVisitor(SemanticModel model, MetadataLoader loade
 		{
 			Visit(operation.Body, argument);
 		}
-		catch (Exception e)
+		// Not an exception the user's code raised: a `catch { }` in the body must not turn it into a fold.
+		catch (Exception e) when (e is not UnexecutedInvocationException)
 		{
 			foreach (var exception in operation.Catches)
 			{

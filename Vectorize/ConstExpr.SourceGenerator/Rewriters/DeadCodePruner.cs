@@ -335,14 +335,19 @@ public sealed class DeadCodePruner(VariableUsageCollector usageCollector, IDicti
 			// entire lifetime (including this call) is visible in this scope, with no remaining reads
 			// - is prunable exactly like a dead assignment to that receiver would be. Only when every
 			// argument is side-effect-free: an argument that isn't (e.g. a call still standing there)
-			// would lose that side effect along with the statement. Does not apply to a mutating call
-			// on a parameter - CanBePruned already refuses those via IsAltered/HasValue, since a
-			// parameter's receiver can be aliased by the caller and the mutation must reach it.
+			// would lose that side effect along with the statement. Only for a receiver declared inside
+			// this scope: a parameter's object belongs to the caller (and can be aliased there), so the
+			// mutation must reach it at runtime. CanBePruned alone does not refuse a parameter - a call
+			// reflectively executed against a known parameter value (`list.Add(4)` with `list` fuzzed by
+			// a test) deliberately leaves it un-altered so later reads keep folding against it. Not the
+			// `isFullScope` escape CanBePrunedAssignment uses: a parameter is exactly what that admits.
 			case InvocationExpressionSyntax
-			{
-				Expression: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax mutatingCallReceiver },
-				ArgumentList.Arguments: var mutatingCallArguments
-			} when CanBePruned(mutatingCallReceiver.Identifier.Text) && mutatingCallArguments.All(a => IsConstantExpression(a.Expression)):
+				{
+					Expression: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax mutatingCallReceiver },
+					ArgumentList.Arguments: var mutatingCallArguments
+				} when locallyDeclaredVariables.Contains(mutatingCallReceiver.Identifier.Text)
+				       && CanBePruned(mutatingCallReceiver.Identifier.Text)
+				       && mutatingCallArguments.All(a => IsConstantExpression(a.Expression)):
 			{
 				return null;
 			}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -686,13 +687,20 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		var fullVars = new Dictionary<string, object?>();
+		var copies = new object?[constantValues.Count];
 
+		// The values are the very objects the partial rewriter tracks. Evaluate against copies, so a body
+		// that mutates an argument and then fails to fold does not hand partial evaluation mutated state.
 		for (var pi = 0; pi < paramList.Parameters.Count; pi++)
 		{
-			fullVars[paramList.Parameters[pi].Identifier.Text] = constantValues[pi];
+			copies[pi] = CopyMutableBuffer(constantValues[pi]);
+			fullVars[paramList.Parameters[pi].Identifier.Text] = copies[pi];
 		}
 
-		var fullVisitor = new ConstExprOperationVisitor(model, loader, (_, _) => { }, token);
+		var fullVisitor = new ConstExprOperationVisitor(model, loader, (_, _) => { }, token)
+		{
+			FailOnUnexecutedInvocation = true
+		};
 
 		try
 		{
@@ -708,6 +716,17 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 					return null;
 			}
 
+			// A literal return value cannot carry a side effect: when the body mutated an argument in place
+			// (`Array.Reverse(data)`, `list.Add(4)`), the caller - who may alias that object - must still see
+			// it, so leave this call to partial evaluation, which keeps the mutating call in the output.
+			for (var pi = 0; pi < copies.Length; pi++)
+			{
+				if (!MutableBufferContentsEqual(constantValues[pi], copies[pi]))
+				{
+					return null;
+				}
+			}
+
 			if (fullVars.TryGetValue(ConstExprOperationVisitor.RETURNVARIABLENAME, out var returnValue)
 			    && returnValue is not null
 			    && TryCreateLiteral(returnValue, out var literalResult))
@@ -721,6 +740,32 @@ public class ConstExprSourceGenerator() : IncrementalGenerator("ConstExpr")
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	///   A shallow copy of an array or <see cref="List{T}" />; any other value is returned as-is.
+	/// </summary>
+	private static object? CopyMutableBuffer(object? value)
+	{
+		return value switch
+		{
+			Array array => array.Clone(),
+			IList list when list.GetType() is { IsGenericType: true } type && type.GetGenericTypeDefinition() == typeof(List<>)
+				=> Activator.CreateInstance(type, list),
+			_ => value
+		};
+	}
+
+	private static bool MutableBufferContentsEqual(object? original, object? copy)
+	{
+		if (ReferenceEquals(original, copy))
+		{
+			return true;
+		}
+
+		return original is IEnumerable originalItems
+		       && copy is IEnumerable copyItems
+		       && originalItems.Cast<object?>().SequenceEqual(copyItems.Cast<object?>());
 	}
 
 	public static Dictionary<string, VariableItem> ProcessArguments(ConstExprOperationVisitor visitor, SemanticModel model, InvocationExpressionSyntax invocation, MetadataLoader loader, RoslynApiCache apiCache, CancellationToken token)
